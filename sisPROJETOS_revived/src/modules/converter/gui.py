@@ -89,13 +89,21 @@ class ConverterGUI(ctk.CTkFrame):
             self.marker_list = []
             
             for p in self.placemarks:
-                # p is (name, lon, lat, alt)
-                marker = self.map_widget.set_marker(p[2], p[1], text=p[0])
-                self.marker_list.append(marker)
+                # p is a kml.Placemark object
+                if hasattr(p.geometry, 'x'): # Point
+                    marker = self.map_widget.set_marker(p.geometry.y, p.geometry.x, text=p.name)
+                    self.marker_list.append(marker)
+                elif hasattr(p.geometry, 'coords'): # LineString/Polygon
+                    for lon, lat, *z in p.geometry.coords:
+                         marker = self.map_widget.set_marker(lat, lon, text=p.name)
+                         self.marker_list.append(marker)
             
             if self.placemarks:
-                # Set view to first marker
-                self.map_widget.set_position(self.placemarks[0][2], self.placemarks[0][1])
+                first_p = self.placemarks[0]
+                if hasattr(first_p.geometry, 'x'):
+                    self.map_widget.set_position(first_p.geometry.y, first_p.geometry.x)
+                elif hasattr(first_p.geometry, 'coords'):
+                    self.map_widget.set_position(first_p.geometry.coords[0][1], first_p.geometry.coords[0][0])
                 self.map_widget.set_zoom(15)
 
             count = len(self.df)
