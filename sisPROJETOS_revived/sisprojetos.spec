@@ -8,11 +8,28 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('src/resources', 'src/resources')],  # Database removed - goes to AppData
-    hiddenimports=['encodings', 'customtkinter', 'tkinter', 'PIL', 'PIL.Image'],
+    hiddenimports=[
+        # Core
+        'encodings', 'encodings.utf_8', 'codecs',
+        # GUI
+        'customtkinter', 'tkinter', 'tkinter.font', 'tkinter.filedialog', 'tkinter.messagebox',
+        # Imaging
+        'PIL', 'PIL.Image', 'PIL.ImageDraw', 'PIL.ImageFont', 'PIL.JpegImagePlugin',
+        # Data processing
+        'numpy', 'pandas', 'scipy', 'scipy.optimize',
+        # Additional utilities
+        'matplotlib', 'matplotlib.pyplot', 'matplotlib.backends.backend_tkagg',
+        # Geospatial
+        'pyproj',
+        # Network
+        'requests', 'urllib3', 'urllib',
+        # Extensions
+        'json', 'csv', 'datetime', 'os', 'sys', 'pathlib', 're',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tests', 'pytest'],  # Removed setuptools, pip, wheel, distutils - needed by dependencies
+    excludes=['tests', 'pytest', 'notebook', 'jupyter', 'IPython'],
     noarchive=False,
     optimize=2,  # Bytecode optimization level 2
 )
@@ -26,8 +43,8 @@ exe = EXE(
     name='sisPROJETOS',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,  # Remove debug symbols
-    upx=True,
+    strip=False,  # Don't strip - can cause issues
+    upx=False,    # Don't compress - can cause issues
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -39,8 +56,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=True,  # Remove debug symbols
-    upx=True,
-    upx_exclude=['vcruntime140.dll', 'python312.dll'],  # Don't compress runtime DLLs
+    strip=False,  # Don't strip - can cause issues
+    upx=False,    # Don't compress - can cause issues
     name='sisPROJETOS',
 )
