@@ -17,10 +17,10 @@ from .logger import LogContext, get_logger, setup_logger
 def resource_path(relative_path):
     """
     Get absolute path to resource, works for dev and for PyInstaller.
-    
+
     Args:
         relative_path: Path relative to the project root
-        
+
     Returns:
         str: Absolute path to the resource
     """
