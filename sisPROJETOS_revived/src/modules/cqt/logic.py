@@ -3,7 +3,14 @@ from database.db_manager import DatabaseManager
 
 
 class CQTLogic:
+    """Lógica para cálculos de CQT (Custo de Qualidade Total) e BDI.
+
+    Implementa metodologia de concessionárias brasileiras para cálculo de
+    momento elétrico, fator de demanda, e dimensionamento de redes de distribuição.
+    """
+
     def __init__(self):
+        """Inicializa a lógica de CQT e carrega coeficientes do banco."""
         self.db = DatabaseManager()
         # UNIT_DIVISOR for meters to hectometers (Enel methodology)
         self.UNIT_DIVISOR = 100.0

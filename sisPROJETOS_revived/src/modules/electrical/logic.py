@@ -36,12 +36,34 @@ class ElectricalLogic:
             return 0.0282
 
     def calculate_voltage_drop(self, power_kw, distance_m, voltage_v, material, section_mm2, cos_phi=0.92, phases=3):
-        """Calculates the percentage voltage drop."""
+        """Calculates the percentage voltage drop.
+
+        Args:
+            power_kw: Power in kilowatts (must be > 0)
+            distance_m: Distance in meters (must be > 0)
+            voltage_v: Voltage in volts (must be > 0)
+            material: Material type (e.g., 'aluminum', 'copper')
+            section_mm2: Cross-sectional area in mm² (must be > 0)
+            cos_phi: Power factor (default 0.92, must be between 0 and 1)
+            phases: Number of phases (1 or 3)
+
+        Returns:
+            dict: Voltage drop calculation results or None on error
+        """
         try:
+            # Input validation
             p = float(power_kw) * 1000
             distance = float(distance_m)
             v = float(voltage_v)
             s = float(section_mm2)
+
+            if p <= 0 or distance <= 0 or v <= 0 or s <= 0:
+                raise ValueError("Power, distance, voltage, and section must be positive")
+            if not 0 < cos_phi <= 1:
+                raise ValueError("Power factor must be between 0 and 1")
+            if phases not in (1, 3):
+                raise ValueError("Phases must be 1 or 3")
+
             rho = self.get_resistivity(material)
 
             if phases == 3:
