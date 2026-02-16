@@ -1,12 +1,38 @@
 import sqlite3
 import os
+import shutil
 from utils import resource_path
 
 class DatabaseManager:
+    """Gerenciador centralizado de banco de dados SQLite.
+    
+    Responsável por criar, inicializar e fornecer acesso ao banco de dados
+    que armazena dados técnicos de condutores, postes, concessionárias e
+    parâmetros de cálculo.
+    """
+    
     def __init__(self, db_path=None):
+        """Inicializa o gerenciador de banco de dados.
+        
+        Args:
+            db_path (str, optional): Caminho personalizado para o banco.
+                Se None, usa AppData do usuário para escrita garantida.
+        """
         if db_path is None:
-            # Centralized resource path helper
-            self.db_path = resource_path(os.path.join("src", "resources", "sisprojetos.db"))
+            # Use AppData for writable database (supports PyInstaller bundled apps)
+            appdata = os.getenv('APPDATA') or os.path.expanduser('~')
+            app_dir = os.path.join(appdata, 'sisPROJETOS')
+            os.makedirs(app_dir, exist_ok=True)
+            self.db_path = os.path.join(app_dir, 'sisprojetos.db')
+            
+            # If DB doesn't exist, copy from resources or create fresh
+            if not os.path.exists(self.db_path):
+                resource_db = resource_path(os.path.join("src", "resources", "sisprojetos.db"))
+                if os.path.exists(resource_db):
+                    try:
+                        shutil.copy2(resource_db, self.db_path)
+                    except Exception as e:
+                        print(f"Warning: Could not copy resource DB: {e}")
         else:
             self.db_path = db_path
             

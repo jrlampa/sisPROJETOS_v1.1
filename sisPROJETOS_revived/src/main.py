@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from __version__ import __version__
 from modules.converter.gui import ConverterGUI
 from modules.catenaria.gui import CatenaryGUI
 from modules.project_creator.gui import ProjectCreatorGUI
@@ -13,7 +14,7 @@ class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("sisPROJETOS - Engenharia e Projetos v2.0")
+        self.title(f"sisPROJETOS - Engenharia e Projetos v{__version__}")
         self.geometry("1100x750")
         self.configure(fg_color=DesignSystem.BG_WINDOW)
         
@@ -45,8 +46,6 @@ class MainApp(ctk.CTk):
             frame = F(parent=self.container, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        
-        self.show_frame("Menu")
         
         self.show_frame("Menu")
 

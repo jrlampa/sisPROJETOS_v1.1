@@ -1,6 +1,6 @@
 from fpdf import FPDF
 import datetime
-import os
+
 
 class PoleLoadReport(FPDF):
     def header(self):

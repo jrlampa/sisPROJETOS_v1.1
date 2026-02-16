@@ -1,10 +1,11 @@
 import os
 import sys
+from groq import Groq
+from dotenv import load_dotenv
+
 # Adjust path for internal module access
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 from utils import resource_path
-from groq import Groq
-from dotenv import load_dotenv
 
 class AIAssistantLogic:
     def __init__(self):

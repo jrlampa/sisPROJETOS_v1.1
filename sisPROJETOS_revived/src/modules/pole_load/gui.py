@@ -4,9 +4,9 @@ from .logic import PoleLoadLogic
 from .report import generate_report
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import os
 
 from styles import DesignSystem
+
 
 class PoleLoadGUI(ctk.CTkFrame):
     def __init__(self, parent, controller):

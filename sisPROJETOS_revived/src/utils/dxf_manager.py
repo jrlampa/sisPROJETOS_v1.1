@@ -1,6 +1,5 @@
 import ezdxf
 import math
-import numpy as np
 
 class DXFManager:
     @staticmethod

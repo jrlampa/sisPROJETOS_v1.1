@@ -18,6 +18,9 @@ class CQTLogic:
             (31, 50, 0.80, 1.20, 2.00, 3.00),
             (51, 9999, 0.50, 0.80, 1.30, 2.00),
         ]
+        
+        # Load cable coefficients
+        self.CABOS_COEFS = self.get_cable_coefs()
 
     def get_cable_coefs(self):
         """Fetches cable coefficients from database."""

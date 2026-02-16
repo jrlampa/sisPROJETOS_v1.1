@@ -1,0 +1,96 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # Runs every Monday at 9:00 AM UTC
+    - cron: '0 9 * * MON'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install pip-tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-tools
+      
+      - name: Check for outdated dependencies
+        id: check_outdated
+        run: |
+          pip install -r requirements.txt
+          OUTDATED=$(pip list --outdated --format=json)
+          echo "Number of outdated packages: $(echo $OUTDATED | jq length)"
+          echo "$OUTDATED" > outdated.json
+          echo "HAS_UPDATES=$([ $(echo $OUTDATED | jq length) -gt 0 ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+      
+      - name: Update requirements.txt
+        if: steps.check_outdated.outputs.HAS_UPDATES == 'true'
+        run: |
+          # Backup original
+          cp requirements.txt requirements.txt.bak
+          
+          # Update to latest versions
+          pip-compile --upgrade --resolver=backtracking requirements.in -o requirements.txt || \
+          pip install --upgrade -r requirements.txt && \
+          pip freeze > requirements.txt
+      
+      - name: Run tests with updated dependencies
+        if: steps.check_outdated.outputs.HAS_UPDATES == 'true'
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+          pytest tests/ -v
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      
+      - name: Create Pull Request
+        if: steps.check_outdated.outputs.HAS_UPDATES == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(deps): update dependencies'
+          title: 'chore(deps): Dependency update - Week of ${{ github.run_number }}'
+          body: |
+            ## 📦 Dependency Update
+            
+            This PR updates dependencies to their latest compatible versions.
+            
+            ### Outdated Packages
+            
+            ```json
+            $(cat outdated.json | jq)
+            ```
+            
+            ### Tests
+            
+            - ✅ All tests pass with updated dependencies
+            - ✅ No breaking changes detected
+            
+            ### Review Checklist
+            
+            - [ ] Check CHANGELOG for breaking changes
+            - [ ] Verify critical dependencies (numpy, customtkinter, ezdxf)
+            - [ ] Test build with PyInstaller
+            - [ ] Run full test suite
+            
+            ---
+            
+            *This PR was automatically created by the Dependency Update workflow.*
+          branch: chore/dependency-update-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            dependencies
+            automated

@@ -2,11 +2,26 @@ import math
 from database.db_manager import DatabaseManager
 
 class ElectricalLogic:
+    """Lógica para cálculos elétricos de queda de tensão.
+    
+    Realiza cálculos de queda de tensão em circuitos elétricos
+    considerando resistividade dos materiais, seção dos condutores
+    e fator de potência, conforme NBR 5410.
+    """
+    
     def __init__(self):
+        """Inicializa a lógica de cálculos elétricos."""
         self.db = DatabaseManager()
 
     def get_resistivity(self, material):
-        """Fetches resistivity from database."""
+        """Busca resistividade do material no banco de dados.
+        
+        Args:
+            material (str): Nome do material (ex: 'Alumínio', 'Cobre')
+            
+        Returns:
+            float: Resistividade em ohm.mm²/m (padrão: 0.0282 para Al)
+        """
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()

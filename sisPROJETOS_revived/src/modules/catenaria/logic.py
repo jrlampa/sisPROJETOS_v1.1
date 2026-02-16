@@ -1,11 +1,16 @@
 from database.db_manager import DatabaseManager
 import numpy as np
-import ezdxf
-import os
-import math
+
 
 class CatenaryLogic:
+    """Lógica para cálculos de catenária de condutores.
+    
+    Realiza cálculos de flecha, tração e curva catenária para condutores
+    de linhas aéreas de distribuição elétrica conforme NBR 5422.
+    """
+    
     def __init__(self):
+        """Inicializa a lógica de catenária e carrega condutores do banco."""
         self.db = DatabaseManager()
         self.conductors = []
         self.load_conductors()
@@ -28,9 +33,22 @@ class CatenaryLogic:
             self.conductors = []
 
     def get_conductor_names(self):
+        """Retorna lista de nomes de condutores disponíveis.
+        
+        Returns:
+            list: Lista de nomes de condutores cadastrados
+        """
         return [c["nome_cadastro"] for c in self.conductors]
 
     def get_conductor_by_name(self, name):
+        """Busca condutor por nome.
+        
+        Args:
+            name (str): Nome do condutor
+            
+        Returns:
+            dict or None: Dados do condutor ou None se não encontrado
+        """
         for c in self.conductors:
             if c["nome_cadastro"] == name:
                 return c

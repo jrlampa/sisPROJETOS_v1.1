@@ -1,13 +1,19 @@
-import os
 import zipfile
 import pandas as pd
 import ezdxf
 from pyproj import CRS, Transformer
 from fastkml import kml
-from shapely.geometry import Point, LineString, Polygon
+
 
 class ConverterLogic:
+    """Lógica para conversão de arquivos KMZ/KML para coordenadas UTM.
+    
+    Converte placemarks do Google Earth (KMZ/KML) para coordenadas UTM
+    e exporta para Excel (XLSX) ou AutoCAD (DXF).
+    """
+    
     def __init__(self):
+        """Inicializa o conversor de coordenadas."""
         pass
 
     def load_file(self, filepath):

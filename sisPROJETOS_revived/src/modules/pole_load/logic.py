@@ -2,13 +2,27 @@ import math
 from database.db_manager import DatabaseManager
 
 class PoleLoadLogic:
+    """Lógica para cálculo de esforços mecânicos em postes.
+    
+    Calcula a resultante de forças em postes de distribuição elétrica
+    através de análise vetorial de trações de condutores, conforme
+    padrões das concessionárias Light e Enel.
+    """
+    
     def __init__(self):
+        """Inicializa a lógica de cálculo de esforços e carrega dados."""
         self.db = DatabaseManager()
         self.DADOS_POSTES_NOMINAL = {}
+        self.DADOS_CONCESSIONARIAS = {}
         self.load_poles()
+        self.load_concessionaires_data()
 
     def get_concessionaires(self):
-        """Returns list of concessionaire names from DB."""
+        """Retorna lista de concessionárias cadastradas.
+        
+        Returns:
+            list: Lista de nomes de concessionárias
+        """
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()
@@ -20,16 +34,30 @@ class PoleLoadLogic:
             return ["Light", "Enel"] # Fallback
 
     def get_concessionaire_method(self, name):
-        """Returns calculation method for a concessionaire."""
+        """Returns calculation method for a concessionaire.
+        
+        Args:
+            name (str): Nome da concessionária
+            
+        Returns:
+            str: Método de cálculo ('flecha' ou 'tabela')
+            
+        Raises:
+            KeyError: Se a concessionária não for encontrada
+        """
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT method FROM concessionaires WHERE name=?", (name,))
             row = cursor.fetchone()
             conn.close()
-            return row[0] if row else "flecha"
-        except Exception:
-            return "flecha"
+            if row is None:
+                raise KeyError(f"Concessionária '{name}' não encontrada no banco de dados")
+            return row[0]
+        except Exception as e:
+            if isinstance(e, KeyError):
+                raise
+            raise KeyError(f"Erro ao buscar concessionária '{name}': {str(e)}")
 
     def load_poles(self):
         """Loads poles from SQLite database."""
@@ -46,6 +74,35 @@ class PoleLoadLogic:
             conn.close()
         except Exception as e:
             print(f"Error loading poles from DB: {e}")
+    
+    def load_concessionaires_data(self):
+        """Carrega estrutura de concessionárias com redes e condutores.
+        
+        Cria estrutura compatível com GUI:
+        DADOS_CONCESSIONARIAS = {
+            'Light': {'REDES_PARA_CONDUTORES': {...}},
+            'Enel': {'REDES_PARA_CONDUTORES': {...}}
+        }
+        """
+        try:
+            # Estrutura fallback baseada nos dados originais
+            self.DADOS_CONCESSIONARIAS = {
+                "Light": {
+                    "REDES_PARA_CONDUTORES": {
+                        "Rede Primária": ["556MCM-CA, Nu", "397MCM-CA, Nu"],
+                        "Rede Secundária": ["1/0AWG-CAA, Nu", "4 AWG-CAA, Nu"]
+                    }
+                },
+                "Enel": {
+                    "REDES_PARA_CONDUTORES": {
+                        "Rede MT": ["1/0 CA"],
+                        "Rede BT": ["BT 3x35+54.6"]
+                    }
+                }
+            }
+        except Exception as e:
+            print(f"Error loading concessionaires data: {e}")
+            self.DADOS_CONCESSIONARIAS = {}
 
     def interpolar(self, tabela, vao):
         if not isinstance(tabela, dict): return 0
