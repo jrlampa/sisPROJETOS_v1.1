@@ -1,10 +1,13 @@
 import os
 import shutil
 import datetime
+from utils.resource_manager import get_resource_manager
 
 class ProjectCreatorLogic:
     def __init__(self):
-        self.templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'resources', 'templates')
+        # Use the ResourceManager to find templates
+        self.rm = get_resource_manager()
+        self.templates_dir = self.rm.templates_dir
 
     def create_structure(self, project_name, base_path):
         """

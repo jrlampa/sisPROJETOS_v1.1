@@ -7,7 +7,10 @@ a = Analysis(
     ['src\\main.py'],
     pathex=[],
     binaries=[],
-    datas=[('src/resources', 'src/resources')],  # Database removed - goes to AppData
+    datas=[
+        ('./src/resources/templates', './resources/templates'),  # Templates (models, DWG files)
+        ('./src/resources/sisprojetos.db', './resources/')  # Database
+    ],
     hiddenimports=[
         # Core
         'encodings', 'encodings.utf_8', 'codecs',
