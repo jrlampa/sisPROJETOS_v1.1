@@ -104,6 +104,17 @@ class DatabaseManager:
             )
         ''')
 
+        # Table for Load Tables (Pole Load calculations)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS load_tables (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                concessionaire TEXT NOT NULL,
+                conductor_name TEXT NOT NULL,
+                span_m INTEGER,
+                load_daN REAL NOT NULL
+            )
+        ''')
+
         self.pre_populate_data(cursor)
 
         conn.commit()
