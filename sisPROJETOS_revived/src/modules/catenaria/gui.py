@@ -167,7 +167,7 @@ class CatenaryGUI(ctk.CTkFrame):
             return
             
         try:
-            self.logic.export_dxf(filepath, self.curve_data["x_vals"], self.curve_data["y_vals"])
+            self.logic.export_dxf(filepath, self.curve_data["x_vals"], self.curve_data["y_vals"], self.curve_data["sag"])
             messagebox.showinfo("Sucesso", "DXF exportado com sucesso!")
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao exportar: {e}")

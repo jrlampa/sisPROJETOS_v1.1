@@ -1,0 +1,23 @@
+[
+    {
+        "nome_cadastro": "CAA 4 AWG (Padrão MT)",
+        "P_kg_m": 0.2162,
+        "T0_daN": 125.0,
+        "HA": 12.0,
+        "HB": 12.0
+    },
+    {
+        "nome_cadastro": "CAA 2 AWG",
+        "P_kg_m": 0.343,
+        "T0_daN": 180.0,
+        "HA": 12.0,
+        "HB": 12.0
+    },
+    {
+        "nome_cadastro": "Cobre Nu 25mm2 (Padrão BT)",
+        "P_kg_m": 0.222,
+        "T0_daN": 150.0,
+        "HA": 10.5,
+        "HB": 10.5
+    }
+]

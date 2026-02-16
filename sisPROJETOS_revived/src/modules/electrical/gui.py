@@ -111,29 +111,3 @@ class ElectricalGUI(ctk.CTkFrame):
         except Exception as e:
             messagebox.showerror("Erro", str(e))
 
-    def calculate(self):
-        try:
-            power = self.ent_power.get()
-            dist = self.ent_dist.get()
-            volt = self.cmb_voltage.get()
-            mat = self.cmb_mat.get()
-            sec = self.cmb_sec.get()
-            phases = 3 if "3" in self.cmb_phases.get() else 1
-            
-            res = self.logic.calculate_voltage_drop(power, dist, volt, mat, sec, phases=phases)
-            
-            if res:
-                color = "green" if res['allowed'] else "red"
-                status = "✅ DENTRO DO LIMITE (5%)" if res['allowed'] else "❌ FORA DO LIMITE (>5%)"
-                
-                txt = (f"Corrente: {res['current']:.2f} A\n"
-                       f"Queda de Tensão: {res['delta_v_volts']:.2f} V\n"
-                       f"Percentual: {res['percentage_drop']:.2f}%\n\n"
-                       f"{status}")
-                self.lbl_res.configure(text=txt, text_color=color)
-                # Share context with AI
-                self.controller.project_context["electrical"] = res
-            else:
-                messagebox.showerror("Erro", "Check input values")
-        except Exception as e:
-            messagebox.showerror("Erro", str(e))

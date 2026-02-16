@@ -48,20 +48,65 @@ class DatabaseManager:
             )
         ''')
         
-        # Table for Concessionaire Load Tables (Enel style)
+        # Table for Concessionaires
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS load_tables (
+            CREATE TABLE IF NOT EXISTS concessionaires (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                concessionaire TEXT,
-                conductor_name TEXT,
-                span_m INTEGER,
-                load_daN REAL,
-                UNIQUE(concessionaire, conductor_name, span_m)
+                name TEXT UNIQUE NOT NULL,
+                method TEXT NOT NULL -- 'flecha' or 'tabela'
             )
         ''')
 
+        # Table for Network Definitions (links concessionaires to conductors)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS network_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                concessionaire_id INTEGER,
+                name TEXT NOT NULL,
+                FOREIGN KEY(concessionaire_id) REFERENCES concessionaires(id)
+            )
+        ''')
+
+        # Table for Cable technical coefficients/resistivity (Smart Backend)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cable_technical_data (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category TEXT, -- 'resistivity', 'cqt_k_coef', 'mechanical'
+                key_name TEXT UNIQUE NOT NULL,
+                value REAL NOT NULL,
+                description TEXT
+            )
+        ''')
+
+        self.pre_populate_data(cursor)
+
         conn.commit()
         conn.close()
+
+    def pre_populate_data(self, cursor):
+        """Pre-populates the database with initial engineering parameters."""
+        # 1. Concessionaires
+        concessionaires = [('Light', 'flecha'), ('Enel', 'tabela')]
+        cursor.executemany("INSERT OR IGNORE INTO concessionaires (name, method) VALUES (?, ?)", concessionaires)
+
+        # 2. Resistivity & K Coefficients (Migrated from logic modules)
+        # 3. Conductors (Light weights)
+        light_conductors = [
+            ('556MCM-CA, Nu', 'CA', 0.779, 0, 0, 0, 0, 0),
+            ('397MCM-CA, Nu', 'CA', 0.558, 0, 0, 0, 0, 0),
+            ('1/0AWG-CAA, Nu', 'CAA', 0.217, 0, 0, 0, 0, 0),
+            ('4 AWG-CAA, Nu', 'CAA', 0.085, 0, 0, 0, 0, 0)
+        ]
+        cursor.executemany("INSERT OR IGNORE INTO conductors (name, type, weight_kg_m, breaking_load_daN, modulus_elasticity, coeff_thermal_expansion, section_mm2, diameter_mm) VALUES (?,?,?,?,?,?,?,?)", light_conductors)
+
+        # 4. Load Tables (Enel)
+        enel_data = [
+            ('Enel', '1/0 CA', 20, 110), ('Enel', '1/0 CA', 30, 120), ('Enel', '1/0 CA', 40, 125),
+            ('Enel', '1/0 CA', 50, 140), ('Enel', '1/0 CA', 60, 156), ('Enel', '1/0 CA', 70, 171),
+            ('Enel', '1/0 CA', 80, 186),
+            ('Enel', 'BT 3x35+54.6', 0, 136) # Tração fixa
+        ]
+        cursor.executemany("INSERT OR IGNORE INTO load_tables (concessionaire, conductor_name, span_m, load_daN) VALUES (?, ?, ?, ?)", enel_data)
 
     def add_conductor(self, data):
         conn = self.get_connection()

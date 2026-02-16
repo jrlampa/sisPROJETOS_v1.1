@@ -1,0 +1,15 @@
+customtkinter
+pyproj
+pandas
+openpyxl
+matplotlib
+ezdxf
+fastkml
+shapely
+numpy
+# Future AI Module
+groq
+python-dotenv
+# Testing
+pytest
+pytest-mock

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project Specific
+build/
+dist/
+installer_output/
+*.spec
+error.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+src/database/sisprojetos.db

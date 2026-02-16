@@ -148,7 +148,7 @@ class CQTGUI(ctk.CTkFrame):
                    f"Demanda Total: {summary['total_kva']:.1f} kVA | "
                    f"Clientes: {summary['total_clients']} | "
                    f"Fator: {summary['fd']:.2f}")
-            self.lbl_summary.configure(text=txt, text_color="white")
+            self.lbl_summary.configure(text=txt, text_color=DesignSystem.TEXT_MAIN)
             
             # Highlight bottlenecks in the table (color entries where CQT is high)
             for r in self.rows:
