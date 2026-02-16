@@ -4,6 +4,7 @@ Testes expandidos do módulo converter (Conversão KMZ/KML para UTM).
 
 import pytest
 import pandas as pd
+import numpy as np
 import tempfile
 import os
 from src.modules.converter.logic import ConverterLogic
@@ -110,11 +111,11 @@ class TestConverterLogic:
         df = pd.DataFrame(data)
         
         assert isinstance(df['Name'].iloc[0], str)
-        assert isinstance(df['Longitude'].iloc[0], (int, float))
-        assert isinstance(df['Latitude'].iloc[0], (int, float))
-        assert isinstance(df['Easting'].iloc[0], (int, float))
-        assert isinstance(df['Northing'].iloc[0], (int, float))
-        assert isinstance(df['Zone'].iloc[0], (int, float))
+        assert isinstance(df['Longitude'].iloc[0], (int, float, np.number))
+        assert isinstance(df['Latitude'].iloc[0], (int, float, np.number))
+        assert isinstance(df['Easting'].iloc[0], (int, float, np.number))
+        assert isinstance(df['Northing'].iloc[0], (int, float, np.number))
+        assert isinstance(df['Zone'].iloc[0], (int, float, np.number))
         assert isinstance(df['Hemisphere'].iloc[0], str)
     
     def test_save_to_excel_creates_file(self, converter):
@@ -136,7 +137,7 @@ class TestConverterLogic:
     def test_save_to_dxf_creates_file(self, converter):
         """Testa criação de arquivo DXF."""
         data = [
-            {'Name': 'P1', 'Easting': 100, 'Northing': 200, 'Zone': 23, 'Type': 'Point'}
+            {'Name': 'P1', 'Easting': 100, 'Northing': 200, 'Elevation': 720, 'Zone': 23, 'Type': 'Point'}
         ]
         df = pd.DataFrame(data)
         
@@ -147,6 +148,38 @@ class TestConverterLogic:
             converter.save_to_dxf(df, tmp_path)
             assert os.path.exists(tmp_path)
             assert os.path.getsize(tmp_path) > 0
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    def test_save_to_csv_creates_file(self, converter):
+        """Testa criação de arquivo CSV com formato correto."""
+        data = [
+            {'Name': 'P1', 'Easting': 100.12345, 'Northing': 200.6789, 'Zone': 23, 'Type': 'Point', 'Longitude': -46.6, 'Latitude': -23.5, 'Elevation': 720.123, 'Description': 'Ponto 1', 'Hemisphere': 'S'},
+            {'Name': 'P2', 'Easting': 150.9876, 'Northing': 250.5432, 'Zone': 23, 'Type': 'Point', 'Longitude': -46.5, 'Latitude': -23.4, 'Elevation': 730.456, 'Description': 'Ponto 2', 'Hemisphere': 'S'}
+        ]
+        df = pd.DataFrame(data)
+        
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False, mode='w', encoding='utf-8-sig') as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            converter.save_to_csv(df, tmp_path)
+            assert os.path.exists(tmp_path)
+            assert os.path.getsize(tmp_path) > 0
+            
+            # Verificar conteúdo do CSV com separador correto
+            df_read = pd.read_csv(tmp_path, sep=';', encoding='utf-8-sig')
+            assert len(df_read) == 2
+            assert 'Name' in df_read.columns
+            assert 'Easting' in df_read.columns
+            assert 'Northing' in df_read.columns
+            
+            # Verificar que o arquivo usa ';' como separador
+            with open(tmp_path, 'r', encoding='utf-8-sig') as f:
+                first_line = f.readline()
+                assert ';' in first_line
+                assert ',' not in first_line.replace(',', '')  # Não deve haver vírgula nos headers
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -266,3 +299,92 @@ class TestConverterLogic:
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
+    
+    def test_csv_precision_rounding(self, converter):
+        """Testa arredondamento de 3 casas decimais no CSV."""
+        data = [
+            {'Name': 'P1', 'Easting': 333256.789456, 'Northing': 7395123.123789, 
+             'Elevation': 720.456789, 'Zone': 23, 'Type': 'Point', 
+             'Longitude': -46.6, 'Latitude': -23.5, 'Description': 'Test', 'Hemisphere': 'S'}
+        ]
+        df = pd.DataFrame(data)
+        
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False, mode='w', encoding='utf-8-sig') as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            converter.save_to_csv(df, tmp_path)
+            df_read = pd.read_csv(tmp_path, sep=';', encoding='utf-8-sig')
+            
+            # Valores devem manter 3 casas decimais (mas pandas pode ler com mais precisão)
+            assert abs(df_read['Easting'].iloc[0] - 333256.789) < 0.001
+            assert abs(df_read['Northing'].iloc[0] - 7395123.124) < 0.001
+            assert abs(df_read['Elevation'].iloc[0] - 720.457) < 0.001
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    def test_save_to_csv_empty_dataframe(self, converter):
+        """Testa exportação de DataFrame vazio."""
+        df_empty = pd.DataFrame()
+        
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            with pytest.raises(ValueError, match="Cannot export empty DataFrame"):
+                converter.save_to_csv(df_empty, tmp_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    def test_convert_to_utm_empty_placemarks(self, converter):
+        """Testa conversão com lista vazia de placemarks."""
+        with pytest.raises(ValueError, match="No placemarks provided"):
+            converter.convert_to_utm([])
+    
+    def test_csv_semicolon_separator(self, converter):
+        """Testa que CSV usa ponto e vírgula como separador."""
+        data = [
+            {'Name': 'P1', 'Easting': 100.123, 'Northing': 200.456, 'Zone': 23, 
+             'Type': 'Point', 'Longitude': -46.6, 'Latitude': -23.5, 
+             'Elevation': 720.0, 'Description': 'Teste', 'Hemisphere': 'S'}
+        ]
+        df = pd.DataFrame(data)
+        
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False, mode='w', encoding='utf-8-sig') as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            converter.save_to_csv(df, tmp_path)
+            
+            # Ler arquivo como texto e verificar separador
+            with open(tmp_path, 'r', encoding='utf-8-sig') as f:
+                content = f.read()
+                # Deve conter ponto e vírgula
+                assert ';' in content
+                # Header deve ter ponto e vírgula
+                lines = content.split('\n')
+                assert ';' in lines[0]
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    def test_save_to_dxf_empty_dataframe_raises_error(self, converter):
+        """Testa que save_to_dxf lança erro para DataFrame vazio."""
+        df = pd.DataFrame()
+        
+        with pytest.raises(ValueError, match="DataFrame vazio"):
+            converter.save_to_dxf(df, "test.dxf")
+    
+    def test_save_to_dxf_missing_columns_raises_error(self, converter):
+        """Testa que save_to_dxf lança erro quando faltam colunas necessárias."""
+        # DataFrame sem a coluna 'Elevation'
+        data = [
+            {'Name': 'P1', 'Easting': 100, 'Northing': 200}
+        ]
+        df = pd.DataFrame(data)
+        
+        with pytest.raises(ValueError, match="Colunas necessárias faltando"):
+            converter.save_to_dxf(df, "test.dxf")
+

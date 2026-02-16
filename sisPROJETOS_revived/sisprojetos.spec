@@ -8,8 +8,12 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('./src/resources/templates', './resources/templates'),  # Templates (models, DWG files)
-        ('./src/resources/sisprojetos.db', './resources/')  # Database
+        # Templates: DWG, XLSX files (prancha.dwg, cqt.xlsx, ambiental.xlsx)
+        ('src\\resources\\templates', 'resources\\templates'),
+        # Database
+        ('src\\resources\\sisprojetos.db', 'resources'),
+        # Catenaria module resources (condutores.json)
+        ('src\\modules\\catenaria\\resources', 'modules\\catenaria\\resources'),
     ],
     hiddenimports=[
         # Core

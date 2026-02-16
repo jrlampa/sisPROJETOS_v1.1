@@ -56,6 +56,9 @@ class ConverterGUI(ctk.CTkFrame):
         self.btn_export_excel = ctk.CTkButton(self.export_frame, text="Excel (.xlsx)", command=self.export_excel, state="disabled", **DesignSystem.get_button_style("secondary"))
         self.btn_export_excel.pack(pady=5, fill="x")
 
+        self.btn_export_csv = ctk.CTkButton(self.export_frame, text="CSV (.csv)", command=self.export_csv, state="disabled", **DesignSystem.get_button_style("secondary"))
+        self.btn_export_csv.pack(pady=5, fill="x")
+
         self.btn_export_dxf = ctk.CTkButton(self.export_frame, text="AutoCAD (.dxf)", command=self.export_dxf, state="disabled", **DesignSystem.get_button_style("purple"))
         self.btn_export_dxf.pack(pady=5, fill="x")
 
@@ -106,10 +109,20 @@ class ConverterGUI(ctk.CTkFrame):
                     self.map_widget.set_position(first_p.geometry.coords[0][1], first_p.geometry.coords[0][0])
                 self.map_widget.set_zoom(15)
 
-            count = len(self.df)
-            self.lbl_status.configure(text=f"Sucesso! {count} pontos.", text_color="green")
+            # Count unique features (placemarks), not vertices
+            unique_features = len(self.df['Name'].unique()) if 'Name' in self.df.columns and not self.df.empty else 0
+            total_vertices = len(self.df)
+            
+            # Display appropriate message
+            if unique_features == total_vertices:
+                # All points (no lines)
+                self.lbl_status.configure(text=f"Sucesso! {unique_features} ponto(s).", text_color="green")
+            else:
+                # Has lines with multiple vertices
+                self.lbl_status.configure(text=f"Sucesso! {unique_features} feature(s), {total_vertices} vértice(s).", text_color="green")
             
             self.btn_export_excel.configure(state="normal")
+            self.btn_export_csv.configure(state="normal")
             self.btn_export_dxf.configure(state="normal")
             
         except Exception as e:
@@ -117,7 +130,8 @@ class ConverterGUI(ctk.CTkFrame):
             messagebox.showerror("Erro", str(e))
 
     def export_excel(self):
-        if self.df is None:
+        if self.df is None or self.df.empty:
+            messagebox.showwarning("Aviso", "Nenhum dado carregado. Por favor, abra um arquivo KML/KMZ primeiro.")
             return
             
         filepath = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel Files", "*.xlsx")])
@@ -128,10 +142,26 @@ class ConverterGUI(ctk.CTkFrame):
             self.logic.save_to_excel(self.df, filepath)
             messagebox.showinfo("Sucesso", "Arquivo Excel salvo com sucesso!")
         except Exception as e:
-            messagebox.showerror("Erro ao salvar", str(e))
+            messagebox.showerror("Erro ao salvar Excel", f"Erro: {str(e)}\n\nVerifique se o arquivo foi carregado e convertido corretamente.")
+
+    def export_csv(self):
+        if self.df is None or self.df.empty:
+            messagebox.showwarning("Aviso", "Nenhum dado carregado. Por favor, abra um arquivo KML/KMZ primeiro.")
+            return
+            
+        filepath = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
+        if not filepath:
+            return
+            
+        try:
+            self.logic.save_to_csv(self.df, filepath)
+            messagebox.showinfo("Sucesso", "Arquivo CSV salvo com sucesso!")
+        except Exception as e:
+            messagebox.showerror("Erro ao salvar CSV", f"Erro: {str(e)}\n\nVerifique se o arquivo foi carregado e convertido corretamente.")
 
     def export_dxf(self):
-        if self.df is None:
+        if self.df is None or self.df.empty:
+            messagebox.showwarning("Aviso", "Nenhum dado carregado. Por favor, abra um arquivo KML/KMZ primeiro.")
             return
 
         filepath = filedialog.asksaveasfilename(defaultextension=".dxf", filetypes=[("AutoCAD DXF", "*.dxf")])
@@ -142,4 +172,4 @@ class ConverterGUI(ctk.CTkFrame):
             self.logic.save_to_dxf(self.df, filepath)
             messagebox.showinfo("Sucesso", "Arquivo DXF salvo com sucesso!")
         except Exception as e:
-            messagebox.showerror("Erro ao salvar", str(e))
+            messagebox.showerror("Erro ao salvar DXF", f"Erro: {str(e)}\n\nVerifique se o arquivo foi carregado e convertido corretamente.")
