@@ -1,6 +1,9 @@
 import customtkinter as ctk
+from datetime import datetime
 from tkinter import messagebox
+from __version__ import __version__
 from database.db_manager import DatabaseManager
+from utils.update_checker import UpdateChecker
 
 from styles import DesignSystem
 
@@ -38,9 +41,11 @@ class SettingsGUI(ctk.CTkFrame):
 
         self.tab_cond = self.tabview.add("Condutores")
         self.tab_poles = self.tabview.add("Postes")
+        self.tab_updates = self.tabview.add("Atualizações")
 
         self.setup_conductors_tab()
         self.setup_poles_tab()
+        self.setup_updates_tab()
 
         # Footer
         self.footer = ctk.CTkFrame(self, fg_color="transparent")
@@ -125,6 +130,65 @@ class SettingsGUI(ctk.CTkFrame):
 
         ctk.CTkButton(form_frame, text="Salvar Poste", command=self.save_pole).pack(pady=20)
 
+    def setup_updates_tab(self):
+        update_settings = self.db.get_update_settings()
+
+        frame = ctk.CTkFrame(self.tab_updates, **DesignSystem.get_frame_style())
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            frame,
+            text="Configurações de Atualização",
+            font=DesignSystem.FONT_BODY,
+            text_color=DesignSystem.TEXT_MAIN,
+        ).pack(anchor="w", padx=20, pady=(20, 10))
+
+        self.var_update_enabled = ctk.BooleanVar(value=update_settings["enabled"])
+        self.switch_update_enabled = ctk.CTkSwitch(
+            frame,
+            text="Verificar atualizações automaticamente",
+            variable=self.var_update_enabled,
+            progress_color=DesignSystem.ACCENT_PRIMARY,
+            button_color=DesignSystem.ACCENT_SECONDARY,
+        )
+        self.switch_update_enabled.pack(anchor="w", padx=20, pady=8)
+
+        ctk.CTkLabel(frame, text="Canal de atualização:", font=DesignSystem.FONT_BODY).pack(
+            anchor="w", padx=20, pady=(10, 4)
+        )
+        self.opt_update_channel = ctk.CTkOptionMenu(
+            frame,
+            values=["stable", "beta"],
+            **DesignSystem.get_entry_style(),
+        )
+        self.opt_update_channel.set(update_settings["channel"])
+        self.opt_update_channel.pack(anchor="w", padx=20, pady=(0, 10))
+
+        ctk.CTkLabel(frame, text="Intervalo de verificação (dias):", font=DesignSystem.FONT_BODY).pack(
+            anchor="w", padx=20, pady=(10, 4)
+        )
+        self.opt_update_interval = ctk.CTkOptionMenu(
+            frame,
+            values=["1", "3", "7", "14"],
+            **DesignSystem.get_entry_style(),
+        )
+        self.opt_update_interval.set(str(update_settings["interval_days"]))
+        self.opt_update_interval.pack(anchor="w", padx=20, pady=(0, 14))
+
+        ctk.CTkButton(
+            frame,
+            text="Salvar Configurações",
+            command=self.save_update_preferences,
+            **DesignSystem.get_button_style("primary"),
+        ).pack(anchor="w", padx=20, pady=(8, 10))
+
+        ctk.CTkButton(
+            frame,
+            text="Verificar Agora",
+            command=self.check_updates_now,
+            **DesignSystem.get_button_style("secondary"),
+        ).pack(anchor="w", padx=20, pady=(0, 20))
+
     def save_conductor(self):
         name = self.ent_cond_name.get()
         weight = self.ent_cond_weight.get()
@@ -148,6 +212,30 @@ class SettingsGUI(ctk.CTkFrame):
     def save_pole(self):
         # Implementation similar to save_conductor (Skipping detailed logic for brevity or completing if needed)
         pass
+
+    def save_update_preferences(self):
+        self.db.save_update_settings(
+            enabled=self.var_update_enabled.get(),
+            channel=self.opt_update_channel.get(),
+            interval_days=int(self.opt_update_interval.get()),
+        )
+        messagebox.showinfo("Configurações", "Preferências de atualização salvas com sucesso.")
+
+    def check_updates_now(self):
+        checker = UpdateChecker(current_version=__version__)
+        channel = self.opt_update_channel.get()
+        result = checker.check_for_updates(channel=channel)
+
+        self.db.save_update_settings(last_checked=datetime.utcnow().isoformat())
+
+        if result.available:
+            messagebox.showinfo(
+                "Atualização disponível",
+                f"Nova versão encontrada: {result.latest_version}\n\nAcesse: {result.release_url}",
+            )
+            return
+
+        messagebox.showinfo("Atualizações", "Você já está na versão mais recente.")
 
     def refresh_conductors(self):
         self.txt_conds.configure(state="normal")

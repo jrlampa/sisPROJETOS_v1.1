@@ -1,5 +1,11 @@
 import customtkinter as ctk
+import threading
+import webbrowser
+from datetime import datetime, timezone
+from tkinter import messagebox
+
 from __version__ import __version__
+from database.db_manager import DatabaseManager
 from modules.converter.gui import ConverterGUI
 from modules.catenaria.gui import CatenaryGUI
 from modules.project_creator.gui import ProjectCreatorGUI
@@ -9,11 +15,17 @@ from modules.settings.gui import SettingsGUI
 from modules.electrical.gui import ElectricalGUI
 from modules.cqt.gui import CQTGUI
 from styles import DesignSystem
+from utils.logger import get_logger
+from utils.update_checker import UpdateChecker
+
+
+logger = get_logger(__name__)
 
 
 class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
+        self.db = DatabaseManager()
 
         self.title(f"sisPROJETOS - Engenharia e Projetos v{__version__}")
         self.geometry("1100x750")
@@ -55,14 +67,49 @@ class MainApp(ctk.CTk):
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame("Menu")
+        logger.info(f"sisPROJETOS iniciado - versão {__version__}")
+        self.after(1200, self.check_updates_on_startup)
 
     def show_frame(self, frame_name):
         frame = self.frames[frame_name]
+        logger.debug(f"Navegação para frame: {frame_name}")
         frame.tkraise()
         # Pack if not already packed or using grid layout (simple pack for now)
         # We need to hide others. simpler: destroy and recreate or just pack_forget.
         # Let's use grid stacking.
         frame.grid(row=0, column=0, sticky="nsew")
+
+    def check_updates_on_startup(self):
+        settings = self.db.get_update_settings()
+        if not settings["enabled"]:
+            logger.info("Verificação de atualização desativada pelo usuário")
+            return
+
+        checker = UpdateChecker(current_version=__version__)
+        if not checker.should_check_now(settings["last_checked"], settings["interval_days"]):
+            logger.debug("Verificação de atualização ignorada por intervalo")
+            return
+
+        def worker():
+            result = checker.check_for_updates(channel=settings["channel"])
+            checked_at = datetime.now(timezone.utc).isoformat()
+            self.db.save_update_settings(last_checked=checked_at)
+            self.after(0, lambda: self._handle_update_result(result))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _handle_update_result(self, result):
+        if not result.available:
+            logger.debug(f"Nenhuma atualização disponível: {result.reason}")
+            return
+
+        logger.info(f"Nova versão disponível: {result.latest_version}")
+        answer = messagebox.askyesno(
+            "Atualização disponível",
+            f"Nova versão disponível: {result.latest_version}\n\nDeseja abrir a página de download?",
+        )
+        if answer and result.release_url:
+            webbrowser.open(result.release_url)
 
 
 class MenuFrame(ctk.CTkFrame):

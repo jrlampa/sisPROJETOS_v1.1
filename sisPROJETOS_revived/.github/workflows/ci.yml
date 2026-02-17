@@ -1,5 +1,8 @@
 name: Continuous Integration
 
+env:
+  COVERAGE_MIN: '80'
+
 on:
   push:
     branches:
@@ -71,7 +74,7 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=${{ env.COVERAGE_MIN }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       
@@ -107,7 +110,7 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest tests/ -v --cov=src --cov-report=xml
+          pytest tests/ -v --cov=src --cov-report=xml --cov-fail-under=${{ env.COVERAGE_MIN }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 

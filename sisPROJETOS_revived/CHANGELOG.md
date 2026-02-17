@@ -7,6 +7,86 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [2.1.0] - 2026-02-17
+
+### ✨ Adicionado
+
+- **🔐 Sistema de Logging Centralizado** (`src/utils/logger.py`)
+  - Configuração unificada com rotating file handlers (10 MB, 5 backups)
+  - AppData path support (Windows/Linux/Mac)
+  - LogContext manager para operações com medição de tempo
+  - Níveis configuráveis via `.env` (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  - Adotado em 4 módulos críticos (catenaria, pole_load, project_creator, db_manager)
+  - **Testes**: 26 casos ✅
+
+- **🔄 Verificador de Atualizações Auto** (`src/utils/update_checker.py`)
+  - Consome GitHub Releases API
+  - Suporte a canais: stable (padrão) e beta
+  - Intervalo configurável: 1, 3, 7, 14 dias
+  - Não bloqueante (executa em thread separada)
+  - Parse de versionamento semântico
+  - **Testes**: 6 casos ✅
+
+- **💾 Persistência de Preferências** (`src/database/db_manager.py`)
+  - Tabela `app_settings` para configurações globais
+  - Métodos: `get_setting()`, `set_setting()`, `get_update_settings()`, `save_update_settings()`
+  - Migração automática de schema (backward-compatible)
+  - **Testes**: 2 casos ✅
+
+- **⚙️ UI de Configurações** (`src/modules/settings/gui.py`)
+  - Nova aba "Atualizações" na tela de configurações
+  - Toggle para ativar/desativar verificação automática
+  - Seletor de canal (stable/beta)
+  - Seletor de intervalo de verificação
+  - Botão "Verificar Agora" para verificação manual
+  - Botão "Salvar Configurações" com persistência
+
+- **🚀 Bootstrap de Auto-Update** (`src/main.py`)
+  - Integração de verificação de updates no MainApp
+  - Execução em thread (1.2s após startup para não bloquear)
+  - Modal de notificação com link para download
+  - Logs de navegação e inicialização
+
+- **📊 CI/CD Melhorado** (`.github/workflows/`)
+  - Gate de cobertura progressivo: 80% (v2.1.0) → 85% (v2.1.1) → 90%+ (v2.2.0)
+  - Correção de paths de build: `dist/sisPROJETOS` (case-sensitive)
+  - Robustez em dependency-update workflow (fallback sem `requirements.in`)
+  - Coverage report integrado em CI
+
+### 🔧 Corrigido
+
+- **Warnings de logging em módulos críticos**
+  - `catenaria/logic.py`: `print()` → `logger.exception()`
+  - `pole_load/logic.py`: `print()` → `logger.exception()` (2 ocorrências)
+  - `project_creator/logic.py`: `logging.getLogger()` → `get_logger()` (centralizado)
+  - `db_manager.py`: Substituído print em exceção
+
+- **GitHub Actions workflow paths**
+  - `build-release.yml`: Ajustado verificação `dist/sisPROJETOS` (era lowercase)
+  - `build-release.yml`: Coverage gate adicionado no job test (80%)
+  - `dependency-update.yml`: Fallback para upgrade sem `requirements.in`
+
+### 📊 Métricas
+
+- **Cobertura de testes**
+  - Atual: ~45% (baseline v2.1.0)
+  - Alvo progressivo: 80% → 85% → 90%+
+  - Novos testes: 8 (update_checker + db_settings)
+  - Testes total: 132 (125 passing, 7 E2E KML)
+
+- **Logs em AppData**
+  - Localização: `%APPDATA%/sisPROJETOS/logs/sisprojetos.log`
+  - Rotação automática a cada 10 MB
+  - Até 5 backups mantidos
+
+### 📚 Documentado
+
+- Guia de configuração de atualização (inline em settings GUI)
+- Arquitetura de update checker (notificação-only v2.1.0)
+- Roadmap CI/CD com gates progressivos
+
+---
+
 ## [2.0.1] - 2026-02-16
 
 ### ✨ Adicionado

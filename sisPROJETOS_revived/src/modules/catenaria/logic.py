@@ -1,5 +1,9 @@
 from database.db_manager import DatabaseManager
 import numpy as np
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class CatenaryLogic:
@@ -26,7 +30,7 @@ class CatenaryLogic:
             self.conductors = [{"nome_cadastro": r[0], "P_kg_m": r[1], "T0_daN": r[2]} for r in rows]
             conn.close()
         except Exception as e:
-            print(f"Error loading conductors from DB: {e}")
+            logger.exception(f"Error loading conductors from DB: {e}")
             self.conductors = []
 
     def get_conductor_names(self):

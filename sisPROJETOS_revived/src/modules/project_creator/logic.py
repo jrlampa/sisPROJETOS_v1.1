@@ -1,11 +1,11 @@
 import shutil
 import datetime
-import logging
 from pathlib import Path
 from utils.resource_manager import get_resource_manager
+from utils.logger import get_logger
 
 # Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ProjectCreatorLogic:

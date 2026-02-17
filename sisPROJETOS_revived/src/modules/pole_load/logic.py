@@ -1,5 +1,9 @@
 import math
 from database.db_manager import DatabaseManager
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class PoleLoadLogic:
@@ -74,7 +78,7 @@ class PoleLoadLogic:
                 self.DADOS_POSTES_NOMINAL[material][desc] = load
             conn.close()
         except Exception as e:
-            print(f"Error loading poles from DB: {e}")
+            logger.exception(f"Error loading poles from DB: {e}")
 
     def load_concessionaires_data(self):
         """Carrega estrutura de concessionárias com redes e condutores.
@@ -97,7 +101,7 @@ class PoleLoadLogic:
                 "Enel": {"REDES_PARA_CONDUTORES": {"Rede MT": ["1/0 CA"], "Rede BT": ["BT 3x35+54.6"]}},
             }
         except Exception as e:
-            print(f"Error loading concessionaires data: {e}")
+            logger.exception(f"Error loading concessionaires data: {e}")
             self.DADOS_CONCESSIONARIAS = {}
 
     def interpolar(self, tabela, vao):

@@ -2,6 +2,10 @@ import sqlite3
 import os
 import shutil
 from utils import resource_path
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class DatabaseManager:
@@ -33,7 +37,7 @@ class DatabaseManager:
                     try:
                         shutil.copy2(resource_db, self.db_path)
                     except Exception as e:
-                        print(f"Warning: Could not copy resource DB: {e}")
+                        logger.warning(f"Could not copy resource DB: {e}")
         else:
             self.db_path = db_path
 
@@ -116,10 +120,29 @@ class DatabaseManager:
             )
         """)
 
+        # Table for generic application settings
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         self.pre_populate_data(cursor)
+        self._ensure_default_settings(cursor)
 
         conn.commit()
         conn.close()
+
+    def _ensure_default_settings(self, cursor):
+        default_settings = [
+            ("updates_enabled", "true"),
+            ("update_channel", "stable"),
+            ("update_last_checked", ""),
+            ("update_check_interval_days", "1"),
+        ]
+        cursor.executemany("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", default_settings)
 
     def pre_populate_data(self, cursor):
         """Pre-populates the database with initial engineering parameters."""
@@ -205,3 +228,45 @@ class DatabaseManager:
         rows = cursor.fetchall()
         conn.close()
         return rows
+
+    def get_setting(self, key, default=None):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM app_settings WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row else default
+
+    def set_setting(self, key, value):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO app_settings (key, value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (key, str(value)),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_update_settings(self):
+        return {
+            "enabled": self.get_setting("updates_enabled", "true") == "true",
+            "channel": self.get_setting("update_channel", "stable"),
+            "last_checked": self.get_setting("update_last_checked", ""),
+            "interval_days": int(self.get_setting("update_check_interval_days", "1") or "1"),
+        }
+
+    def save_update_settings(self, enabled=None, channel=None, interval_days=None, last_checked=None):
+        if enabled is not None:
+            self.set_setting("updates_enabled", "true" if enabled else "false")
+        if channel is not None:
+            self.set_setting("update_channel", channel)
+        if interval_days is not None:
+            self.set_setting("update_check_interval_days", str(interval_days))
+        if last_checked is not None:
+            self.set_setting("update_last_checked", last_checked)
