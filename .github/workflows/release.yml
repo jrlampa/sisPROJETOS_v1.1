@@ -1,0 +1,106 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v2.0.1)'
+        required: true
+
+jobs:
+  build:
+    name: Build Executable
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install dependencies
+      working-directory: sisPROJETOS_revived
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Run tests before build
+      working-directory: sisPROJETOS_revived
+      run: |
+        pip install pytest
+        pytest tests/ -v
+    
+    - name: Build executable with PyInstaller
+      working-directory: sisPROJETOS_revived
+      run: |
+        # Check if .spec file exists
+        if (Test-Path "sisPROJETOS.spec") {
+          pyinstaller sisPROJETOS.spec
+        } else {
+          # Basic build if no spec file
+          pyinstaller --onefile --windowed --name sisPROJETOS run.py
+        }
+    
+    - name: Get version tag
+      id: get_version
+      run: |
+        if ("${{ github.event.inputs.version }}" -ne "") {
+          echo "VERSION=${{ github.event.inputs.version }}" >> $env:GITHUB_OUTPUT
+        } else {
+          echo "VERSION=${env:GITHUB_REF_NAME}" >> $env:GITHUB_OUTPUT
+        }
+    
+    - name: Create release archive
+      working-directory: sisPROJETOS_revived
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        Compress-Archive -Path dist/* -DestinationPath "sisPROJETOS-$version-Windows.zip"
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: sisPROJETOS-Windows
+        path: sisPROJETOS_revived/sisPROJETOS-*.zip
+    
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: sisPROJETOS_revived/sisPROJETOS-*.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        body: |
+          ## 📦 sisPROJETOS ${{ steps.get_version.outputs.VERSION }}
+          
+          ### 📥 Download
+          - Windows: `sisPROJETOS-${{ steps.get_version.outputs.VERSION }}-Windows.zip`
+          
+          ### 📋 Changelog
+          Veja [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/sisPROJETOS_revived/CHANGELOG.md) para detalhes.
+          
+          ### ✅ Verificações
+          - ✅ Testes passando
+          - ✅ Build automático
+          - ✅ Versão verificada
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Notify Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Send notification
+      run: |
+        echo "Release ${{ github.ref_name }} criada com sucesso!"
+        echo "Download disponível em: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
