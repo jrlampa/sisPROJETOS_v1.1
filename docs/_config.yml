@@ -1,0 +1,36 @@
+# GitHub Pages Configuration for sisPROJETOS
+# This file configures Jekyll for the landing page
+
+# Site settings
+title: sisPROJETOS
+description: Sistema Integrado de Projetos Elétricos - Ferramenta profissional para engenharia elétrica
+baseurl: ""
+url: "https://jrlampa.github.io/sisPROJETOS_v1.1"
+
+# Build settings
+markdown: kramdown
+theme: minima
+
+# Exclude from processing
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+# GitHub Pages specific settings
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# SEO
+author: João Rodrigo Lampa
+logo: /assets/logo.png
+social:
+  name: sisPROJETOS
+  links:
+    - https://github.com/jrlampa/sisPROJETOS_v1.1
+
+# Google Analytics (optional - add tracking ID if needed)
+# google_analytics: UA-XXXXXXXXX-X
