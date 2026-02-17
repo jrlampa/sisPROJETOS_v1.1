@@ -9,7 +9,8 @@
 [![Tests](https://img.shields.io/badge/Tests-126%20passing-brightgreen.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-~75%25-yellow.svg)]()
 [![Code Quality](https://img.shields.io/badge/Quality-9.5/10-brightgreen.svg)]()
-
+[![CI](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/ci.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/ci.yml)
+[![Release](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/release.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/release.yml)
 ---
 
 ## 📋 Visão Geral
@@ -86,6 +87,7 @@ python run.py
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitetura completa do sistema (MVC, módulos, database) |
 | [BUILD.md](BUILD.md) | Guia de build e distribuição (PyInstaller, Inno Setup) |
 | [CHANGELOG.md](CHANGELOG.md) | Histórico detalhado de versões e mudanças |
+| [.github/workflows/README.md](../.github/workflows/README.md) | 🚀 **Novo!** Guia de CI/CD e releases automáticas |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Guia para contribuidores (em breve) |
 
 ---
@@ -223,7 +225,7 @@ Engenheiro Eletricista
 - [ ] Sistema de logging centralizado
 - [ ] Auto-update checker
 - [ ] Code signing (certificado comercial)
-- [ ] CI/CD com GitHub Actions
+- [x] CI/CD com GitHub Actions ✅ **Implementado!**
 
 ### v2.2.0 (Q3 2026)
 - [ ] Plugin architecture
