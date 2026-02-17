@@ -203,7 +203,8 @@ test_output/
 *.xlsx
 *.dxf
 *.kmz
-*.kml
+# *.kml  # Comentado para permitir fixtures de teste
+!tests/fixtures/*.kml  # Mantém arquivos KML de teste
 !resources/models/*.dxf  # Mantém modelos DXF base
 
 # ===========================================================
