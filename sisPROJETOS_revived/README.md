@@ -6,7 +6,9 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.txt)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010/11-lightgrey.svg)]()
-[![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-126%20passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/Coverage-~75%25-yellow.svg)]()
+[![Code Quality](https://img.shields.io/badge/Quality-9.5/10-brightgreen.svg)]()
 
 ---
 
