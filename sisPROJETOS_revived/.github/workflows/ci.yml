@@ -31,7 +31,7 @@ jobs:
       
       - name: Install linting tools
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install flake8 black isort
       
       - name: Run flake8
@@ -68,7 +68,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-mock
       
@@ -104,7 +104,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-mock
       
@@ -129,7 +129,7 @@ jobs:
       
       - name: Install security tools
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install bandit safety
       
       - name: Run Bandit (Security linter)
@@ -165,7 +165,7 @@ jobs:
       
       - name: Check for outdated dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
           pip list --outdated
 
@@ -184,7 +184,7 @@ jobs:
       
       - name: Install quality tools
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install radon complexity
       
       - name: Calculate cyclomatic complexity
