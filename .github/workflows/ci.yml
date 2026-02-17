@@ -1,0 +1,74 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'copilot/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      working-directory: sisPROJETOS_revived
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8
+    
+    - name: Run linter (critical errors only)
+      working-directory: sisPROJETOS_revived
+      run: |
+        # Check for critical errors (syntax, undefined names, etc.)
+        flake8 src/ --select=E9,F63,F7,F82 --count --show-source --statistics
+    
+    - name: Run unit tests
+      working-directory: sisPROJETOS_revived
+      run: |
+        pytest tests/ -v --tb=short --cov=src --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./sisPROJETOS_revived/coverage.xml
+        fail_ci_if_error: false
+        verbose: true
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install flake8
+      run: pip install flake8
+    
+    - name: Check code style
+      working-directory: sisPROJETOS_revived
+      run: |
+        # Full code quality check (informational, doesn't fail build)
+        flake8 src/ --count --statistics --max-line-length=119 || true
+    
+    - name: Check for unused imports
+      working-directory: sisPROJETOS_revived
+      run: |
+        flake8 src/ --select=F401 --count || true

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Projeto Teste - Rede Elétrica</name>
+    <description>Arquivo KML de teste para validação do conversor</description>
+    
+    <!-- Ponto: Poste 1 -->
+    <Placemark>
+      <name>Poste P1</name>
+      <description>Poste de concreto circular 10m</description>
+      <Point>
+        <coordinates>-46.6333,-23.5505,720</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Ponto: Poste 2 -->
+    <Placemark>
+      <name>Poste P2</name>
+      <description>Poste de concreto duplo T 11m</description>
+      <Point>
+        <coordinates>-46.6300,-23.5500,725</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Ponto: Transformador -->
+    <Placemark>
+      <name>Transformador T1</name>
+      <description>Transformador 75 kVA</description>
+      <Point>
+        <coordinates>-46.6320,-23.5502,722</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Linha: Rede Primária -->
+    <Placemark>
+      <name>Rede Primária R1</name>
+      <description>Linha de média tensão 13.8kV</description>
+      <LineString>
+        <coordinates>
+          -46.6333,-23.5505,720
+          -46.6320,-23.5502,722
+          -46.6300,-23.5500,725
+        </coordinates>
+      </LineString>
+    </Placemark>
+    
+    <!-- Linha: Rede Secundária -->
+    <Placemark>
+      <name>Rede Secundária R2</name>
+      <description>Linha de baixa tensão 220/127V</description>
+      <LineString>
+        <coordinates>
+          -46.6320,-23.5502,722
+          -46.6315,-23.5501,723
+          -46.6310,-23.5500,724
+        </coordinates>
+      </LineString>
+    </Placemark>
+    
+    <!-- Polígono: Área de Projeto -->
+    <Placemark>
+      <name>Área do Projeto</name>
+      <description>Delimitação da área de atuação</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              -46.6340,-23.5510,720
+              -46.6340,-23.5495,720
+              -46.6290,-23.5495,720
+              -46.6290,-23.5510,720
+              -46.6340,-23.5510,720
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+  </Document>
+</kml>

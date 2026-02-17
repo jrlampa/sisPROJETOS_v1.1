@@ -10,6 +10,7 @@ from modules.electrical.gui import ElectricalGUI
 from modules.cqt.gui import CQTGUI
 from styles import DesignSystem
 
+
 class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -17,14 +18,9 @@ class MainApp(ctk.CTk):
         self.title(f"sisPROJETOS - Engenharia e Projetos v{__version__}")
         self.geometry("1100x750")
         self.configure(fg_color=DesignSystem.BG_WINDOW)
-        
+
         # Shared Project Context for AI Integration
-        self.project_context = {
-            "pole_load": None,
-            "catenary": None,
-            "electrical": None,
-            "cqt": None
-        }
+        self.project_context = {"pole_load": None, "catenary": None, "electrical": None, "cqt": None}
 
         # Set theme to Light as per user request for glassmorphism
         ctk.set_appearance_mode("Light")
@@ -37,16 +33,27 @@ class MainApp(ctk.CTk):
         self.container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
-        
+
         # Initialize Menu
         # We need to pass self (controller) to frames
-        for F in (MenuFrame, ConverterGUI, CatenaryGUI, ProjectCreatorGUI, PoleLoadGUI, AIAssistantGUI, SettingsGUI, ElectricalGUI, CQTGUI):
+        for F in (
+            MenuFrame,
+            ConverterGUI,
+            CatenaryGUI,
+            ProjectCreatorGUI,
+            PoleLoadGUI,
+            AIAssistantGUI,
+            SettingsGUI,
+            ElectricalGUI,
+            CQTGUI,
+        ):
             page_name = F.__name__.replace("GUI", "").replace("Frame", "")
-            if page_name == "Menu": page_name = "Menu"
+            if page_name == "Menu":
+                page_name = "Menu"
             frame = F(parent=self.container, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-        
+
         self.show_frame("Menu")
 
     def show_frame(self, frame_name):
@@ -57,6 +64,7 @@ class MainApp(ctk.CTk):
         # Let's use grid stacking.
         frame.grid(row=0, column=0, sticky="nsew")
 
+
 class MenuFrame(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, **DesignSystem.get_frame_style())
@@ -65,20 +73,17 @@ class MenuFrame(ctk.CTkFrame):
 
     def create_widgets(self):
         self.label = ctk.CTkLabel(
-            self, 
-            text="sisPROJETOS - Menu Principal", 
-            font=DesignSystem.FONT_HEAD,
-            text_color=DesignSystem.TEXT_MAIN
+            self, text="sisPROJETOS - Menu Principal", font=DesignSystem.FONT_HEAD, text_color=DesignSystem.TEXT_MAIN
         )
         self.label.pack(pady=40)
 
         # Container for buttons to center them
         btn_container = ctk.CTkFrame(self, fg_color="transparent")
         btn_container.pack(expand=True)
-        
+
         btn_width = 320
         btn_spacing = 12
-        
+
         # Define button configurations
         menu_items = [
             ("1. Criador de Novos Projetos", "ProjectCreator", "primary"),
@@ -93,24 +98,25 @@ class MenuFrame(ctk.CTkFrame):
 
         for text, frame_name, style_key in menu_items:
             btn = ctk.CTkButton(
-                btn_container, 
-                text=text, 
+                btn_container,
+                text=text,
                 width=btn_width,
                 height=45,
                 command=lambda f=frame_name: self.controller.show_frame(f),
-                **DesignSystem.get_button_style(style_key)
+                **DesignSystem.get_button_style(style_key),
             )
             btn.pack(pady=btn_spacing)
 
         self.btn_exit = ctk.CTkButton(
-            self, 
-            text="Sair do Sistema", 
-            width=200, 
+            self,
+            text="Sair do Sistema",
+            width=200,
             height=40,
             command=self.controller.quit,
-            **DesignSystem.get_button_style("error")
+            **DesignSystem.get_button_style("error"),
         )
         self.btn_exit.pack(pady=40)
+
 
 if __name__ == "__main__":
     app = MainApp()

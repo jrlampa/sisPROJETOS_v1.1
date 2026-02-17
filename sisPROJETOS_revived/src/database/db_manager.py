@@ -3,28 +3,29 @@ import os
 import shutil
 from utils import resource_path
 
+
 class DatabaseManager:
     """Gerenciador centralizado de banco de dados SQLite.
-    
+
     Responsável por criar, inicializar e fornecer acesso ao banco de dados
     que armazena dados técnicos de condutores, postes, concessionárias e
     parâmetros de cálculo.
     """
-    
+
     def __init__(self, db_path=None):
         """Inicializa o gerenciador de banco de dados.
-        
+
         Args:
             db_path (str, optional): Caminho personalizado para o banco.
                 Se None, usa AppData do usuário para escrita garantida.
         """
         if db_path is None:
             # Use AppData for writable database (supports PyInstaller bundled apps)
-            appdata = os.getenv('APPDATA') or os.path.expanduser('~')
-            app_dir = os.path.join(appdata, 'sisPROJETOS')
+            appdata = os.getenv("APPDATA") or os.path.expanduser("~")
+            app_dir = os.path.join(appdata, "sisPROJETOS")
             os.makedirs(app_dir, exist_ok=True)
-            self.db_path = os.path.join(app_dir, 'sisprojetos.db')
-            
+            self.db_path = os.path.join(app_dir, "sisprojetos.db")
+
             # If DB doesn't exist, copy from resources or create fresh
             if not os.path.exists(self.db_path):
                 resource_db = resource_path(os.path.join("src", "resources", "sisprojetos.db"))
@@ -35,7 +36,7 @@ class DatabaseManager:
                         print(f"Warning: Could not copy resource DB: {e}")
         else:
             self.db_path = db_path
-            
+
         self.init_db()
 
     def get_connection(self):
@@ -46,9 +47,9 @@ class DatabaseManager:
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         conn = self.get_connection()
         cursor = conn.cursor()
-        
+
         # Table for Conductors
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS conductors (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
@@ -60,10 +61,10 @@ class DatabaseManager:
                 section_mm2 REAL,
                 diameter_mm REAL
             )
-        ''')
-        
+        """)
+
         # Table for Poles
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS poles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 material TEXT NOT NULL, -- e.g., Concreto, Fibra, Madeira
@@ -72,29 +73,29 @@ class DatabaseManager:
                 height_m REAL,
                 nominal_load_daN REAL
             )
-        ''')
-        
+        """)
+
         # Table for Concessionaires
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS concessionaires (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 method TEXT NOT NULL -- 'flecha' or 'tabela'
             )
-        ''')
+        """)
 
         # Table for Network Definitions (links concessionaires to conductors)
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS network_types (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 concessionaire_id INTEGER,
                 name TEXT NOT NULL,
                 FOREIGN KEY(concessionaire_id) REFERENCES concessionaires(id)
             )
-        ''')
+        """)
 
         # Table for Cable technical coefficients/resistivity (Smart Backend)
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS cable_technical_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 category TEXT, -- 'resistivity', 'cqt_k_coef', 'mechanical'
@@ -102,7 +103,18 @@ class DatabaseManager:
                 value REAL NOT NULL,
                 description TEXT
             )
-        ''')
+        """)
+
+        # Table for Load Tables (Pole Load calculations)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS load_tables (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                concessionaire TEXT NOT NULL,
+                conductor_name TEXT NOT NULL,
+                span_m INTEGER,
+                load_daN REAL NOT NULL
+            )
+        """)
 
         self.pre_populate_data(cursor)
 
@@ -112,36 +124,63 @@ class DatabaseManager:
     def pre_populate_data(self, cursor):
         """Pre-populates the database with initial engineering parameters."""
         # 1. Concessionaires
-        concessionaires = [('Light', 'flecha'), ('Enel', 'tabela')]
+        concessionaires = [("Light", "flecha"), ("Enel", "tabela")]
         cursor.executemany("INSERT OR IGNORE INTO concessionaires (name, method) VALUES (?, ?)", concessionaires)
 
         # 2. Resistivity & K Coefficients (Migrated from logic modules)
         # 3. Conductors (Light weights)
         light_conductors = [
-            ('556MCM-CA, Nu', 'CA', 0.779, 0, 0, 0, 0, 0),
-            ('397MCM-CA, Nu', 'CA', 0.558, 0, 0, 0, 0, 0),
-            ('1/0AWG-CAA, Nu', 'CAA', 0.217, 0, 0, 0, 0, 0),
-            ('4 AWG-CAA, Nu', 'CAA', 0.085, 0, 0, 0, 0, 0)
+            ("556MCM-CA, Nu", "CA", 0.779, 0, 0, 0, 0, 0),
+            ("397MCM-CA, Nu", "CA", 0.558, 0, 0, 0, 0, 0),
+            ("1/0AWG-CAA, Nu", "CAA", 0.217, 0, 0, 0, 0, 0),
+            ("4 AWG-CAA, Nu", "CAA", 0.085, 0, 0, 0, 0, 0),
         ]
-        cursor.executemany("INSERT OR IGNORE INTO conductors (name, type, weight_kg_m, breaking_load_daN, modulus_elasticity, coeff_thermal_expansion, section_mm2, diameter_mm) VALUES (?,?,?,?,?,?,?,?)", light_conductors)
+        cursor.executemany(
+            "INSERT OR IGNORE INTO conductors (name, type, weight_kg_m, breaking_load_daN, modulus_elasticity, coeff_thermal_expansion, section_mm2, diameter_mm) VALUES (?,?,?,?,?,?,?,?)",
+            light_conductors,
+        )
 
         # 4. Load Tables (Enel)
         enel_data = [
-            ('Enel', '1/0 CA', 20, 110), ('Enel', '1/0 CA', 30, 120), ('Enel', '1/0 CA', 40, 125),
-            ('Enel', '1/0 CA', 50, 140), ('Enel', '1/0 CA', 60, 156), ('Enel', '1/0 CA', 70, 171),
-            ('Enel', '1/0 CA', 80, 186),
-            ('Enel', 'BT 3x35+54.6', 0, 136) # Tração fixa
+            ("Enel", "1/0 CA", 20, 110),
+            ("Enel", "1/0 CA", 30, 120),
+            ("Enel", "1/0 CA", 40, 125),
+            ("Enel", "1/0 CA", 50, 140),
+            ("Enel", "1/0 CA", 60, 156),
+            ("Enel", "1/0 CA", 70, 171),
+            ("Enel", "1/0 CA", 80, 186),
+            ("Enel", "BT 3x35+54.6", 0, 136),  # Tração fixa
         ]
-        cursor.executemany("INSERT OR IGNORE INTO load_tables (concessionaire, conductor_name, span_m, load_daN) VALUES (?, ?, ?, ?)", enel_data)
+        cursor.executemany(
+            "INSERT OR IGNORE INTO load_tables (concessionaire, conductor_name, span_m, load_daN) VALUES (?, ?, ?, ?)",
+            enel_data,
+        )
+
+        # 5. Cable Technical Data (CQT K Coefficients)
+        cable_coefs = [
+            ("cqt_k_coef", "2#16(25)mm² Al", 0.7779, "CQT coefficient for 2#16(25)mm² Al"),
+            ("cqt_k_coef", "3x35+54.6mm² Al", 0.2416, "CQT coefficient for 3x35+54.6mm² Al"),
+            ("cqt_k_coef", "3x50+54.6mm² Al", 0.1784, "CQT coefficient for 3x50+54.6mm² Al"),
+            ("cqt_k_coef", "3x70+54.6mm² Al", 0.1248, "CQT coefficient for 3x70+54.6mm² Al"),
+            ("cqt_k_coef", "3x95+54.6mm² Al", 0.0891, "CQT coefficient for 3x95+54.6mm² Al"),
+            ("cqt_k_coef", "3x150+70mm² Al", 0.0573, "CQT coefficient for 3x150+70mm² Al"),
+        ]
+        cursor.executemany(
+            "INSERT OR IGNORE INTO cable_technical_data (category, key_name, value, description) VALUES (?, ?, ?, ?)",
+            cable_coefs,
+        )
 
     def add_conductor(self, data):
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO conductors (name, weight_kg_m, breaking_load_daN)
                 VALUES (?, ?, ?)
-            ''', (data['name'], data['weight'], data.get('breaking', 0)))
+            """,
+                (data["name"], data["weight"], data.get("breaking", 0)),
+            )
             conn.commit()
             return True, "Condutor adicionado."
         except sqlite3.IntegrityError:
@@ -160,7 +199,9 @@ class DatabaseManager:
     def get_all_poles(self):
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT material, format, description, nominal_load_daN FROM poles ORDER BY material, nominal_load_daN")
+        cursor.execute(
+            "SELECT material, format, description, nominal_load_daN FROM poles ORDER BY material, nominal_load_daN"
+        )
         rows = cursor.fetchall()
         conn.close()
         return rows

@@ -1,26 +1,28 @@
 import os
 import sys
-from groq import Groq
-from dotenv import load_dotenv
 
 # Adjust path for internal module access
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-from utils import resource_path
+
+from groq import Groq  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from utils import resource_path  # noqa: E402
+
 
 class AIAssistantLogic:
     def __init__(self):
         # Load .env from project root using centralized helper
         dotenv_path = resource_path(".env")
         load_dotenv(dotenv_path)
-        
+
         self.api_key = os.getenv("GROQ_API_KEY")
         if self.api_key:
             self.client = Groq(api_key=self.api_key)
         else:
             self.client = None
-            
-        self.model = "llama-3.3-70b-versatile" # Premium fast model
-        
+
+        self.model = "llama-3.3-70b-versatile"  # Premium fast model
+
         self.system_prompt = (
             "Você é o Consultor Técnico Sênior do sistema sisPROJETOS, especialista em engenharia de distribuição de energia elétrica. "
             "Seu objetivo é auxiliar engenheiros e projetistas na elaboração de projetos de rede elétrica (MT/BT). "
@@ -41,7 +43,7 @@ class AIAssistantLogic:
         """
         if not self.client:
             return "Erro: Chave API Groq não configurada no arquivo .env."
-            
+
         try:
             # Build context string
             ctx_msg = ""
@@ -63,21 +65,21 @@ class AIAssistantLogic:
 
             full_system = self.system_prompt + ctx_msg
             messages = [{"role": "system", "content": full_system}]
-            
+
             if history:
                 for u, a in history:
                     messages.append({"role": "user", "content": u})
                     messages.append({"role": "assistant", "content": a})
-            
+
             messages.append({"role": "user", "content": user_message})
-            
+
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=2048,
             )
-            
+
             return completion.choices[0].message.content
         except Exception as e:
             return f"Erro ao contatar Groq AI: {str(e)}"
