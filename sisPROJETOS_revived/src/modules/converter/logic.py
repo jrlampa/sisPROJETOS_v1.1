@@ -48,7 +48,9 @@ class ConverterLogic:
             k.from_string(content)
 
             # Extract all placemarks recursively (handles nested Documents/Folders)
-            placemarks = self._extract_placemarks(list(k.features))
+            # Compatible with both fastkml 0.x (method) and 1.x (property)
+            features = k.features() if callable(k.features) else k.features
+            placemarks = self._extract_placemarks(list(features))
 
             if not placemarks:
                 raise ValueError("No features found in KML file")
@@ -83,7 +85,9 @@ class ConverterLogic:
                 # Check Document and Folder types
                 if hasattr(feature, "features"):
                     # This is a Document or Folder - recurse into it
-                    self._extract_placemarks(list(feature.features), placemarks)
+                    # Compatible with both fastkml 0.x (method) and 1.x (property)
+                    sub_features = feature.features() if callable(feature.features) else feature.features
+                    self._extract_placemarks(list(sub_features), placemarks)
                 elif isinstance(feature, kml.Placemark):
                     # This is a Placemark - add it
                     placemarks.append(feature)
