@@ -10,8 +10,7 @@ a = Analysis(
     datas=[
         # Templates: DWG, XLSX files (prancha.dwg, cqt.xlsx, ambiental.xlsx)
         ('src\\resources\\templates', 'resources\\templates'),
-        # Database
-        ('src\\resources\\sisprojetos.db', 'resources'),
+        # Database: Removed - will be created in AppData on first run
         # Catenaria module resources (condutores.json)
         ('src\\modules\\catenaria\\resources', 'modules\\catenaria\\resources'),
     ],
