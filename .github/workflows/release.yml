@@ -40,12 +40,44 @@ jobs:
     - name: Build executable with PyInstaller
       working-directory: sisPROJETOS_revived
       run: |
-        # Check if .spec file exists
-        if (Test-Path "sisPROJETOS.spec") {
-          pyinstaller sisPROJETOS.spec
+        # Check if .spec file exists (case-insensitive check)
+        if (Test-Path "sisprojetos.spec") {
+          Write-Host "Building with sisprojetos.spec..."
+          python -m PyInstaller sisprojetos.spec --clean --noconfirm
         } else {
+          Write-Host "Spec file not found, using basic build..."
           # Basic build if no spec file
           pyinstaller --onefile --windowed --name sisPROJETOS run.py
+        }
+    
+    - name: Validate build output
+      working-directory: sisPROJETOS_revived
+      run: |
+        # Check if executable was created
+        if (Test-Path "dist\sisPROJETOS\sisPROJETOS.exe") {
+          Write-Host "✓ Executable created successfully" -ForegroundColor Green
+          $fileSize = (Get-Item "dist\sisPROJETOS\sisPROJETOS.exe").Length / 1MB
+          Write-Host "  Size: $([math]::Round($fileSize, 2)) MB"
+        } else {
+          Write-Error "Build failed: Executable not found!"
+          exit 1
+        }
+        
+        # Count files in distribution
+        $fileCount = (Get-ChildItem -Path "dist\sisPROJETOS" -Recurse -File).Count
+        Write-Host "  Total files: $fileCount"
+        
+        # Check for required resources
+        $requiredPaths = @(
+          "dist\sisPROJETOS\resources\templates",
+          "dist\sisPROJETOS\modules\catenaria\resources"
+        )
+        foreach ($path in $requiredPaths) {
+          if (Test-Path $path) {
+            Write-Host "✓ Found: $path" -ForegroundColor Green
+          } else {
+            Write-Warning "Missing: $path"
+          }
         }
     
     - name: Get version tag
@@ -61,35 +93,146 @@ jobs:
       working-directory: sisPROJETOS_revived
       run: |
         $version = "${{ steps.get_version.outputs.VERSION }}"
-        Compress-Archive -Path dist/* -DestinationPath "sisPROJETOS-$version-Windows.zip"
+        
+        # Create portable ZIP archive
+        Write-Host "Creating portable archive..."
+        Compress-Archive -Path dist\sisPROJETOS\* -DestinationPath "sisPROJETOS-$version-Windows-Portable.zip"
+        
+        # Create full distribution ZIP (includes dist folder structure)
+        Write-Host "Creating full distribution archive..."
+        Compress-Archive -Path dist\* -DestinationPath "sisPROJETOS-$version-Windows-Full.zip"
+        
+        # Calculate checksums
+        Write-Host "Calculating checksums..."
+        $portableHash = (Get-FileHash "sisPROJETOS-$version-Windows-Portable.zip" -Algorithm SHA256).Hash
+        $fullHash = (Get-FileHash "sisPROJETOS-$version-Windows-Full.zip" -Algorithm SHA256).Hash
+        
+        # Save checksums to file
+        @"
+        SHA256 Checksums for sisPROJETOS $version
+        =========================================
+        sisPROJETOS-$version-Windows-Portable.zip
+        $portableHash
+        
+        sisPROJETOS-$version-Windows-Full.zip
+        $fullHash
+        "@ | Out-File -FilePath "checksums.txt" -Encoding UTF8
+        
+        Write-Host "Build artifacts created successfully:" -ForegroundColor Green
+        Get-ChildItem -Filter "sisPROJETOS-*.zip" | ForEach-Object {
+          $size = $_.Length / 1MB
+          Write-Host "  - $($_.Name) ($([math]::Round($size, 2)) MB)"
+        }
     
-    - name: Upload build artifact
+    - name: Try building installer with Inno Setup (optional)
+      working-directory: sisPROJETOS_revived
+      continue-on-error: true
+      run: |
+        # Check if Inno Setup is available
+        $innoSetupPaths = @(
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+          "C:\Program Files\Inno Setup 6\ISCC.exe",
+          "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+          "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+        )
+        
+        $innoSetupExe = $null
+        foreach ($path in $innoSetupPaths) {
+          if (Test-Path $path) {
+            $innoSetupExe = $path
+            break
+          }
+        }
+        
+        if ($innoSetupExe -and (Test-Path "sisPROJETOS.iss")) {
+          Write-Host "Inno Setup found at: $innoSetupExe" -ForegroundColor Green
+          Write-Host "Building installer..."
+          & $innoSetupExe "sisPROJETOS.iss"
+          
+          if (Test-Path "installer_output") {
+            Write-Host "Installer created successfully!" -ForegroundColor Green
+            Get-ChildItem -Path "installer_output" -Filter "*.exe" | ForEach-Object {
+              $size = $_.Length / 1MB
+              Write-Host "  - $($_.Name) ($([math]::Round($size, 2)) MB)"
+            }
+          }
+        } else {
+          Write-Host "Inno Setup not available or .iss file not found - skipping installer generation" -ForegroundColor Yellow
+        }
+    
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: sisPROJETOS-Windows
-        path: sisPROJETOS_revived/sisPROJETOS-*.zip
+        name: sisPROJETOS-Windows-${{ steps.get_version.outputs.VERSION }}
+        path: |
+          sisPROJETOS_revived/sisPROJETOS-*.zip
+          sisPROJETOS_revived/checksums.txt
+          sisPROJETOS_revived/installer_output/*.exe
+        if-no-files-found: warn
     
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: sisPROJETOS_revived/sisPROJETOS-*.zip
+        files: |
+          sisPROJETOS_revived/sisPROJETOS-*.zip
+          sisPROJETOS_revived/checksums.txt
+          sisPROJETOS_revived/installer_output/*.exe
         draft: false
         prerelease: false
         generate_release_notes: true
         body: |
           ## 📦 sisPROJETOS ${{ steps.get_version.outputs.VERSION }}
           
+          Sistema de Engenharia e Projetos para dimensionamento de redes elétricas.
+          
           ### 📥 Download
-          - Windows: `sisPROJETOS-${{ steps.get_version.outputs.VERSION }}-Windows.zip`
+          
+          **Instalador (Recomendado):**
+          - `sisPROJETOS_v${{ steps.get_version.outputs.VERSION }}_Setup.exe` - Instalador completo para Windows
+          
+          **Versão Portátil:**
+          - `sisPROJETOS-${{ steps.get_version.outputs.VERSION }}-Windows-Portable.zip` - Extrair e executar `sisPROJETOS.exe`
+          - `sisPROJETOS-${{ steps.get_version.outputs.VERSION }}-Windows-Full.zip` - Distribuição completa com estrutura de pastas
+          
+          **Checksums:**
+          - `checksums.txt` - Hashes SHA256 para verificação de integridade
           
           ### 📋 Changelog
-          Veja [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/sisPROJETOS_revived/CHANGELOG.md) para detalhes.
+          
+          Veja [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/sisPROJETOS_revived/CHANGELOG.md) para detalhes completos das mudanças.
+          
+          ### 🚀 Instalação
+          
+          **Opção 1 - Instalador (Recomendado):**
+          1. Baixe o arquivo `sisPROJETOS_v${{ steps.get_version.outputs.VERSION }}_Setup.exe`
+          2. Execute o instalador e siga as instruções
+          3. O aplicativo será instalado em `%LOCALAPPDATA%\sisPROJETOS`
+          
+          **Opção 2 - Versão Portátil:**
+          1. Baixe o arquivo `sisPROJETOS-${{ steps.get_version.outputs.VERSION }}-Windows-Portable.zip`
+          2. Extraia o conteúdo para uma pasta de sua escolha
+          3. Execute `sisPROJETOS.exe`
+          
+          ### ⚙️ Requisitos do Sistema
+          
+          - **Sistema Operacional:** Windows 10/11 (64-bit)
+          - **Memória RAM:** Mínimo 4 GB (recomendado 8 GB)
+          - **Espaço em Disco:** ~300 MB
+          - **Dependências:** Nenhuma (todas incluídas no executável)
           
           ### ✅ Verificações
-          - ✅ Testes passando
-          - ✅ Build automático
+          
+          - ✅ Testes automatizados passando
+          - ✅ Build automático via GitHub Actions
           - ✅ Versão verificada
+          - ✅ Checksums SHA256 incluídos
+          
+          ### 📝 Notas
+          
+          - Os dados do projeto são salvos em `%APPDATA%\sisPROJETOS`
+          - Configurações são preservadas entre atualizações
+          - Para relatar problemas, use a [página de Issues](https://github.com/${{ github.repository }}/issues)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
