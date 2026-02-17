@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="sisPROJETOS - Sistema Integrado de Projetos Elétricos. Ferramenta profissional para engenharia elétrica e projetos de redes de distribuição.">
+    <meta name="keywords" content="projetos elétricos, engenharia elétrica, redes de distribuição, cálculo elétrico, AutoCAD, KML, DXF">
+    <meta name="author" content="João Rodrigo Lampa">
+    <title>sisPROJETOS v2.0 - Sistema Integrado de Projetos Elétricos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header/Navigation -->
+    <header class="header">
+        <nav class="nav container">
+            <div class="nav-brand">
+                <span class="logo">⚡</span>
+                <span class="brand-name">sisPROJETOS</span>
+                <span class="version-badge">v2.0.1</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#features">Recursos</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="#docs">Documentação</a></li>
+                <li><a href="#about">Sobre</a></li>
+                <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1" class="btn-github" target="_blank">GitHub</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    Sistema Integrado de<br>
+                    <span class="gradient-text">Projetos Elétricos</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Ferramenta profissional para engenharia elétrica e projetos de redes de distribuição.
+                    Desenvolvido por engenheiros para engenheiros.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">9</div>
+                        <div class="stat-label">Módulos Especializados</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">126</div>
+                        <div class="stat-label">Testes Aprovados</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">75%</div>
+                        <div class="stat-label">Cobertura de Código</div>
+                    </div>
+                </div>
+                <div class="hero-cta">
+                    <a href="#download" class="btn btn-primary">
+                        <span>📥</span> Download v2.0.1
+                    </a>
+                    <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/README.md" class="btn btn-secondary" target="_blank">
+                        <span>📚</span> Documentação
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="app-mockup">
+                    <div class="mockup-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <div class="mockup-content">
+                        <div class="mockup-sidebar">
+                            <div class="sidebar-item active">🔌 Dimensionamento</div>
+                            <div class="sidebar-item">📊 Cálculo CQT</div>
+                            <div class="sidebar-item">📐 Catenária</div>
+                            <div class="sidebar-item">⚖️ Esforços</div>
+                            <div class="sidebar-item">🌍 Conversor KMZ</div>
+                            <div class="sidebar-item">🤖 Assistente IA</div>
+                        </div>
+                        <div class="mockup-main">
+                            <div class="code-line"></div>
+                            <div class="code-line short"></div>
+                            <div class="code-line"></div>
+                            <div class="code-line medium"></div>
+                            <div class="code-line"></div>
+                            <div class="code-line short"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Funcionalidades Principais</h2>
+            <p class="section-subtitle">9 módulos integrados para atender todas as suas necessidades em projetos elétricos</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔌</div>
+                    <h3>Dimensionamento Elétrico</h3>
+                    <p>Cálculo de queda de tensão, seções de cabo, materiais e validação segundo normas NBR</p>
+                    <ul class="feature-list">
+                        <li>Cálculo trifásico e monofásico</li>
+                        <li>Múltiplos materiais (Al, Cu)</li>
+                        <li>Validação NBR 5410</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Cálculo de BDI/CQT</h3>
+                    <p>Fator de demanda, momento elétrico e topologia de rede completa</p>
+                    <ul class="feature-list">
+                        <li>DMDI por classe social</li>
+                        <li>Validação topológica</li>
+                        <li>Acumulação de cargas</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📐</div>
+                    <h3>Catenária e Flecha</h3>
+                    <p>Cálculo preciso de vão, tensão de cabos e temperatura</p>
+                    <ul class="feature-list">
+                        <li>Múltiplas configurações</li>
+                        <li>Análise de temperatura</li>
+                        <li>Validação de limites</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚖️</div>
+                    <h3>Esforços em Postes</h3>
+                    <p>Análise estrutural completa, cálculo de momentos e limites NBR</p>
+                    <ul class="feature-list">
+                        <li>Análise de cargas</li>
+                        <li>Momentos fletores</li>
+                        <li>Conformidade NBR</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3>Conversor KMZ→UTM→DXF</h3>
+                    <p>Converta arquivos do Google Earth diretamente para desenho técnico CAD</p>
+                    <ul class="feature-list">
+                        <li>Importação KMZ/KML</li>
+                        <li>Conversão automática UTM</li>
+                        <li>Exportação DXF/AutoCAD</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>Assistente IA</h3>
+                    <p>Consultas técnicas sobre normas brasileiras usando LLaMA 3.3 70B</p>
+                    <ul class="feature-list">
+                        <li>Integração Groq API</li>
+                        <li>Análise de projetos</li>
+                        <li>Recomendações técnicas</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📄</div>
+                    <h3>Gerador de Projetos</h3>
+                    <p>Documentação completa em Excel e PDF</p>
+                    <ul class="feature-list">
+                        <li>Templates profissionais</li>
+                        <li>Exportação múltipla</li>
+                        <li>Personalização completa</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📏</div>
+                    <h3>Prancha DXF</h3>
+                    <p>Geração automática de desenhos técnicos</p>
+                    <ul class="feature-list">
+                        <li>Layouts padronizados</li>
+                        <li>Escalas automáticas</li>
+                        <li>Compatível AutoCAD</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>Calculadoras</h3>
+                    <p>Ferramentas auxiliares para engenharia</p>
+                    <ul class="feature-list">
+                        <li>Conversões de unidades</li>
+                        <li>Cálculos rápidos</li>
+                        <li>Utilitários diversos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="tech-stack">
+        <div class="container">
+            <h2 class="section-title">Tecnologias</h2>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <div class="tech-icon">🐍</div>
+                    <div class="tech-name">Python 3.12</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🎨</div>
+                    <div class="tech-name">CustomTkinter</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">📐</div>
+                    <div class="tech-name">ezdxf</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🗺️</div>
+                    <div class="tech-name">pyproj</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">📊</div>
+                    <div class="tech-name">openpyxl</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🔢</div>
+                    <div class="tech-name">numpy</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">💾</div>
+                    <div class="tech-name">SQLite3</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🧪</div>
+                    <div class="tech-name">pytest</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <h2 class="section-title">Download</h2>
+            <p class="section-subtitle">Versão mais recente disponível para Windows 10/11</p>
+            
+            <div class="download-card">
+                <div class="download-header">
+                    <div class="download-version">
+                        <span class="version-number">v2.0.1</span>
+                        <span class="version-date">16 de fevereiro de 2026</span>
+                    </div>
+                    <div class="download-badges">
+                        <span class="badge">✅ Estável</span>
+                        <span class="badge">🔒 Seguro</span>
+                        <span class="badge">⚡ Rápido</span>
+                    </div>
+                </div>
+                
+                <div class="download-content">
+                    <div class="download-info">
+                        <h3>Instalador Windows</h3>
+                        <p>Pacote completo com todas as dependências incluídas</p>
+                        <ul class="download-specs">
+                            <li><strong>Tamanho:</strong> ~72 MB</li>
+                            <li><strong>Plataforma:</strong> Windows 10/11 (64-bit)</li>
+                            <li><strong>Requisitos:</strong> 4 GB RAM, 500 MB espaço</li>
+                            <li><strong>Instalação:</strong> Sem privilégios de admin</li>
+                        </ul>
+                    </div>
+                    <div class="download-actions">
+                        <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/releases/latest" class="btn btn-download" target="_blank">
+                            <span>⬇️</span> Download Instalador
+                        </a>
+                        <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/releases" class="btn btn-outline" target="_blank">
+                            Ver Todas as Versões
+                        </a>
+                    </div>
+                </div>
+
+                <div class="download-steps">
+                    <h4>Instalação Rápida</h4>
+                    <ol>
+                        <li>Baixe o instalador <code>sisPROJETOS_v2.0.1_Setup.exe</code></li>
+                        <li>Execute o instalador (não requer privilégios de administrador)</li>
+                        <li>Siga as instruções na tela</li>
+                        <li>Configure a API Groq (opcional) para usar o Assistente IA</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="download-alternatives">
+                <h3>Outras Opções</h3>
+                <div class="alternatives-grid">
+                    <div class="alternative-card">
+                        <div class="alt-icon">👨‍💻</div>
+                        <h4>Desenvolvedores</h4>
+                        <p>Clone o repositório e execute localmente</p>
+                        <a href="https://github.com/jrlampa/sisPROJETOS_v1.1" class="btn btn-small" target="_blank">GitHub Repo</a>
+                    </div>
+                    <div class="alternative-card">
+                        <div class="alt-icon">📦</div>
+                        <h4>Código Fonte</h4>
+                        <p>Download do código fonte compactado</p>
+                        <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/archive/refs/heads/main.zip" class="btn btn-small" target="_blank">Download ZIP</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="docs" class="documentation">
+        <div class="container">
+            <h2 class="section-title">Documentação</h2>
+            <p class="section-subtitle">Guias completos para usuários e desenvolvedores</p>
+            
+            <div class="docs-grid">
+                <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/README.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">📖</div>
+                    <h3>README</h3>
+                    <p>Visão geral completa do projeto, instalação e início rápido</p>
+                </a>
+
+                <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/ARCHITECTURE.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">🏗️</div>
+                    <h3>Arquitetura</h3>
+                    <p>Estrutura MVC, módulos, banco de dados e design patterns</p>
+                </a>
+
+                <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/BUILD.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">🔨</div>
+                    <h3>Build & Deploy</h3>
+                    <p>Guia completo de build com PyInstaller e Inno Setup</p>
+                </a>
+
+                <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/CHANGELOG.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">📝</div>
+                    <h3>Changelog</h3>
+                    <p>Histórico detalhado de versões e mudanças</p>
+                </a>
+
+                <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/CONTRIBUTING.md" class="doc-card" target="_blank">
+                    <div class="doc-icon">🤝</div>
+                    <h3>Contribuindo</h3>
+                    <p>Guia para contribuidores e padrões de código</p>
+                </a>
+
+                <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/LICENSE.txt" class="doc-card" target="_blank">
+                    <div class="doc-icon">⚖️</div>
+                    <h3>Licença</h3>
+                    <p>Licença MIT e atribuições de dependências</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title">Sobre o Projeto</h2>
+            
+            <div class="about-content">
+                <div class="about-text">
+                    <h3>Desenvolvido por Engenheiros para Engenheiros</h3>
+                    <p>
+                        O <strong>sisPROJETOS</strong> nasceu da necessidade real de profissionais da engenharia elétrica
+                        por uma ferramenta integrada, precisa e eficiente para projetos de redes de distribuição.
+                    </p>
+                    <p>
+                        Com mais de 9 módulos especializados e integração com tecnologias de ponta como IA, 
+                        o sistema oferece desde cálculos elétricos complexos até conversão de coordenadas 
+                        e geração automática de desenhos técnicos.
+                    </p>
+                    <p>
+                        Totalmente <strong>gratuito</strong> e de <strong>código aberto</strong> (MIT License), 
+                        desenvolvido com Python 3.12 e uma interface moderna em CustomTkinter.
+                    </p>
+                </div>
+                
+                <div class="about-stats-large">
+                    <div class="stat-large">
+                        <div class="stat-large-number">2.0.1</div>
+                        <div class="stat-large-label">Versão Atual</div>
+                    </div>
+                    <div class="stat-large">
+                        <div class="stat-large-number">9</div>
+                        <div class="stat-large-label">Módulos</div>
+                    </div>
+                    <div class="stat-large">
+                        <div class="stat-large-number">126</div>
+                        <div class="stat-large-label">Testes</div>
+                    </div>
+                    <div class="stat-large">
+                        <div class="stat-large-number">MIT</div>
+                        <div class="stat-large-label">Licença</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="author-section">
+                <div class="author-card">
+                    <div class="author-info">
+                        <h3>João Rodrigo Lampa</h3>
+                        <p class="author-title">Engenheiro Eletricista</p>
+                        <p class="author-bio">
+                            Desenvolvedor principal do sisPROJETOS, dedicado a criar ferramentas
+                            que facilitam o trabalho de engenheiros em projetos elétricos.
+                        </p>
+                    </div>
+                    <div class="author-links">
+                        <a href="https://github.com/jrlampa" target="_blank" class="social-link">
+                            <span>🔗</span> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section class="roadmap">
+        <div class="container">
+            <h2 class="section-title">Roadmap</h2>
+            <p class="section-subtitle">Próximas funcionalidades e melhorias planejadas</p>
+            
+            <div class="roadmap-timeline">
+                <div class="roadmap-item">
+                    <div class="roadmap-badge">v2.1.0</div>
+                    <div class="roadmap-content">
+                        <h3>Q2 2026</h3>
+                        <ul>
+                            <li>Sistema de logging centralizado</li>
+                            <li>Auto-update checker</li>
+                            <li>Code signing (certificado comercial)</li>
+                            <li>CI/CD com GitHub Actions</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="roadmap-item">
+                    <div class="roadmap-badge">v2.2.0</div>
+                    <div class="roadmap-content">
+                        <h3>Q3 2026</h3>
+                        <ul>
+                            <li>Plugin architecture</li>
+                            <li>RESTful API (FastAPI)</li>
+                            <li>Dark mode</li>
+                            <li>Multi-language support</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="roadmap-item">
+                    <div class="roadmap-badge">v3.0.0</div>
+                    <div class="roadmap-content">
+                        <h3>2027</h3>
+                        <ul>
+                            <li>Web version (React)</li>
+                            <li>Collaborative editing</li>
+                            <li>Mobile app (React Native)</li>
+                            <li>Cloud sync</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <span class="logo">⚡</span>
+                        <span class="brand-name">sisPROJETOS</span>
+                    </div>
+                    <p class="footer-tagline">Sistema Integrado de Projetos Elétricos</p>
+                    <p class="footer-copyright">
+                        © 2026 sisPROJETOS. Licenciado sob <a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/LICENSE.txt" target="_blank">MIT License</a>
+                    </p>
+                </div>
+
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Produto</h4>
+                        <ul>
+                            <li><a href="#features">Recursos</a></li>
+                            <li><a href="#download">Download</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/releases" target="_blank">Releases</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/CHANGELOG.md" target="_blank">Changelog</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-column">
+                        <h4>Documentação</h4>
+                        <ul>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/README.md" target="_blank">README</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/ARCHITECTURE.md" target="_blank">Arquitetura</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/BUILD.md" target="_blank">Build Guide</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/CONTRIBUTING.md" target="_blank">Contribuir</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-column">
+                        <h4>Comunidade</h4>
+                        <ul>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1" target="_blank">GitHub</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/issues" target="_blank">Issues</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/discussions" target="_blank">Discussions</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/CONTRIBUTING.md" target="_blank">Contribuir</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-column">
+                        <h4>Legal</h4>
+                        <ul>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/blob/main/sisPROJETOS_revived/LICENSE.txt" target="_blank">Licença MIT</a></li>
+                            <li><a href="https://github.com/jrlampa/sisPROJETOS_v1.1/security" target="_blank">Segurança</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>
+                    Feito com ❤️ por engenheiros para engenheiros | 
+                    <a href="https://github.com/jrlampa/sisPROJETOS_v1.1" target="_blank">⭐ Star no GitHub</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
