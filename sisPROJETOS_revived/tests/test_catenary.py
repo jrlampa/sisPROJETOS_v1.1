@@ -38,3 +38,39 @@ def test_catenary_inclined_span():
     assert res is not None
     assert res["y_vals"][0] == 10
     assert res["y_vals"][-1] == 30
+
+
+# ============================================================
+# Testes adicionais para cobertura de branches
+# ============================================================
+
+def test_get_conductor_by_name_not_found():
+    """Cobre linha 56: retorno None para condutor não encontrado."""
+    logic = CatenaryLogic()
+    result = logic.get_conductor_by_name("ConductorQueNaoExiste_XYZ")
+    assert result is None
+
+
+def test_load_conductors_db_failure(mocker):
+    """Cobre linhas 32-34: exceção ao carregar condutores — lista fica vazia."""
+    logic = CatenaryLogic()
+    # Mocka o DB para falhar na próxima chamada a load_conductors
+    mocker.patch.object(logic.db, "get_connection", side_effect=Exception("DB falhou"))
+    logic.load_conductors()
+    assert logic.conductors == []
+
+
+def test_export_dxf_creates_file(tmp_path):
+    """Cobre linhas 166-168: export_dxf delega para DXFManager."""
+    import os
+    import numpy as np
+
+    logic = CatenaryLogic()
+    result = logic.calculate_catenary(100, 10, 10, 1000, 0.5)
+    assert result is not None
+
+    dxf_path = str(tmp_path / "catenaria_test.dxf")
+    logic.export_dxf(dxf_path, result["x_vals"], result["y_vals"], result["sag"])
+
+    assert os.path.exists(dxf_path)
+    assert os.path.getsize(dxf_path) > 0
