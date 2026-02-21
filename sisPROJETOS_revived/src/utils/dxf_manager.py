@@ -1,3 +1,4 @@
+import io
 import math
 import os
 from typing import Any, Iterable, Tuple
@@ -72,6 +73,46 @@ class DXFManager:
         )
 
         doc.saveas(safe_path)
+
+    @staticmethod
+    def create_catenary_dxf_to_buffer(x_vals: Iterable[float], y_vals: Iterable[float], sag: float) -> bytes:
+        """Creates a DXF for a catenary curve and returns it as raw bytes (in-memory).
+
+        Produces the same DXF layer structure as :py:meth:`create_catenary_dxf`
+        (layers: CATENARY_CURVE, SUPPORTS, ANNOTATIONS) but writes to an in-memory
+        ``StringIO`` buffer and returns the result encoded as UTF-8 bytes, making it
+        suitable for API responses (e.g., Base64 encoding). No filesystem access is
+        performed.
+
+        Args:
+            x_vals: Iterable of X coordinates (horizontal span, in metres).
+            y_vals: Iterable of Y coordinates (height above reference, in metres).
+            sag: Sag value in metres for annotation label.
+
+        Returns:
+            bytes: Raw DXF file content (UTF-8 encoded text format).
+        """
+        doc = ezdxf.new("R2010")
+
+        doc.layers.new("CATENARY_CURVE", dxfattribs={"color": 3, "lineweight": 35})
+        doc.layers.new("SUPPORTS", dxfattribs={"color": 2})
+        doc.layers.new("ANNOTATIONS", dxfattribs={"color": 7})
+
+        msp = doc.modelspace()
+
+        points = list(zip(x_vals, y_vals))
+        msp.add_lwpolyline(points, dxfattribs={"layer": "CATENARY_CURVE"})
+
+        DXFManager._add_pole_marker(msp, points[0])
+        DXFManager._add_pole_marker(msp, points[-1])
+
+        msp.add_text(f"Sag: {sag:.2f}m", dxfattribs={"height": 0.5, "layer": "ANNOTATIONS"}).set_placement(
+            points[len(points) // 2]
+        )
+
+        buf = io.StringIO()
+        doc.write(buf)
+        return buf.getvalue().encode("utf-8")
 
     @staticmethod
     def _add_pole_marker(msp: Any, pos: Tuple[float, float]) -> None:

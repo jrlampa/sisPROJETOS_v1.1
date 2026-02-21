@@ -176,6 +176,13 @@ class CatenaryRequest(BaseModel):
             "Se fornecido, a resposta incluirá 'within_clearance' indicando conformidade."
         ),
     )
+    include_curve: bool = Field(
+        default=False,
+        description=(
+            "Se True, inclui os pontos da curva catenária (curve_x, curve_y) na resposta. "
+            "Útil para integração BIM e renderização de curvas em ferramentas externas."
+        ),
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -186,6 +193,7 @@ class CatenaryRequest(BaseModel):
                 "tension_daN": 500.0,
                 "weight_kg_m": 0.779,
                 "min_clearance_m": 6.0,
+                "include_curve": True,
             }
         }
     }
@@ -204,6 +212,58 @@ class CatenaryResponse(BaseModel):
             "Preenchido somente quando 'min_clearance_m' é fornecido na requisição."
         ),
     )
+    curve_x: Optional[List[float]] = Field(
+        default=None,
+        description=(
+            "Coordenadas X (distância horizontal em metros) da curva catenária. "
+            "Preenchido somente quando 'include_curve=true' é enviado na requisição."
+        ),
+    )
+    curve_y: Optional[List[float]] = Field(
+        default=None,
+        description=(
+            "Coordenadas Y (altura em metros) da curva catenária. "
+            "Preenchido somente quando 'include_curve=true' é enviado na requisição."
+        ),
+    )
+
+
+class CatenaryDxfRequest(BaseModel):
+    """Dados de entrada para geração de DXF de catenária via API."""
+
+    span: float = Field(..., gt=0, description="Vão horizontal em metros")
+    ha: float = Field(default=0.0, description="Altura do suporte A em metros")
+    hb: float = Field(default=0.0, description="Altura do suporte B em metros")
+    tension_daN: float = Field(..., gt=0, description="Tensão horizontal em daN")
+    weight_kg_m: float = Field(..., gt=0, description="Peso linear do condutor em kg/m")
+    filename: str = Field(
+        default="catenaria.dxf",
+        min_length=1,
+        max_length=100,
+        description="Nome sugerido para o arquivo DXF (ex: 'trecho_01.dxf')",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "span": 80.0,
+                "ha": 9.0,
+                "hb": 9.0,
+                "tension_daN": 500.0,
+                "weight_kg_m": 0.779,
+                "filename": "catenaria_vao80m.dxf",
+            }
+        }
+    }
+
+
+class CatenaryDxfResponse(BaseModel):
+    """DXF de catenária codificado em Base64 para integração BIM."""
+
+    dxf_base64: str = Field(..., description="Conteúdo do arquivo DXF codificado em Base64 (RFC 4648)")
+    filename: str = Field(..., description="Nome sugerido para o arquivo DXF")
+    sag: float = Field(..., description="Flecha máxima calculada em metros")
+    catenary_constant: float = Field(..., description="Constante catenária 'a' em metros")
 
 
 # ── Esforços em Postes ────────────────────────────────────────────────────────

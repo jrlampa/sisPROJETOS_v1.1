@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 712 testes, 100% cobertura, API REST com 15 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura + módulo de padrões regulatórios ANEEL/PRODIST com mecanismo de toast + padrões normativos disponíveis via API REST + verificação opcional de folga NBR 5422 no endpoint /catenary/calculate**)
+**Maturidade:** Produção (v2.1.0 — 730 testes, 100% cobertura, API REST com 16 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura + módulo de padrões regulatórios ANEEL/PRODIST com mecanismo de toast + padrões normativos disponíveis via API REST + verificação opcional de folga NBR 5422 no endpoint /catenary/calculate + pontos de curva catenária via include_curve + geração de DXF via API REST Base64 /catenary/dxf**)
 
 ---
 
@@ -87,7 +87,7 @@ Main (Controller) → orquestra → GUIs
 | `schemas.py` | Modelos Pydantic (request/response) |
 | `routes/electrical.py` | GET `/api/v1/electrical/standards`; GET `/api/v1/electrical/materials`; POST `/api/v1/electrical/voltage-drop` (suporte a ANEEL/PRODIST via `standard_name`) |
 | `routes/cqt.py` | POST `/api/v1/cqt/calculate` |
-| `routes/catenary.py` | POST `/api/v1/catenary/calculate` |
+| `routes/catenary.py` | POST `/api/v1/catenary/calculate` (inclui curva com `include_curve`; verificação folga ao solo com `min_clearance_m`); POST `/api/v1/catenary/dxf` (gera DXF em memória, retorna Base64) |
 | `routes/pole_load.py` | POST `/api/v1/pole-load/resultant`; GET `/api/v1/pole-load/suggest?force_daN=...` |
 | `routes/data.py` | GET `/api/v1/data/conductors`, `/data/poles`, `/data/concessionaires` |
 | `routes/converter.py` | POST `/api/v1/converter/kml-to-utm` |
@@ -199,7 +199,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 707 (todos passando, 100% cobertura)  
+**Total de testes:** 730 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -224,6 +224,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
 | `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health; + GET /electrical/materials + GET /pole-load/suggest; + `TestCatenaryNBR5422Clearance` — verificação folga ao solo via min_clearance_m) | ✅ |
+| `test_api_catenary.py` | `api/routes/catenary.py` (include_curve: 7 testes de pontos de curva; POST /catenary/dxf: 11 testes de geração DXF Base64 via API) | ✅ |
 | `test_api_standards.py` | `api/routes/electrical.py` (GET /electrical/standards + POST /voltage-drop com standard_name ANEEL/PRODIST) | ✅ |
 | `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM) | ✅ |
 | `test_domain.py` | `domain/value_objects.py`, `domain/entities.py` (DDD: UTMCoordinate, CatenaryResult, VoltageDropResult, SpanResult, Conductor, Pole, Concessionaire) | ✅ |
@@ -481,6 +482,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | DDD Infrastructure Layer completada: `src/infrastructure/repositories.py` — 3 adaptadores SQLite (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository) implementando os Protocols de domínio; `src/utils.py` removido (código morto — sombreado pelo pacote `src/utils/`, continha função insegura); corrigidos 2 bugs em `db_manager.py` — (a) condutores pré-populados tinham breaking_load_daN=0 → corrigido com valores reais ABNT NBR 7271 (556MCM=7080, 397MCM=5050, 1/0AWG=5430, 4AWG=2655 daN); (b) descriptions de postes não-únicas causavam INSERT OR IGNORE silencioso — corrigido com prefixo de material nas descriptions; 51 testes em `tests/test_infrastructure.py`; CodeQL: 0 alertas; total 639 testes, 100% cobertura |
 | 2026-02-21 | 2.1.0 | ANEEL/PRODIST integrado no domínio DDD: `src/domain/standards.py` criado com `VoltageStandard` (frozen dataclass imutável, source∈{ABNT/ANEEL/PRODIST/CONCESSIONAIRE}, `check(drop_percent)`, `override_toast_pt_br` para toast pt-BR); 5 padrões pré-definidos: NBR_5410 (5%), PRODIST_MODULE8_BT (8%, Res. Norm. 956/2021), PRODIST_MODULE8_MT (7%), LIGHT_BT (8%, concessionária), ENEL_BT (8%, concessionária); `ALL_STANDARDS` frozenset + `get_standard_by_name()`; `VoltageDropResult.is_within_standard(standard)` adicionado; `VoltageDropDomainService.calculate(standard=...)` aceita padrão opcional sem alterar o cálculo; `domain/__init__.py` exporta todos os novos símbolos; 46 testes em `tests/test_standards.py`; CodeQL: 0 alertas; total 685 testes, 100% cobertura |
 | 2026-02-21 | 2.1.0 | ANEEL/PRODIST integrado na API REST: `GET /api/v1/electrical/standards` — lista 5 padrões normativos (NBR 5410, PRODIST BT/MT, Light, Enel) como `StandardOut` com `Optional[str] override_toast_pt_br`; `POST /api/v1/electrical/voltage-drop` aceita campo opcional `standard_name` — resolve via `get_standard_by_name()`, usa `standard.check()` para `allowed`, retorna `standard_name` e `override_toast` pt-BR; desconhecido → HTTP 422 com referência ao endpoint /standards; `VoltageDropRequest` + `VoltageDropResponse` + `StandardOut` schemas atualizados; 22 novos testes em `test_api.py`; CodeQL: 0 alertas; total 707 testes, 100% cobertura, 15 endpoints REST |
-| 2026-02-21 | 2.1.0 | Split `test_api.py` (597→485 linhas): `TestElectricalStandardsEndpoint` + `TestElectricalVoltageDropWithStandard` movidos para novo `test_api_standards.py` (196 linhas); NBR 5422 clearance check integrado na API: `CatenaryRequest.min_clearance_m: Optional[float]` + `CatenaryResponse.within_clearance: Optional[bool]`; catenary route chama `CatenaryDomainService.is_within_clearance()`; 5 novos testes em `TestCatenaryNBR5422Clearance`; CodeQL: 0 alertas; total 712 testes, 100% cobertura |
+| 2026-02-21 | 2.1.0 | POST /api/v1/catenary/dxf adicionado: gera DXF em memória (StringIO → encode UTF-8) via `DXFManager.create_catenary_dxf_to_buffer()`, retorna Base64 JSON (padrão consistente com converter KML→UTM); `CatenaryRequest` ganhou `include_curve: bool = False` → quando True, `CatenaryResponse` inclui `curve_x`/`curve_y` (100 pontos) para renderização BIM; `CatenaryDxfRequest`/`CatenaryDxfResponse` schemas adicionados; tag "Catenária" em app.py atualizada para mencionar DXF; 18 novos testes em `tests/test_api_catenary.py`; CodeQL: 0 alertas; 730 testes, 100% cobertura |
+
+
 
 
