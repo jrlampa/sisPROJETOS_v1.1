@@ -170,3 +170,53 @@ class TestCreatePointsDXF:
         )
         DXFManager.create_points_dxf(filepath, df)
         assert os.path.exists(filepath)
+
+    def test_2_5d_elevation_stored_as_attribute(self, tmp_path):
+        """Valida que a elevação é armazenada no Z da localização do POINT (2.5D survey)."""
+        import ezdxf
+
+        filepath = str(tmp_path / "points_2_5d.dxf")
+        df = self._make_dataframe()  # Elevation: [10.0, 11.0, 12.0]
+        DXFManager.create_points_dxf(filepath, df)
+
+        doc = ezdxf.readfile(filepath)
+        msp = doc.modelspace()
+        points = sorted(list(msp.query("POINT")), key=lambda p: p.dxf.location.z)
+
+        assert len(points) == 3, "Deve haver 3 entidades POINT"
+        # 2.5D: elevação no Z da posição (convenção survey ABNT NBR 13133)
+        assert abs(points[0].dxf.location.z - 10.0) < 0.01, f"Z esperado 10.0, encontrado {points[0].dxf.location.z}"
+        assert abs(points[1].dxf.location.z - 11.0) < 0.01
+        assert abs(points[2].dxf.location.z - 12.0) < 0.01
+
+    def test_2_5d_text_placement_is_flat(self, tmp_path):
+        """Rótulos TEXT devem estar no plano XY (Z=0) para vista em planta (2.5D)."""
+        import ezdxf
+
+        filepath = str(tmp_path / "points_text_flat.dxf")
+        df = self._make_dataframe()
+        DXFManager.create_points_dxf(filepath, df)
+
+        doc = ezdxf.readfile(filepath)
+        msp = doc.modelspace()
+        texts = list(msp.query("TEXT"))
+        assert len(texts) == 3, "Deve haver 3 entidades TEXT"
+        for txt in texts:
+            assert txt.dxf.insert.z == 0.0, f"TEXT deve ter Z=0 (plano XY), encontrado {txt.dxf.insert.z}"
+
+    def test_2_5d_position_is_2d(self, tmp_path):
+        """Verifica que coordenadas XY dos pontos correspondem ao Easting/Northing."""
+        import ezdxf
+
+        filepath = str(tmp_path / "points_2d_pos.dxf")
+        df = self._make_dataframe()  # Easting: [691000, 691050, 691100]
+        DXFManager.create_points_dxf(filepath, df)
+
+        doc = ezdxf.readfile(filepath)
+        msp = doc.modelspace()
+        points = sorted(list(msp.query("POINT")), key=lambda p: p.dxf.location.x)
+
+        assert abs(points[0].dxf.location.x - 691000.0) < 0.01
+        assert abs(points[0].dxf.location.y - 7455000.0) < 0.01
+        assert abs(points[1].dxf.location.x - 691050.0) < 0.01
+        assert abs(points[2].dxf.location.x - 691100.0) < 0.01

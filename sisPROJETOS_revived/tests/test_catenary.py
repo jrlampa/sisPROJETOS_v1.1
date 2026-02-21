@@ -112,3 +112,42 @@ def test_catenary_string_inputs_coerced():
     res = logic.calculate_catenary("100", "10", "10", "1000", "0.5")
     assert res is not None
     assert res["sag"] > 0
+
+
+# ============================================================
+# Testes de vãos padrão NBR 5422 (100m, 500m e 1000m)
+# Condutor típico: peso=1.60 kg/m, tensão=2000 daN
+# ============================================================
+
+
+def test_catenary_span_100m():
+    """Vão de 100 m com condutor 556MCM-CA típico: flecha deve ser > 0 e ≤ 5 m."""
+    logic = CatenaryLogic()
+    res = logic.calculate_catenary(span=100.0, ha=10.0, hb=10.0, tension_daN=2000.0, weight_kg_m=1.60)
+    assert res is not None
+    assert res["sag"] > 0.0, "Flecha não pode ser zero"
+    assert res["sag"] <= 5.0, f"Flecha excessiva para 100m: {res['sag']:.3f}m"
+    assert len(res["x_vals"]) == 100
+    assert abs(res["x_vals"][-1] - 100.0) < 0.01
+
+
+def test_catenary_span_500m():
+    """Vão de 500 m: flecha deve ser maior que a de 100 m e ≤ 150 m."""
+    logic = CatenaryLogic()
+    res_100 = logic.calculate_catenary(span=100.0, ha=10.0, hb=10.0, tension_daN=2000.0, weight_kg_m=1.60)
+    res_500 = logic.calculate_catenary(span=500.0, ha=10.0, hb=10.0, tension_daN=2000.0, weight_kg_m=1.60)
+    assert res_500 is not None
+    assert res_500["sag"] > res_100["sag"], "Flecha de 500m deve superar a de 100m"
+    assert res_500["sag"] <= 150.0, f"Flecha excessiva para 500m: {res_500['sag']:.3f}m"
+    assert abs(res_500["x_vals"][-1] - 500.0) < 0.01
+
+
+def test_catenary_span_1000m():
+    """Vão de 1000 m: flecha deve ser maior que a de 500 m e o array x deve ter 100 pontos."""
+    logic = CatenaryLogic()
+    res_500 = logic.calculate_catenary(span=500.0, ha=10.0, hb=10.0, tension_daN=2000.0, weight_kg_m=1.60)
+    res_1000 = logic.calculate_catenary(span=1000.0, ha=10.0, hb=10.0, tension_daN=2000.0, weight_kg_m=1.60)
+    assert res_1000 is not None
+    assert res_1000["sag"] > res_500["sag"], "Flecha de 1000m deve superar a de 500m"
+    assert len(res_1000["x_vals"]) == 100
+    assert abs(res_1000["x_vals"][-1] - 1000.0) < 0.01
