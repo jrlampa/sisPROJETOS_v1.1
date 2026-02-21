@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 588 testes, 100% cobertura, API REST com 14 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio**)
+**Maturidade:** Produção (v2.1.0 — 639 testes, 100% cobertura, API REST com 14 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura**)
 
 ---
 
@@ -60,7 +60,13 @@ Main (Controller) → orquestra → GUIs
 | `ai_assistant` | `logic.py` | `gui.py` | Assistente IA via Groq API |
 | `settings` | — | `gui.py` | Configurações e cadastros |
 
-### API REST (src/api/) — Half-way BIM
+### Infra-Estrutura DDD (src/infrastructure/)
+
+| Arquivo | Responsabilidade |
+|---------|-----------------|
+| `__init__.py` | Exporta adaptadores SQLite |
+| `repositories.py` | `SQLiteConductorRepository`, `SQLitePoleRepository`, `SQLiteConcessionaireRepository` — implementações concretas dos Protocols de domínio |
+
 
 | Arquivo | Responsabilidade |
 |---------|-----------------|
@@ -207,7 +213,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health; + GET /electrical/materials + GET /pole-load/suggest) | ✅ |
 | `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM) | ✅ |
 | `test_domain.py` | `domain/value_objects.py`, `domain/entities.py` (DDD: UTMCoordinate, CatenaryResult, VoltageDropResult, SpanResult, Conductor, Pole, Concessionaire) | ✅ |
-| `test_domain_services.py` | `domain/repositories.py` (ConductorRepository, PoleRepository, ConcessionaireRepository — Protocol isinstance checks + stubs in-memory), `domain/services.py` (CatenaryDomainService: fórmula NBR 5422 com vãos 100m/500m/1km; VoltageDropDomainService: fórmula NBR 5410, is_within_limit) | ✅ |
+| `test_infrastructure.py` | `infrastructure/repositories.py` (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository: Protocol isinstance checks, entity mapping, ABNT data validation, invalid-row filtering, DDD end-to-end: repository→entity→domain service) | ✅ |
 | `test_dxf_content.py` | Validação estrutural headless de DXF (22 testes): coordenadas reais UTM, layers, entidades, 2.5D, vãos 100m/500m/1km | ✅ |
 
 ### Executar Testes
@@ -389,6 +395,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🔄 Planejado | ARCHITECTURE.md desatualizado (v2.0, 388 testes, sem DDD, sem API) | ✅ Atualizado | Reescrito com diagrama de camadas DDD+MVC, tabelas de endpoints, convenção DXF 2.5D, instrução de testes |
 | 🔄 Planejado | DDD Repository Interfaces (ports) | ✅ Implementado | `src/domain/repositories.py` — 3 Protocol classes: ConductorRepository, PoleRepository, ConcessionaireRepository; `# pragma: no cover` nos stubs Ellipsis |
 | 🔄 Planejado | DDD Domain Services | ✅ Implementado | `src/domain/services.py` — CatenaryDomainService (fórmula hiperbólica NBR 5422; is_within_clearance); VoltageDropDomainService (fórmulas mono/trifásica NBR 5410); 59 testes em `tests/test_domain_services.py` |
+
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -453,6 +460,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | DXF 2.5D: `create_points_dxf` corrigido — POINT usa `(x,y,z)` onde z=altitude (convenção survey NBR 13133); TEXT usa `set_placement((x,y))` — Z=0, plano XY; type hints completos em dxf_manager.py; test_dxf_content.py criado com 22 testes headless estruturais (ezdxf substitui accoreconsole.exe) com coordenadas reais UTM 23K E=788547 N=7634925 e lat=-22.15018/lon=-42.92185; 3 testes de vão NBR 5422 (100m, 500m, 1km) em test_catenary.py; total 482 testes, 100% cobertura |
 | 2026-02-21 | 2.1.0 | Camada de domínio DDD implementada: `src/domain/value_objects.py` (UTMCoordinate, CatenaryResult, VoltageDropResult, SpanResult — frozen dataclasses com invariantes de negócio); `src/domain/entities.py` (Conductor, Pole, Concessionaire — com regras de domínio); `src/domain/__init__.py`; 47 testes em `tests/test_domain.py` (imutabilidade, validações, propriedades calculadas); ARCHITECTURE.md reescrito com diagrama de camadas DDD+MVC, tabela de endpoints, convenção DXF 2.5D; total 529 testes, 100% cobertura |
 | 2026-02-21 | 2.1.0 | DDD completado com ports + services: `src/domain/repositories.py` — 3 Protocol interfaces (ConductorRepository, PoleRepository, ConcessionaireRepository) com `# pragma: no cover` nos stubs; `src/domain/services.py` — CatenaryDomainService (fórmula hiperbólica cosh, NBR 5422, is_within_clearance) + VoltageDropDomainService (mono/trifásico, NBR 5410, is_within_limit); 59 testes em `tests/test_domain_services.py` (incluindo testes com vãos 100m/500m/1km e coords reais); `src/domain/__init__.py` atualizado para exportar novos símbolos; total 588 testes, 100% cobertura |
+| 2026-02-21 | 2.1.0 | DDD Infrastructure Layer completada: `src/infrastructure/repositories.py` — 3 adaptadores SQLite (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository) implementando os Protocols de domínio; `src/utils.py` removido (código morto — sombreado pelo pacote `src/utils/`, continha função insegura); corrigidos 2 bugs em `db_manager.py` — (a) condutores pré-populados tinham breaking_load_daN=0 → corrigido com valores reais ABNT NBR 7271 (556MCM=7080, 397MCM=5050, 1/0AWG=5430, 4AWG=2655 daN); (b) descriptions de postes não-únicas causavam INSERT OR IGNORE silencioso — corrigido com prefixo de material nas descriptions; 51 testes em `tests/test_infrastructure.py`; CodeQL: 0 alertas; total 639 testes, 100% cobertura |
 
 ---
 

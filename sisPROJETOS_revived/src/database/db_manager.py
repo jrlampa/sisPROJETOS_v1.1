@@ -158,12 +158,14 @@ class DatabaseManager:
         cursor.executemany("INSERT OR IGNORE INTO concessionaires (name, method) VALUES (?, ?)", concessionaires)
 
         # 2. Resistivity & K Coefficients (Migrated from logic modules)
-        # 3. Conductors (Light weights)
+        # 3. Conductors (Light catalog — ABNT NBR 7271:2004 / NBR 7270:2004)
+        # Columns: name, type, weight_kg_m, breaking_load_daN, modulus_elasticity,
+        #          coeff_thermal_expansion, section_mm2, diameter_mm
         light_conductors = [
-            ("556MCM-CA, Nu", "CA", 0.779, 0, 0, 0, 0, 0),
-            ("397MCM-CA, Nu", "CA", 0.558, 0, 0, 0, 0, 0),
-            ("1/0AWG-CAA, Nu", "CAA", 0.217, 0, 0, 0, 0, 0),
-            ("4 AWG-CAA, Nu", "CAA", 0.085, 0, 0, 0, 0, 0),
+            ("556MCM-CA, Nu", "CA", 0.779, 7080.0, 56900.0, 23.0e-6, 281.7, 22.01),
+            ("397MCM-CA, Nu", "CA", 0.558, 5050.0, 56900.0, 23.0e-6, 201.4, 18.62),
+            ("1/0AWG-CAA, Nu", "CAA", 0.217, 5430.0, 76000.0, 19.3e-6, 53.5, 10.52),
+            ("4 AWG-CAA, Nu", "CAA", 0.085, 2655.0, 76000.0, 19.3e-6, 21.2, 6.62),
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO conductors (name, type, weight_kg_m, breaking_load_daN, modulus_elasticity, coeff_thermal_expansion, section_mm2, diameter_mm) VALUES (?,?,?,?,?,?,?,?)",
@@ -204,21 +206,22 @@ class DatabaseManager:
         )
 
         # 6. Poles (Catálogo básico de postes — ABNT NBR 8451 / 8452)
+        # Descriptions include material name to satisfy UNIQUE constraint across all materials.
         poles = [
             # (material, format, description, height_m, nominal_load_daN)
-            ("Concreto", "Circular", "11 m / 200 daN", 11.0, 200.0),
-            ("Concreto", "Circular", "11 m / 400 daN", 11.0, 400.0),
-            ("Concreto", "Circular", "11 m / 600 daN", 11.0, 600.0),
-            ("Concreto", "Circular", "12 m / 300 daN", 12.0, 300.0),
-            ("Concreto", "Circular", "12 m / 600 daN", 12.0, 600.0),
-            ("Concreto", "Circular", "13 m / 600 daN", 13.0, 600.0),
-            ("Concreto", "Duplo T", "11 m / 1000 daN", 11.0, 1000.0),
-            ("Concreto", "Duplo T", "13 m / 1000 daN", 13.0, 1000.0),
-            ("Fibra de Vidro", "Circular", "11 m / 200 daN", 11.0, 200.0),
-            ("Fibra de Vidro", "Circular", "11 m / 400 daN", 11.0, 400.0),
-            ("Fibra de Vidro", "Circular", "11 m / 600 daN", 11.0, 600.0),
-            ("Madeira", "Roliço", "11 m / 300 daN", 11.0, 300.0),
-            ("Madeira", "Roliço", "11 m / 600 daN", 11.0, 600.0),
+            ("Concreto", "Circular", "Concreto Circ. 11 m / 200 daN", 11.0, 200.0),
+            ("Concreto", "Circular", "Concreto Circ. 11 m / 400 daN", 11.0, 400.0),
+            ("Concreto", "Circular", "Concreto Circ. 11 m / 600 daN", 11.0, 600.0),
+            ("Concreto", "Circular", "Concreto Circ. 12 m / 300 daN", 12.0, 300.0),
+            ("Concreto", "Circular", "Concreto Circ. 12 m / 600 daN", 12.0, 600.0),
+            ("Concreto", "Circular", "Concreto Circ. 13 m / 600 daN", 13.0, 600.0),
+            ("Concreto", "Duplo T", "Concreto DT 11 m / 1000 daN", 11.0, 1000.0),
+            ("Concreto", "Duplo T", "Concreto DT 13 m / 1000 daN", 13.0, 1000.0),
+            ("Fibra de Vidro", "Circular", "Fibra de Vidro Circ. 11 m / 200 daN", 11.0, 200.0),
+            ("Fibra de Vidro", "Circular", "Fibra de Vidro Circ. 11 m / 400 daN", 11.0, 400.0),
+            ("Fibra de Vidro", "Circular", "Fibra de Vidro Circ. 11 m / 600 daN", 11.0, 600.0),
+            ("Madeira", "Roliço", "Madeira Rol. 11 m / 300 daN", 11.0, 300.0),
+            ("Madeira", "Roliço", "Madeira Rol. 11 m / 600 daN", 11.0, 600.0),
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO poles (material, format, description, height_m, nominal_load_daN) VALUES (?, ?, ?, ?, ?)",
