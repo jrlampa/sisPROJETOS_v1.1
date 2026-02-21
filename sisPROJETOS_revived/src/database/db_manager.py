@@ -179,7 +179,7 @@ class DatabaseManager:
             enel_data,
         )
 
-        # 5. Cable Technical Data (CQT K Coefficients)
+        # 5. Cable Technical Data (CQT K Coefficients + Resistivity)
         cable_coefs = [
             ("cqt_k_coef", "2#16(25)mm² Al", 0.7779, "CQT coefficient for 2#16(25)mm² Al"),
             ("cqt_k_coef", "3x35+54.6mm² Al", 0.2416, "CQT coefficient for 3x35+54.6mm² Al"),
@@ -187,10 +187,35 @@ class DatabaseManager:
             ("cqt_k_coef", "3x70+54.6mm² Al", 0.1248, "CQT coefficient for 3x70+54.6mm² Al"),
             ("cqt_k_coef", "3x95+54.6mm² Al", 0.0891, "CQT coefficient for 3x95+54.6mm² Al"),
             ("cqt_k_coef", "3x150+70mm² Al", 0.0573, "CQT coefficient for 3x150+70mm² Al"),
+            # Resistivity values (ohm.mm²/m @ 20°C) — NBR 5410 / ABNT
+            ("resistivity", "Alumínio", 0.0282, "Resistividade do alumínio (ohm.mm²/m)"),
+            ("resistivity", "Cobre", 0.0175, "Resistividade do cobre (ohm.mm²/m)"),
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO cable_technical_data (category, key_name, value, description) VALUES (?, ?, ?, ?)",
             cable_coefs,
+        )
+
+        # 6. Poles (Catálogo básico de postes — ABNT NBR 8451 / 8452)
+        poles = [
+            # (material, format, description, height_m, nominal_load_daN)
+            ("Concreto", "Circular", "11 m / 200 daN", 11.0, 200.0),
+            ("Concreto", "Circular", "11 m / 400 daN", 11.0, 400.0),
+            ("Concreto", "Circular", "11 m / 600 daN", 11.0, 600.0),
+            ("Concreto", "Circular", "12 m / 300 daN", 12.0, 300.0),
+            ("Concreto", "Circular", "12 m / 600 daN", 12.0, 600.0),
+            ("Concreto", "Circular", "13 m / 600 daN", 13.0, 600.0),
+            ("Concreto", "Duplo T", "11 m / 1000 daN", 11.0, 1000.0),
+            ("Concreto", "Duplo T", "13 m / 1000 daN", 13.0, 1000.0),
+            ("Fibra de Vidro", "Circular", "11 m / 200 daN", 11.0, 200.0),
+            ("Fibra de Vidro", "Circular", "11 m / 400 daN", 11.0, 400.0),
+            ("Fibra de Vidro", "Circular", "11 m / 600 daN", 11.0, 600.0),
+            ("Madeira", "Roliço", "11 m / 300 daN", 11.0, 300.0),
+            ("Madeira", "Roliço", "11 m / 600 daN", 11.0, 600.0),
+        ]
+        cursor.executemany(
+            "INSERT OR IGNORE INTO poles (material, format, description, height_m, nominal_load_daN) VALUES (?, ?, ?, ?, ?)",
+            poles,
         )
 
     def add_conductor(self, data):

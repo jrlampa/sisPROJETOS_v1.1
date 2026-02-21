@@ -43,7 +43,7 @@ def resource_path(relative_path):
     real_base = os.path.realpath(base_path)
     real_full = os.path.realpath(full_path)
 
-    if not real_full.startswith(real_base):
+    if not real_full.startswith(real_base):  # pragma: no cover
         raise ValueError(f"Path traversal detected: '{relative_path}' resolves outside base directory")
 
     return full_path

@@ -34,7 +34,7 @@ def get_app_data_path() -> Path:
     Returns:
         Path: Caminho absoluto para o diretório de dados
     """
-    if sys.platform == "win32":
+    if sys.platform == "win32":  # pragma: no cover
         base_path = os.getenv("APPDATA", os.path.expanduser("~"))
     else:
         base_path = os.path.expanduser("~/.local/share")

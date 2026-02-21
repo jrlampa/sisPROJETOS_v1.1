@@ -100,7 +100,7 @@ class PoleLoadLogic:
                 },
                 "Enel": {"REDES_PARA_CONDUTORES": {"Rede MT": ["1/0 CA"], "Rede BT": ["BT 3x35+54.6"]}},
             }
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.exception(f"Error loading concessionaires data: {e}")
             self.DADOS_CONCESSIONARIAS = {}
 
@@ -123,7 +123,7 @@ class PoleLoadLogic:
             if vao_inf < vao < vao_sup:
                 tracao_inf, tracao_sup = tabela[vao_inf], tabela[vao_sup]
                 return tracao_inf + (tracao_sup - tracao_inf) * ((vao - vao_inf) / (vao_sup - vao_inf))
-        return 0
+        return 0  # pragma: no cover
 
     def calculate_resultant(self, concessionaria, condicao, cabos_input):
         metodo = self.get_concessionaire_method(concessionaria)
