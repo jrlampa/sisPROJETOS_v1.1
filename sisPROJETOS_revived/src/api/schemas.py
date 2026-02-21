@@ -259,3 +259,30 @@ class KmlConvertResponse(BaseModel):
 
     count: int = Field(..., description="Número de pontos convertidos")
     points: List[KmlPointOut] = Field(..., description="Lista de pontos com coordenadas UTM")
+
+
+# ── Criador de Projetos ───────────────────────────────────────────────────────
+
+
+class ProjectCreateRequest(BaseModel):
+    """Dados de entrada para criação de estrutura de projeto."""
+
+    project_name: str = Field(..., min_length=1, max_length=100, description="Nome do projeto (pasta raiz)")
+    base_path: str = Field(..., min_length=1, description="Diretório pai onde a estrutura será criada")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "project_name": "LT_230kV_SP_CAMPINAS",
+                "base_path": "/projetos/2026",
+            }
+        }
+    }
+
+
+class ProjectCreateResponse(BaseModel):
+    """Resposta da operação de criação de projeto."""
+
+    success: bool = Field(..., description="True se a estrutura foi criada com sucesso")
+    message: str = Field(..., description="Mensagem descritiva do resultado")
+    project_path: Optional[str] = Field(default=None, description="Caminho completo do projeto criado")

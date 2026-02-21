@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 437 testes, 100% cobertura, API REST com 11 endpoints (7 cálculo + 3 dados mestres BIM + 1 conversor geoespacial), black+isort limpo, type hints completos em todos os módulos)
+**Maturidade:** Produção (v2.1.0 — 443 testes, 100% cobertura, API REST com 12 endpoints (7 cálculo + 3 dados mestres BIM + 1 conversor geoespacial + 1 criador de projetos), black+isort limpo, type hints completos em todos os módulos)
 
 ---
 
@@ -72,6 +72,7 @@ Main (Controller) → orquestra → GUIs
 | `routes/pole_load.py` | POST `/api/v1/pole-load/resultant` |
 | `routes/data.py` | GET `/api/v1/data/conductors`, `/data/poles`, `/data/concessionaires` |
 | `routes/converter.py` | POST `/api/v1/converter/kml-to-utm` |
+| `routes/project_creator.py` | POST `/api/v1/projects/create` |
 
 ### Utilitários (src/utils/)
 
@@ -179,7 +180,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 437 (todos passando, 100% cobertura)  
+**Total de testes:** 443 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -202,7 +203,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
 | `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
-| `test_api.py` | `api/` (todos os endpoints REST, incluindo dados mestres e conversor KML) | ✅ |
+| `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health) | ✅ |
+| `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM) | ✅ |
 
 ### Executar Testes
 
@@ -370,6 +372,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Type hints ausentes em módulos logic | ✅ Completo | Todos os módulos logic + db_manager atualizados |
 | 🔄 Planejado | Type hints em `converter/logic.py` | ✅ Completo (v2.1.0) | Todas as anotações + Tuple[float, ...] para coords |
 | 🔄 Planejado | POST /api/v1/converter/kml-to-utm | ✅ Implementado (v2.1.0) | Aceita KML Base64, retorna UTM JSON; integração BIM geoespacial |
+| 🔄 Planejado | POST /api/v1/projects/create | ✅ Implementado (v2.1.0) | Cria estrutura de pastas de projeto; último módulo sem endpoint REST |
+| 🟡 Média | test_api.py acima de 500 linhas (516) | ✅ Corrigido | test_api_bim.py criado; test_api.py reduzido para 334 linhas |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -430,7 +434,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | pyproject.toml criado (black+isort config); black aplicado a 16 arquivos src/; isort aplicado a 25 arquivos src/; 3 novos testes (ai_assistant empty msg + catenary None-result via mock); api/app.py pragma:no cover em sys.path guard; cobertura real 100%; total 418 testes |
 | 2026-02-21 | 2.1.0 | Adicionados 3 endpoints GET de dados mestres para integração BIM: GET /api/v1/data/conductors, /data/poles, /data/concessionaires; src/api/routes/data.py criado; 3 novos schemas Pydantic (ConductorOut, PoleOut, ConcessionaireOut); 12 novos testes (total 430, 100% cobertura) |
 | 2026-02-21 | 2.1.0 | CHANGELOG.md atualizado com seção [2.1.0] completa; type hints adicionados em electrical/logic.py e catenaria/logic.py (Optional, Dict, List, NDArray); 22 docs de auditoria stale movidos para docs/archive/ |
-| 2026-02-21 | 2.1.0 | Type hints completados em converter/logic.py (último módulo logic planejado); novo método load_kml_content(bytes) para uso sem filesystem; POST /api/v1/converter/kml-to-utm endpoint criado (aceita KML Base64, retorna UTM JSON); 7 novos testes; total 437 testes, 100% cobertura |
+| 2026-02-21 | 2.1.0 | test_api.py modularizado (516 → 334 linhas): TestDataEndpoints + TestConverterKmlEndpoint movidos para test_api_bim.py; POST /api/v1/projects/create endpoint criado (src/api/routes/project_creator.py); schemas ProjectCreateRequest + ProjectCreateResponse adicionados; 6 novos testes no TestProjectCreatorEndpoint; total 443 testes, 100% cobertura |
 
 ---
 
