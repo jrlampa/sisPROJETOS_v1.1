@@ -1,6 +1,7 @@
 from collections import deque, defaultdict
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
+from utils.sanitizer import sanitize_positive, sanitize_string
 
 
 logger = get_logger(__name__)
@@ -106,6 +107,15 @@ class CQTLogic:
         Main calculation orchestrator.
         segments: list of dicts with fields (ponto, montante, metros, cabo, mono, bi, tri, tri_esp, carga_esp)
         """
+        try:
+            trafo_kva = sanitize_positive(trafo_kva)
+            social_class = sanitize_string(social_class, max_length=1, allow_empty=False).upper()
+            if social_class not in ("A", "B", "C", "D"):
+                raise ValueError(f"Classe social inválida: '{social_class}'. Use A, B, C ou D.")
+        except ValueError as e:
+            logger.warning("Valor inválido em calculate (CQT): %s", e)
+            return {"success": False, "error": str(e)}
+
         valid, msg, order = self.validate_and_sort(segments)
         if not valid:
             return {"success": False, "error": msg}

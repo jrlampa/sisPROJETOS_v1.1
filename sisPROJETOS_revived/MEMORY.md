@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 393 testes, 100% cobertura, API REST)
+**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 408 testes, 100% cobertura, API REST, sanitizer em todos os módulos logic)
 
 ---
 
@@ -158,7 +158,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 388 (todos passando)  
+**Total de testes:** 408 (todos passando)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -331,7 +331,9 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | `resistivity` ausente em `cable_technical_data` | ✅ Corrigido | `src/database/db_manager.py` |
 | 🟡 Média | Resistividade do Al hardcoded como fallback | ✅ Corrigido | `electrical/logic.py` (agora do DB) |
 | 🟡 Média | Logger ausente em `cqt/logic.py` | ✅ Corrigido | `src/modules/cqt/logic.py` |
-| 🟡 Média | Sanitizer não integrado em logic modules | ✅ Corrigido | `electrical/logic.py` usa sanitizer |
+| 🟡 Média | Sanitizer não integrado em logic modules | ✅ Corrigido | Todos os módulos logic usam sanitizer |
+| 🟡 Média | Versão em `__version__.py` desatualizada (2.0.0 vs 2.1.0) | ✅ Corrigido | `src/__version__.py` |
+| 🟡 Média | Comentários excessivos em `catenaria/logic.py` | ✅ Corrigido | `src/modules/catenaria/logic.py` |
 | 🟢 Baixa | Dark mode não implementado | ✅ Implementado v2.0.0 | `src/styles.py` |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
@@ -355,6 +357,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 - [x] Dark mode — `src/styles.py` com `set_dark_mode()` / `is_dark_mode()`
 - [x] Logger padronizado em todos os módulos logic
 - [x] Sanitizer integrado em `electrical/logic.py`
+- [x] Sanitizer integrado em `catenaria/logic.py`, `pole_load/logic.py`, `cqt/logic.py`, `project_creator/logic.py`
 
 ### v2.1.0 (Q3 2026)
 - [x] Dark mode persistido em app_settings (DB) — `get_appearance_settings()` / `save_appearance_settings()` em db_manager.py; aba "Aparência" em settings/gui.py
@@ -387,6 +390,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.0.0 | Sessões de desenvolvimento consolidadas na v2.0.0: logging, update checker, CI/CD, Docker, cobertura 100% (388 testes), sanitizer, API REST FastAPI, dark mode, sanitizer integrado em electrical/logic.py, logger em cqt/logic.py |
 | 2026-02-21 | 2.0.0 | Análise de maturidade: 1.0.0 incoerente pois legacy Python 2.7 era v1.1.0; reescrita completa Python 3.12 = breaking change = major bump para 2.0.0; badges do README atualizados (125→388 testes, 45%→100% cobertura) |
 | 2026-02-21 | 2.1.0 | Dark mode persistido em DB: `get_appearance_settings()` / `save_appearance_settings()` em db_manager.py; aba "Aparência" em settings/gui.py; 5 novos testes (total 393) |
+| 2026-02-21 | 2.1.0 | Sanitizer integrado em todos os módulos logic (catenaria, pole_load, cqt, project_creator); versão corrigida em `__version__.py`; comentários excessivos removidos de catenaria/logic.py; 15 novos testes de sanitização (total 408) |
 
 ---
 

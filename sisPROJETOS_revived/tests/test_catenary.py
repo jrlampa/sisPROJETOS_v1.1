@@ -74,3 +74,33 @@ def test_export_dxf_creates_file(tmp_path):
 
     assert os.path.exists(dxf_path)
     assert os.path.getsize(dxf_path) > 0
+
+
+# ============================================================
+# Testes de sanitização de entradas
+# ============================================================
+
+def test_catenary_invalid_span_returns_none():
+    """Sanitizer: vão negativo deve retornar None."""
+    logic = CatenaryLogic()
+    assert logic.calculate_catenary(-10, 10, 10, 1000, 0.5) is None
+
+
+def test_catenary_invalid_tension_returns_none():
+    """Sanitizer: tensão zero deve retornar None."""
+    logic = CatenaryLogic()
+    assert logic.calculate_catenary(100, 10, 10, 0, 0.5) is None
+
+
+def test_catenary_invalid_weight_returns_none():
+    """Sanitizer: peso negativo deve retornar None."""
+    logic = CatenaryLogic()
+    assert logic.calculate_catenary(100, 10, 10, 1000, -1.0) is None
+
+
+def test_catenary_string_inputs_coerced():
+    """Sanitizer: valores string numéricos devem ser coercidos corretamente."""
+    logic = CatenaryLogic()
+    res = logic.calculate_catenary("100", "10", "10", "1000", "0.5")
+    assert res is not None
+    assert res["sag"] > 0

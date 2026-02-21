@@ -1,6 +1,7 @@
 import math
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
+from utils.sanitizer import sanitize_string, sanitize_numeric
 
 
 logger = get_logger(__name__)
@@ -126,6 +127,12 @@ class PoleLoadLogic:
         return 0  # pragma: no cover
 
     def calculate_resultant(self, concessionaria, condicao, cabos_input):
+        try:
+            concessionaria = sanitize_string(concessionaria, max_length=100, allow_empty=False)
+            condicao = sanitize_string(condicao, max_length=50, allow_empty=False)
+        except ValueError as e:
+            raise KeyError(str(e)) from e
+
         metodo = self.get_concessionaire_method(concessionaria)
         fator_seguranca = {"Normal": 1.0, "Vento Forte": 1.5, "Gelo": 2.0}.get(condicao, 1.0)
 
@@ -137,12 +144,12 @@ class PoleLoadLogic:
 
         for cable in cabos_input:
             tracao = 0
-            condutor = cable.get("condutor", "")
-            vao = cable.get("vao", 0)
-            angulo = cable.get("angulo", 0)
+            condutor = sanitize_string(str(cable.get("condutor", "")), max_length=100, allow_empty=True)
+            vao = sanitize_numeric(cable.get("vao", 0), min_val=0.0, default=0.0)
+            angulo = sanitize_numeric(cable.get("angulo", 0), default=0.0)
 
             if metodo == "flecha":
-                flecha = cable.get("flecha", 1.0)
+                flecha = sanitize_numeric(cable.get("flecha", 1.0), min_val=0.001, default=1.0)
                 # Fetch weight from conductors table
                 cursor.execute("SELECT weight_kg_m FROM conductors WHERE name=?", (condutor,))
                 row = cursor.fetchone()

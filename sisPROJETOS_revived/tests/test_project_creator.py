@@ -219,3 +219,39 @@ def test_create_structure_unexpected_exception(tmp_path, mocker):
 
     assert success is False
     assert "inesperado" in msg.lower() or "Erro" in msg
+
+
+# ============================================================
+# Testes de sanitização de entradas
+# ============================================================
+
+def test_create_structure_empty_project_name_returns_error(tmp_path):
+    """Sanitizer: nome de projeto vazio deve retornar erro."""
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure("", str(tmp_path))
+    assert success is False
+    assert "Erro" in msg
+
+
+def test_create_structure_none_project_name_returns_error(tmp_path):
+    """Sanitizer: nome de projeto None deve retornar erro."""
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure(None, str(tmp_path))
+    assert success is False
+    assert "Erro" in msg
+
+
+def test_create_structure_whitespace_project_name_returns_error(tmp_path):
+    """Sanitizer: nome de projeto apenas espaços deve retornar erro."""
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure("   ", str(tmp_path))
+    assert success is False
+    assert "Erro" in msg
+
+
+def test_create_structure_null_byte_in_path_returns_error(tmp_path):
+    """Sanitizer: caminho base com byte nulo deve retornar erro."""
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure("Projeto", str(tmp_path) + "\x00evil")
+    assert success is False
+    assert "Erro" in msg

@@ -3,6 +3,7 @@ import datetime
 from pathlib import Path
 from utils.resource_manager import get_resource_manager
 from utils.logger import get_logger
+from utils.sanitizer import sanitize_string, sanitize_filepath
 
 # Configure logging
 logger = get_logger(__name__)
@@ -54,12 +55,19 @@ class ProjectCreatorLogic:
             tuple: (bool, str) - (Success Status, Message/Error)
         """
         try:
+            project_name = sanitize_string(project_name, max_length=100, allow_empty=False)
+            base_path_str = sanitize_filepath(str(base_path))
+        except ValueError as e:
+            logger.warning("Entrada inválida em create_structure: %s", e)
+            return False, f"Erro: {e}"
+
+        try:
             # Validate templates directory
             if not self._validate_templates_directory():
                 return False, "Erro: Diretório de templates não encontrado. Reinstale o aplicativo."
 
             # Convert to Path objects for better handling
-            base_path = Path(base_path)
+            base_path = Path(base_path_str)
             full_path = base_path / project_name
 
             # Check if project already exists

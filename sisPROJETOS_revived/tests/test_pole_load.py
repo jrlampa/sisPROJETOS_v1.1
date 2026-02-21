@@ -217,3 +217,49 @@ def test_poles_loaded_from_db():
     # Deve ter pelo menos os materiais básicos
     assert len(logic.DADOS_POSTES_NOMINAL) > 0
     assert "Concreto" in logic.DADOS_POSTES_NOMINAL
+
+
+# ============================================================
+# Testes de sanitização de entradas
+# ============================================================
+
+def test_calculate_resultant_empty_concessionaria_raises():
+    """Sanitizer: concessionária vazia deve lançar KeyError."""
+    logic = PoleLoadLogic()
+    with pytest.raises(KeyError):
+        logic.calculate_resultant("", "Normal", [])
+
+
+def test_calculate_resultant_none_concessionaria_raises():
+    """Sanitizer: concessionária None deve lançar KeyError."""
+    logic = PoleLoadLogic()
+    with pytest.raises(KeyError):
+        logic.calculate_resultant(None, "Normal", [])
+
+
+def test_calculate_resultant_cable_with_invalid_vao():
+    """Sanitizer: vão inválido (string não numérica) usa default 0."""
+    logic = PoleLoadLogic()
+    cables = [{"condutor": "1/0AWG-CAA, Nu", "vao": "invalido", "angulo": 0, "flecha": 1.0}]
+    result = logic.calculate_resultant("Light", "Normal", cables)
+    # vão inválido → default 0 → tração zero → resultante zero
+    assert result["resultant_force"] == 0.0
+
+
+def test_calculate_resultant_cable_with_invalid_angulo():
+    """Sanitizer: ângulo inválido usa default 0."""
+    logic = PoleLoadLogic()
+    cables = [{"condutor": "1/0AWG-CAA, Nu", "vao": 50, "angulo": "invalido", "flecha": 1.0}]
+    result = logic.calculate_resultant("Light", "Normal", cables)
+    # ângulo inválido → default 0 → força apenas na direção X
+    assert result is not None
+    assert result["resultant_force"] >= 0.0
+
+
+def test_calculate_resultant_cable_with_invalid_flecha():
+    """Sanitizer: flecha inválida usa default 1.0 (sem divisão por zero)."""
+    logic = PoleLoadLogic()
+    cables = [{"condutor": "1/0AWG-CAA, Nu", "vao": 50, "angulo": 0, "flecha": "invalido"}]
+    result = logic.calculate_resultant("Light", "Normal", cables)
+    assert result is not None
+    assert result["resultant_force"] >= 0.0
