@@ -1,0 +1,63 @@
+# ============================================================
+# sisPROJETOS — Docker Compose
+# ============================================================
+# Uso:
+#   Testes:        docker compose run --rm test
+#   Testes+cov:    docker compose run --rm test-coverage
+#   Shell dev:     docker compose run --rm dev bash
+# ============================================================
+
+services:
+  # ──────────────────────────────────────────────────────────
+  # Serviço base (imagem compartilhada)
+  # ──────────────────────────────────────────────────────────
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sisprojetos:dev
+    env_file:
+      - .env.example
+    volumes:
+      - .:/app
+      - sisprojetos-data:/home/appuser/.local/share/sisPROJETOS
+
+  # ──────────────────────────────────────────────────────────
+  # Serviço de testes unitários (headless)
+  # ──────────────────────────────────────────────────────────
+  test:
+    extends:
+      service: base
+    command: >
+      python -m pytest tests/ -v --tb=short --disable-warnings
+
+  # ──────────────────────────────────────────────────────────
+  # Serviço de testes com cobertura
+  # ──────────────────────────────────────────────────────────
+  test-coverage:
+    extends:
+      service: base
+    command: >
+      python -m pytest tests/ -v --tb=short
+      --cov=src --cov-report=term-missing --cov-report=html:htmlcov
+    volumes:
+      - .:/app
+      - sisprojetos-data:/home/appuser/.local/share/sisPROJETOS
+      - ./htmlcov:/app/htmlcov
+
+  # ──────────────────────────────────────────────────────────
+  # Ambiente de desenvolvimento interativo
+  # ──────────────────────────────────────────────────────────
+  dev:
+    extends:
+      service: base
+    stdin_open: true
+    tty: true
+    command: bash
+    environment:
+      - DEBUG=True
+      - LOG_LEVEL=DEBUG
+
+volumes:
+  sisprojetos-data:
+    driver: local

@@ -353,6 +353,16 @@ yarn-error.log*
 .eslintcache
 
 # ===========================================================
+# DOCKER
+# ===========================================================
+
+# Cobertura gerada pelo serviço test-coverage
+htmlcov/
+
+# Dados persistidos pelo volume Docker (runtime)
+.docker-data/
+
+# ===========================================================
 # EXCEPTIONS - Arquivos que DEVEM ser versionados
 # ===========================================================
 
