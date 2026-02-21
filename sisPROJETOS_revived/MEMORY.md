@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — feature-complete para uso comercial)
+**Maturidade:** Produção (v2.1.1 — cobertura de testes 90%)
 
 ---
 
@@ -144,8 +144,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 198 (todos passando)  
-**Cobertura estimada:** ~82% (excluindo GUI/main.py via .coveragerc)
+**Total de testes:** 244 (todos passando)  
+**Cobertura estimada:** ~90% (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
 
@@ -164,6 +164,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_db_settings.py` | `database/db_manager.py` | ✅ |
 | `test_dxf_manager.py` | `utils/dxf_manager.py` | ✅ |
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
+| `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
 
 ### Executar Testes
 
@@ -324,6 +325,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 - [x] CI/CD com GitHub Actions
 - [x] Docker para desenvolvimento/testes
 - [x] MEMORY.md (este arquivo)
+- [x] Cobertura de testes ≥ 90% (244 testes)
 
 ### v2.2.0 (Q3 2026)
 - [ ] Plugin architecture
@@ -356,6 +358,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 |------|--------|--------------------|
 | 2026-02-21 | 2.1.0 | Criação do MEMORY.md, Docker setup, fix DXF security |
 | 2026-02-21 | 2.1.0 | Fix ezdxf `set_pos` → `set_placement`; add `pytest-cov` to requirements; add `__init__.py` a todos os módulos; criar `.coveragerc` excluindo GUI de cobertura; aumentar cobertura de 50% → 82% (198 testes); adicionar testes para dxf_manager, __version__, styles, utils, pole_load, project_creator |
+| 2026-02-21 | 2.1.1 | Aumentar cobertura de 82% → 90% (244 testes); criar `test_resource_manager.py` (coverage 73% → 100%); expandir `test_update_checker.py` (65% → 100%); expandir `test_ai_assistant.py` (57% → 98%); expandir `test_db_settings.py` (73% → 94%); cobrir: history/context da IA, beta channel, URLError, custom endpoint, add_conductor, get_all_conductors/poles, ResourceManager frozen mode, singleton |
 
 ---
 
