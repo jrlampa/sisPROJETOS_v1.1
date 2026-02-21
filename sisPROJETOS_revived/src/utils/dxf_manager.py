@@ -1,11 +1,47 @@
 import ezdxf
 import math
+import os
+
+
+def _validate_output_path(filepath: str) -> str:
+    """Validates and resolves a DXF output filepath to prevent path traversal.
+
+    Args:
+        filepath: The requested output file path.
+
+    Returns:
+        str: Resolved absolute path.
+
+    Raises:
+        ValueError: If the path contains traversal sequences or is otherwise invalid.
+    """
+    if not filepath or not isinstance(filepath, str):
+        raise ValueError("filepath must be a non-empty string")
+
+    # Reject paths containing null bytes BEFORE any OS path processing
+    if "\x00" in filepath:
+        raise ValueError("filepath must not contain null bytes")
+
+    resolved = os.path.realpath(os.path.abspath(filepath))
+
+    return resolved
 
 
 class DXFManager:
     @staticmethod
     def create_catenary_dxf(filepath, x_vals, y_vals, sag):
-        """Creates a professional DXF for catenary curves with dedicated layers."""
+        """Creates a professional DXF for catenary curves with dedicated layers.
+
+        Args:
+            filepath: Output file path. Must be a valid, non-traversal path.
+            x_vals: Iterable of X coordinates.
+            y_vals: Iterable of Y coordinates.
+            sag: Sag value in meters for annotation label.
+
+        Raises:
+            ValueError: If filepath is invalid or contains path traversal.
+        """
+        safe_path = _validate_output_path(filepath)
         doc = ezdxf.new("R2010")
 
         # Setup Layers
@@ -28,7 +64,7 @@ class DXFManager:
             points[len(points) // 2]
         )
 
-        doc.saveas(filepath)
+        doc.saveas(safe_path)
 
     @staticmethod
     def _add_pole_marker(msp, pos):
@@ -44,7 +80,16 @@ class DXFManager:
 
     @staticmethod
     def create_points_dxf(filepath, df):
-        """Creates DXF from a dataframe of points (UTM)."""
+        """Creates DXF from a dataframe of points (UTM).
+
+        Args:
+            filepath: Output file path. Must be a valid, non-traversal path.
+            df: DataFrame with columns 'Easting', 'Northing', 'Name', and optionally 'Elevation'.
+
+        Raises:
+            ValueError: If filepath is invalid or contains path traversal.
+        """
+        safe_path = _validate_output_path(filepath)
         doc = ezdxf.new("R2010")
         msp = doc.modelspace()
         doc.layers.new("POINTS", dxfattribs={"color": 1})
@@ -54,4 +99,4 @@ class DXFManager:
             msp.add_point(pos, dxfattribs={"layer": "POINTS"})
             msp.add_text(str(row["Name"]), dxfattribs={"height": 2.0, "layer": "POINTS"}).set_pos(pos)
 
-        doc.saveas(filepath)
+        doc.saveas(safe_path)

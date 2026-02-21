@@ -1,0 +1,86 @@
+# ============================================================
+# sisPROJETOS — Docker Ignore
+# ============================================================
+# Exclui arquivos desnecessários do contexto de build Docker
+# para reduzir tamanho da imagem e acelerar o build.
+# ============================================================
+
+# Controle de versão
+.git/
+.gitignore
+
+# Ambientes virtuais Python
+venv/
+.venv/
+env/
+ENV/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+
+# Cobertura de testes
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Build artifacts
+build/
+dist/
+installer_output/
+*.exe
+*.msi
+*.spec
+
+# Banco de dados (runtime — recriado em execução)
+src/resources/sisprojetos.db
+
+# Logs
+*.log
+tests/logs/
+
+# Variáveis de ambiente com secrets
+.env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Documentação de auditoria (não necessária na imagem)
+AUDITORIA_*.md
+RELATORIO_*.md
+CORRECAO_*.md
+MELHORIAS_*.md
+RESUMO_*.md
+PROXIMOS_*.md
+PASSOS_*.md
+CI_CD_VALIDATION.md
+COVERAGE_ROADMAP.md
+TESTES_FALHANDO.md
+
+# Build scripts específicos do Windows
+release.ps1
+*.iss
+
+# Dados de exemplo de projetos
+CG/
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.bak
+*~
