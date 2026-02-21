@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 769 testes, 100% cobertura, API REST com 19 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura + módulo de padrões regulatórios ANEEL/PRODIST com mecanismo de toast + padrões normativos disponíveis via API REST + verificação opcional de folga NBR 5422 no endpoint /catenary/calculate + pontos de curva catenária via include_curve + geração de DXF via API REST Base64 /catenary/dxf + frontend electrical/gui.py com seletor de norma ANEEL/PRODIST/Concessionária + toast de aviso + catenaria/gui.py com verificação de folga ao solo NBR 5422 + CQT API com campos de conformidade Enel: CQT_LIMIT_PERCENT, within_enel_limit, segments_over_limit (CNS-OMBR-MAT-19-0285) + POST /pole-load/report (relatório PDF em Base64, fpdf2) + POST /converter/utm-to-dxf (pipeline BIM KML→UTM→DXF completo via API)**) 
+**Maturidade:** Produção (v2.1.0 — 799 testes, 100% cobertura, API REST com 20 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura + módulo de padrões regulatórios ANEEL/PRODIST com mecanismo de toast + padrões normativos disponíveis via API REST + verificação opcional de folga NBR 5422 no endpoint /catenary/calculate + pontos de curva catenária via include_curve + geração de DXF via API REST Base64 /catenary/dxf + frontend electrical/gui.py com seletor de norma ANEEL/PRODIST/Concessionária + toast de aviso + catenaria/gui.py com verificação de folga ao solo NBR 5422 + CQT API com campos de conformidade Enel: CQT_LIMIT_PERCENT, within_enel_limit, segments_over_limit (CNS-OMBR-MAT-19-0285) + POST /pole-load/report (relatório PDF em Base64, fpdf2) + POST /converter/utm-to-dxf (pipeline BIM KML→UTM→DXF completo via API) + GET /projects/list (listagem de projetos existentes, BIM discovery) + schemas.py modularizado em schemas_bim.py + 24 testes E2E ponta-a-ponta (test_api_e2e.py)**) 
 
 ---
 
@@ -84,7 +84,8 @@ Main (Controller) → orquestra → GUIs
 | Arquivo | Responsabilidade |
 |---------|-----------------|
 | `app.py` | Fábrica FastAPI + registro de rotas |
-| `schemas.py` | Modelos Pydantic (request/response) |
+| `schemas.py` | Modelos Pydantic core (request/response) — re-exporta `schemas_bim.py` |
+| `schemas_bim.py` | Modelos Pydantic BIM: KML, UTM, DXF, Projetos (< 500 linhas, regra de modularização) |
 | `routes/electrical.py` | GET `/api/v1/electrical/standards`; GET `/api/v1/electrical/materials`; POST `/api/v1/electrical/voltage-drop` (suporte a ANEEL/PRODIST via `standard_name`) |
 | `routes/cqt.py` | POST `/api/v1/cqt/calculate` |
 | `routes/catenary.py` | POST `/api/v1/catenary/calculate` (inclui curva com `include_curve`; verificação folga ao solo com `min_clearance_m`); POST `/api/v1/catenary/dxf` (gera DXF em memória, retorna Base64) |
@@ -92,7 +93,7 @@ Main (Controller) → orquestra → GUIs
 | `routes/data.py` | GET `/api/v1/data/conductors`, `/data/poles`, `/data/concessionaires` |
 | `routes/converter.py` | POST `/api/v1/converter/kml-to-utm`; POST `/api/v1/converter/utm-to-dxf` (completa pipeline BIM KML→UTM→DXF) |
 | `routes/health.py` | GET `/health` — status, versão, DB, ambiente, timestamp (Docker HEALTHCHECK) |
-| `routes/project_creator.py` | POST `/api/v1/projects/create` |
+| `routes/project_creator.py` | POST `/api/v1/projects/create`; GET `/api/v1/projects/list` (BIM project discovery) |
 
 ### Utilitários (src/utils/)
 
@@ -227,7 +228,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health; + GET /electrical/materials + GET /pole-load/suggest; + `TestCatenaryNBR5422Clearance` — verificação folga ao solo via min_clearance_m) | ✅ |
 | `test_api_catenary.py` | `api/routes/catenary.py` (include_curve: 7 testes de pontos de curva; POST /catenary/dxf: 11 testes de geração DXF Base64 via API) | ✅ |
 | `test_api_standards.py` | `api/routes/electrical.py` (GET /electrical/standards + POST /voltage-drop com standard_name ANEEL/PRODIST) | ✅ |
-| `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM) | ✅ |
+| `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM, GET /projects/list) | ✅ |
+| `test_api_e2e.py` | Testes E2E ponta-a-ponta: 24 testes encadeando chamadas reais de API (pipelines BIM KML→UTM→DXF, PRODIST, catenária, esforços, health, projetos) | ✅ |
 | `test_domain.py` | `domain/value_objects.py`, `domain/entities.py` (DDD: UTMCoordinate, CatenaryResult, VoltageDropResult, SpanResult, Conductor, Pole, Concessionaire) | ✅ |
 | `test_domain_services.py` | `domain/services.py` (CatenaryDomainService, VoltageDropDomainService) e `domain/repositories.py` (Protocol stubs) | ✅ |
 | `test_infrastructure.py` | `infrastructure/repositories.py` (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository: Protocol isinstance checks, entity mapping, DDD E2E) | ✅ |
@@ -493,6 +495,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | Frontend + Backend: `electrical/gui.py` — seletor de norma regulatória (NBR 5410/PRODIST BT/MT/Light BT/Enel BT) via `cmb_standard` + `_STANDARD_DISPLAY_MAP`; status dinâmico com limite real da norma (não mais "5%" hardcoded); toast amarelo `lbl_toast` exibido ao usuário quando concessionária/PRODIST sobrepõe ABNT. `catenaria/gui.py` — campo opcional `ent_clearance` (Dist. mínima ao solo NBR 5422); verificação correta `h_min = min(ha,hb) − sag ≥ min_clearance_m`; exibe "✅ Folga OK (h_min=X.XXm ≥ Y.Ym)" ou "❌ Folga insuficiente"; 735 testes, 100% cobertura, CodeQL: 0 alertas |
 | 2026-02-21 | 2.1.0 | CQT compliance API: `CQT_LIMIT_PERCENT: float = 5.0` class constant adicionado a `CQTLogic` (CNS-OMBR-MAT-19-0285 — critério de projeto, conservador em relação ao PRODIST 8%); `calculate()` retorna `within_enel_limit: bool` + `segments_over_limit: List[str]` + `cqt_limit_percent: float` no summary; `CQTResponse` schema atualizado com `segments_over_limit` top-level; `cqt/gui.py` magic number `5.0` substituído por `self.logic.CQT_LIMIT_PERCENT` (DRY); `tests/test_cqt_compliance.py` criado (8 novos testes); 2 novos testes em `test_api.py`; 1 assertion adicionada em `test_cqt.py`; 745 testes, 100% cobertura, CodeQL: 0 alertas |
 | 2026-02-21 | 2.1.0 | PDF report API + UTM-to-DXF API + fix fpdf2: `fpdf2>=2.8.0` adicionado a `requirements.txt` (dep ausente que tornava `report.py` broken); `report.py` refatorado — `_build_pdf()` extraído; `generate_report_to_buffer() → bytes` adicionado; type hints completos. `converter/logic.py`: `import io` + `save_to_dxf_to_buffer(df) → bytes` (mesmo DXF, sem filesystem). `schemas.py`: 5 novos schemas (`PoleLoadReportRequest`, `PoleLoadReportResponse`, `UTMPointIn`, `UTMToDxfRequest`, `UTMToDxfResponse`). `POST /api/v1/pole-load/report` — calcula resultante + gera PDF em Base64 (conforme padrão /catenary/dxf). `POST /api/v1/converter/utm-to-dxf` — completa o pipeline BIM: KML → /kml-to-utm → /utm-to-dxf → DXF; 28 novos testes em `test_api_bim.py`; 4 novos testes em `test_converter_edge_cases.py`; bug fix: duplicatas de rotas removidas de `pole_load.py` e `converter.py`; CodeQL: 0 alertas; 769 testes, 100% cobertura, black+isort clean, 19 endpoints |
+| 2026-02-21 | 2.1.0 | Modularização de schemas + GET /projects/list + 24 testes E2E: `schemas.py` (520→421 linhas) modularizado em `schemas_bim.py` (141 linhas, schemas KML/UTM/DXF/Projetos) — re-export mantém todos os imports de rotas inalterados. `GET /api/v1/projects/list` adicionado a `routes/project_creator.py` — lista subdiretórios de um `base_path`, proteção null-byte/PermissionError/OSError; `ProjectListResponse` schema em `schemas_bim.py`. `tests/test_api_e2e.py` criado com 24 testes E2E ponta-a-ponta: pipeline BIM KML→UTM→DXF; pipeline elétrico PRODIST; pipeline catenária 100m/500m/1km+DXF; pipeline esforços resultante→suggest→PDF; health+catálogo; projetos create→list. `test_api_bim.py` ampliado com 6 testes para GET /projects/list (null-byte 422, PermissionError 403, OSError 500, 404, lista vazia, lista ordenada). CodeQL: 0 alertas; 799 testes, 100% cobertura, black+isort clean, 20 endpoints |
 
 
 

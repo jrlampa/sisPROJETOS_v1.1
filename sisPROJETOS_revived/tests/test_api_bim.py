@@ -7,6 +7,7 @@ Cobre:
 - GET  /api/v1/data/concessionaires
 - POST /api/v1/converter/kml-to-utm
 - POST /api/v1/projects/create
+- GET  /api/v1/projects/list
 """
 
 import base64
@@ -445,3 +446,58 @@ class TestUTMToDxfEndpoint:
         )
         resp = client.post(self._URL, json=self._PAYLOAD)
         assert resp.status_code == 422
+
+
+# ── Listagem de Projetos ──────────────────────────────────────────────────────
+
+
+class TestProjectListEndpoint:
+    """Testes para GET /api/v1/projects/list."""
+
+    _URL = "/api/v1/projects/list"
+
+    def test_lista_projetos_em_tmp_vazio(self, client):
+        """Diretório temporário vazio retorna lista vazia."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            resp = client.get(self._URL, params={"base_path": tmpdir})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["count"] == 0
+            assert data["projects"] == []
+
+    def test_lista_projetos_com_subpastas(self, client):
+        """Diretório com subpastas retorna seus nomes ordenados."""
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.makedirs(os.path.join(tmpdir, "PROJ_B"))
+            os.makedirs(os.path.join(tmpdir, "PROJ_A"))
+            resp = client.get(self._URL, params={"base_path": tmpdir})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["count"] == 2
+            assert data["projects"] == ["PROJ_A", "PROJ_B"]  # ordenado
+
+    def test_diretorio_inexistente_retorna_404(self, client):
+        """Caminho que não existe retorna 404."""
+        resp = client.get(self._URL, params={"base_path": "/nao/existe/jamais/x98z"})
+        assert resp.status_code == 404
+
+    def test_null_byte_retorna_422(self, client):
+        """Null byte no caminho retorna 422 (proteção contra path traversal)."""
+        resp = client.get(self._URL, params={"base_path": "/tmp/\x00malicio"})
+        assert resp.status_code == 422
+
+    def test_permission_error_retorna_403(self, client, mocker):
+        """PermissionError ao listar diretório retorna 403."""
+        mocker.patch("api.routes.project_creator.Path.iterdir", side_effect=PermissionError("acesso negado"))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            resp = client.get(self._URL, params={"base_path": tmpdir})
+            assert resp.status_code == 403
+
+    def test_oserror_retorna_500(self, client, mocker):
+        """OSError genérico ao listar diretório retorna 500."""
+        mocker.patch("api.routes.project_creator.Path.iterdir", side_effect=OSError("disco cheio"))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            resp = client.get(self._URL, params={"base_path": tmpdir})
+            assert resp.status_code == 500
