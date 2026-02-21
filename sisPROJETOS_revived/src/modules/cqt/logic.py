@@ -1,8 +1,8 @@
-from collections import deque, defaultdict
+from collections import defaultdict, deque
+
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
 from utils.sanitizer import sanitize_positive, sanitize_string
-
 
 logger = get_logger(__name__)
 

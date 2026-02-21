@@ -1,11 +1,13 @@
+from tkinter import filedialog, messagebox
+
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
-from .logic import PoleLoadLogic
-from .report import generate_report
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from styles import DesignSystem
+
+from .logic import PoleLoadLogic
+from .report import generate_report
 
 
 class PoleLoadGUI(ctk.CTkFrame):

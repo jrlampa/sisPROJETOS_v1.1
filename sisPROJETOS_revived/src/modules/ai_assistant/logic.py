@@ -1,11 +1,11 @@
 import os
 
-from groq import Groq
 from dotenv import load_dotenv
+from groq import Groq
+
 from utils import resource_path
 from utils.logger import get_logger
 from utils.sanitizer import sanitize_string
-
 
 logger = get_logger(__name__)
 

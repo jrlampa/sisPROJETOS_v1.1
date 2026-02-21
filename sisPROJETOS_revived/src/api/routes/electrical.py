@@ -6,10 +6,10 @@ Calcula queda de tensão conforme NBR 5410.
 """
 
 from fastapi import APIRouter, HTTPException
+
 from api.schemas import VoltageDropRequest, VoltageDropResponse
 from modules.electrical.logic import ElectricalLogic
 from utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/electrical", tags=["Elétrico"])

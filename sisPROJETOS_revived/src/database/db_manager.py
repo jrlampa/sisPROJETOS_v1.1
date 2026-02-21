@@ -1,9 +1,9 @@
-import sqlite3
 import os
 import shutil
+import sqlite3
+
 from utils import resource_path
 from utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 

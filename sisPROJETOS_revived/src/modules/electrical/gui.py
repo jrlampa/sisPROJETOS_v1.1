@@ -1,8 +1,10 @@
-import customtkinter as ctk
 from tkinter import messagebox
-from .logic import ElectricalLogic
+
+import customtkinter as ctk
 
 from styles import DesignSystem
+
+from .logic import ElectricalLogic
 
 
 class ElectricalGUI(ctk.CTkFrame):

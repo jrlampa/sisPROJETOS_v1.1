@@ -1,8 +1,8 @@
 import math
+
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
-from utils.sanitizer import sanitize_string, sanitize_numeric
-
+from utils.sanitizer import sanitize_numeric, sanitize_string
 
 logger = get_logger(__name__)
 

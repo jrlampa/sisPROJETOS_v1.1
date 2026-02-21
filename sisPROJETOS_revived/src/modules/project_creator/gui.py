@@ -1,8 +1,11 @@
-import customtkinter as ctk
-from tkinter import filedialog, messagebox
 import os
-from .logic import ProjectCreatorLogic
+from tkinter import filedialog, messagebox
+
+import customtkinter as ctk
+
 from styles import DesignSystem
+
+from .logic import ProjectCreatorLogic
 
 
 class ProjectCreatorGUI(ctk.CTkFrame):

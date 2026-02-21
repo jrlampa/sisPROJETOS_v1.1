@@ -1,10 +1,12 @@
-import customtkinter as ctk
-from tkinter import filedialog, messagebox
-from .logic import ConverterLogic
 import os
+from tkinter import filedialog, messagebox
+
+import customtkinter as ctk
 import tkintermapview
 
 from styles import DesignSystem
+
+from .logic import ConverterLogic
 
 
 class ConverterGUI(ctk.CTkFrame):

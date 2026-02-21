@@ -1,9 +1,11 @@
+from tkinter import filedialog, messagebox
+
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
-from .logic import CQTLogic
 import pandas as pd
 
 from styles import DesignSystem
+
+from .logic import CQTLogic
 
 
 class CQTGUI(ctk.CTkFrame):

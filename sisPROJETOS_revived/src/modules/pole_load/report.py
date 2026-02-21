@@ -1,5 +1,6 @@
-from fpdf import FPDF
 import datetime
+
+from fpdf import FPDF
 
 
 class PoleLoadReport(FPDF):

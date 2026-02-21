@@ -1,6 +1,7 @@
-import ezdxf
 import math
 import os
+
+import ezdxf
 
 
 def _validate_output_path(filepath: str) -> str:

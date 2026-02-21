@@ -6,10 +6,10 @@ Calcula flecha e constante catenária conforme NBR 5422.
 """
 
 from fastapi import APIRouter, HTTPException
+
 from api.schemas import CatenaryRequest, CatenaryResponse
 from modules.catenaria.logic import CatenaryLogic
 from utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/catenary", tags=["Catenária"])

@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 415 testes, 100% cobertura, API REST, sanitizer + logger em todos os módulos logic)
+**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 418 testes, 100% cobertura, API REST, black+isort formatação limpa, sanitizer + logger em todos os módulos logic)
 
 ---
 
@@ -158,7 +158,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 415 (todos passando)  
+**Total de testes:** 418 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -340,6 +340,10 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | `ai_assistant/logic.py` com `sys.path.append` anti-pattern; sem logger/sanitizer | ✅ Corrigido | `src/modules/ai_assistant/logic.py` |
 | 🟡 Média | `test_converter.py` acima de 500 linhas (765) | ✅ Corrigido | `tests/test_converter_edge_cases.py` criado |
 | 🟡 Média | Dockerfile LABEL version desatualizado (2.0.0) | ✅ Corrigido | `Dockerfile` |
+| 🟡 Média | 16 arquivos src/ não formatados com black (CI lint falha) | ✅ Corrigido | `black src/ --line-length 119` aplicado |
+| 🟡 Média | Importações incorretas em ~25 arquivos src/ (isort) | ✅ Corrigido | `isort src/ --profile black` aplicado |
+| 🟡 Média | Cobertura real 99% (linhas 64-65 ai_assistant e 39-40 catenary route não cobertas) | ✅ Corrigido | 3 novos testes; `pragma: no cover` em sys.path guard |
+| 🟡 Média | Sem `pyproject.toml` (black/isort sem config) | ✅ Corrigido | `pyproject.toml` criado com config black+isort |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -397,6 +401,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | Dark mode persistido em DB: `get_appearance_settings()` / `save_appearance_settings()` em db_manager.py; aba "Aparência" em settings/gui.py; 5 novos testes (total 393) |
 | 2026-02-21 | 2.1.0 | Sanitizer integrado em todos os módulos logic (catenaria, pole_load, cqt, project_creator); versão corrigida em `__version__.py`; comentários excessivos removidos de catenaria/logic.py; 15 novos testes de sanitização (total 410) |
 | 2026-02-21 | 2.1.0 | Logger + sanitizer adicionados em converter/logic.py e ai_assistant/logic.py; removido sys.path.append anti-pattern de ai_assistant/logic.py; test_converter.py modularizado (765→390 linhas) → test_converter_edge_cases.py criado; Dockerfile LABEL versão corrigido (2.0.0→2.1.0); 5 novos testes sanitizer para converter; total 415 testes |
+| 2026-02-21 | 2.1.0 | pyproject.toml criado (black+isort config); black aplicado a 16 arquivos src/; isort aplicado a 25 arquivos src/; 3 novos testes (ai_assistant empty msg + catenary None-result via mock); api/app.py pragma:no cover em sys.path guard; cobertura real 100%; total 418 testes |
 
 ---
 

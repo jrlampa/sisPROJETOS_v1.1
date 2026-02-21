@@ -133,3 +133,30 @@ def test_ai_assistant_initializes_client_when_api_key_set(mock_groq):
         assert logic.api_key == 'test-key-123'
         assert logic.client is not None
         mock_groq.assert_called_once_with(api_key='test-key-123')
+
+
+# ============================================================
+# Testes de sanitização de entradas
+# ============================================================
+
+
+@patch("src.modules.ai_assistant.logic.Groq")
+def test_ai_assistant_empty_message_returns_error(mock_groq):
+    """Cobre linhas 64-65: mensagem vazia levanta ValueError → retorna mensagem de erro."""
+    instance = mock_groq.return_value
+    logic = AIAssistantLogic()
+    logic.client = instance  # cliente ativo para não retornar erro de chave ausente
+
+    resp = logic.get_response("")
+    assert resp == "Erro: Mensagem vazia ou inválida."
+
+
+@patch("src.modules.ai_assistant.logic.Groq")
+def test_ai_assistant_whitespace_only_message_returns_error(mock_groq):
+    """Cobre linhas 64-65: mensagem apenas com espaços é tratada como vazia."""
+    instance = mock_groq.return_value
+    logic = AIAssistantLogic()
+    logic.client = instance
+
+    resp = logic.get_response("   ")
+    assert resp == "Erro: Mensagem vazia ou inválida."

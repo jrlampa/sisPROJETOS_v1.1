@@ -1,10 +1,12 @@
+from tkinter import filedialog, messagebox
+
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from .logic import CatenaryLogic
 
 from styles import DesignSystem
+
+from .logic import CatenaryLogic
 
 
 class CatenaryGUI(ctk.CTkFrame):

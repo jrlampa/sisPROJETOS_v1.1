@@ -6,10 +6,10 @@ Calcula queda de tensão de circuito (CQT) pela metodologia Enel.
 """
 
 from fastapi import APIRouter
+
 from api.schemas import CQTRequest, CQTResponse
 from modules.cqt.logic import CQTLogic
 from utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/cqt", tags=["CQT"])

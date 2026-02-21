@@ -6,10 +6,10 @@ Calcula a resultante de forças em postes de distribuição.
 """
 
 from fastapi import APIRouter, HTTPException
+
 from api.schemas import PoleLoadRequest, PoleLoadResponse
 from modules.pole_load.logic import PoleLoadLogic
 from utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/pole-load", tags=["Esforços em Postes"])

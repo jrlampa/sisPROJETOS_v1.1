@@ -1,23 +1,23 @@
-import customtkinter as ctk
 import threading
 import webbrowser
 from datetime import datetime, timezone
 from tkinter import messagebox
 
+import customtkinter as ctk
+
 from __version__ import __version__
 from database.db_manager import DatabaseManager
-from modules.converter.gui import ConverterGUI
-from modules.catenaria.gui import CatenaryGUI
-from modules.project_creator.gui import ProjectCreatorGUI
-from modules.pole_load.gui import PoleLoadGUI
 from modules.ai_assistant.gui import AIAssistantGUI
-from modules.settings.gui import SettingsGUI
-from modules.electrical.gui import ElectricalGUI
+from modules.catenaria.gui import CatenaryGUI
+from modules.converter.gui import ConverterGUI
 from modules.cqt.gui import CQTGUI
+from modules.electrical.gui import ElectricalGUI
+from modules.pole_load.gui import PoleLoadGUI
+from modules.project_creator.gui import ProjectCreatorGUI
+from modules.settings.gui import SettingsGUI
 from styles import DesignSystem
 from utils.logger import get_logger
 from utils.update_checker import UpdateChecker
-
 
 logger = get_logger(__name__)
 

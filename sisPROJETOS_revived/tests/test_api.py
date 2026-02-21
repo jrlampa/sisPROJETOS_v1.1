@@ -259,3 +259,29 @@ class TestPoleLoadEndpoint:
         payload = {"concessionaria": "Light", "condicao": "Normal", "cabos": []}
         resp = client.post(self._URL, json=payload)
         assert resp.status_code == 422
+
+
+# ── Cobertura de branches defensivos ─────────────────────────────────────────
+
+class TestCatenaryEndpointDefensiveBranches:
+    """Cobre branches defensivos da rota catenary que não são alcançados via
+    validação Pydantic normal (requer mock da lógica)."""
+
+    _URL = "/api/v1/catenary/calculate"
+
+    def test_logic_returns_none_retorna_422(self, client, mocker):
+        """Cobre linhas 39-40: CatenaryLogic.calculate_catenary retorna None → 422."""
+        mocker.patch(
+            "src.api.routes.catenary.CatenaryLogic.calculate_catenary",
+            return_value=None,
+        )
+        payload = {
+            "span": 80.0,
+            "ha": 9.0,
+            "hb": 9.0,
+            "tension_daN": 500.0,
+            "weight_kg_m": 0.779,
+        }
+        resp = client.post(self._URL, json=payload)
+        assert resp.status_code == 422
+        assert resp.json()["detail"] == "Peso linear zero ou dados inválidos para o cálculo."

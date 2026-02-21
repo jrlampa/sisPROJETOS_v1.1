@@ -1,11 +1,13 @@
-import customtkinter as ctk
 from datetime import datetime
 from tkinter import messagebox
+
+import customtkinter as ctk
+
+import styles
 from __version__ import __version__
 from database.db_manager import DatabaseManager
-from utils.update_checker import UpdateChecker
-import styles
 from styles import DesignSystem
+from utils.update_checker import UpdateChecker
 
 
 class SettingsGUI(ctk.CTkFrame):
@@ -225,7 +227,9 @@ class SettingsGUI(ctk.CTkFrame):
         dark_mode = self.var_dark_mode.get()
         self.db.save_appearance_settings(dark_mode=dark_mode)
         styles.set_dark_mode(dark_mode)
-        messagebox.showinfo("Aparência", "Configurações de aparência salvas com sucesso.\nReinicie o aplicativo para aplicar o tema.")
+        messagebox.showinfo(
+            "Aparência", "Configurações de aparência salvas com sucesso.\nReinicie o aplicativo para aplicar o tema."
+        )
 
     def save_conductor(self):
         name = self.ent_cond_name.get()

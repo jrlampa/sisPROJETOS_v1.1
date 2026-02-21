@@ -13,19 +13,19 @@ Documentação interativa disponível em:
     http://localhost:8000/redoc (ReDoc)
 """
 
-import sys
 import os
+import sys
 
 # Garante que src/ esteja no path para importações dos módulos
 _SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SRC not in sys.path:
-    sys.path.insert(0, _SRC)
+    sys.path.insert(0, _SRC)  # pragma: no cover
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import electrical, cqt, catenary, pole_load
 from __version__ import __version__  # noqa: E402
+from api.routes import catenary, cqt, electrical, pole_load
 
 
 def create_app() -> FastAPI:

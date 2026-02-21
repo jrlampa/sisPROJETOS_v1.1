@@ -1,7 +1,10 @@
-import customtkinter as ctk
 import threading
-from .logic import AIAssistantLogic
+
+import customtkinter as ctk
+
 from styles import DesignSystem
+
+from .logic import AIAssistantLogic
 
 
 class AIAssistantGUI(ctk.CTkFrame):

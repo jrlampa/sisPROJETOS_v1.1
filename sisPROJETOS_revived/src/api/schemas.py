@@ -5,11 +5,12 @@ Define modelos de entrada e saída para cada endpoint,
 garantindo validação automática e documentação OpenAPI.
 """
 
-from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field
 
 # ── Elétrico ─────────────────────────────────────────────────────────────────
+
 
 class VoltageDropRequest(BaseModel):
     """Dados de entrada para cálculo de queda de tensão (NBR 5410)."""
@@ -22,15 +23,19 @@ class VoltageDropRequest(BaseModel):
     cos_phi: float = Field(default=0.92, gt=0, le=1, description="Fator de potência cos φ")
     phases: int = Field(default=3, description="Número de fases (1 ou 3)")
 
-    model_config = {"json_schema_extra": {"example": {
-        "power_kw": 50.0,
-        "distance_m": 200.0,
-        "voltage_v": 220.0,
-        "material": "Alumínio",
-        "section_mm2": 35.0,
-        "cos_phi": 0.92,
-        "phases": 3,
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "power_kw": 50.0,
+                "distance_m": 200.0,
+                "voltage_v": 220.0,
+                "material": "Alumínio",
+                "section_mm2": 35.0,
+                "cos_phi": 0.92,
+                "phases": 3,
+            }
+        }
+    }
 
 
 class VoltageDropResponse(BaseModel):
@@ -43,6 +48,7 @@ class VoltageDropResponse(BaseModel):
 
 
 # ── CQT ───────────────────────────────────────────────────────────────────────
+
 
 class CQTSegment(BaseModel):
     """Trecho de rede para cálculo CQT."""
@@ -65,14 +71,38 @@ class CQTRequest(BaseModel):
     trafo_kva: float = Field(..., gt=0, description="Potência do transformador em kVA")
     social_class: str = Field(default="B", description="Classe social dominante (A, B, C, D)")
 
-    model_config = {"json_schema_extra": {"example": {
-        "segments": [
-            {"ponto": "TRAFO", "montante": "", "metros": 0, "cabo": "", "mono": 0, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
-            {"ponto": "P1", "montante": "TRAFO", "metros": 50, "cabo": "3x35+54.6mm² Al", "mono": 5, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
-        ],
-        "trafo_kva": 112.5,
-        "social_class": "B",
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "segments": [
+                    {
+                        "ponto": "TRAFO",
+                        "montante": "",
+                        "metros": 0,
+                        "cabo": "",
+                        "mono": 0,
+                        "bi": 0,
+                        "tri": 0,
+                        "tri_esp": 0,
+                        "carga_esp": 0,
+                    },
+                    {
+                        "ponto": "P1",
+                        "montante": "TRAFO",
+                        "metros": 50,
+                        "cabo": "3x35+54.6mm² Al",
+                        "mono": 5,
+                        "bi": 0,
+                        "tri": 0,
+                        "tri_esp": 0,
+                        "carga_esp": 0,
+                    },
+                ],
+                "trafo_kva": 112.5,
+                "social_class": "B",
+            }
+        }
+    }
 
 
 class CQTResponse(BaseModel):
@@ -86,6 +116,7 @@ class CQTResponse(BaseModel):
 
 # ── Catenária ─────────────────────────────────────────────────────────────────
 
+
 class CatenaryRequest(BaseModel):
     """Dados de entrada para cálculo de catenária."""
 
@@ -95,13 +126,17 @@ class CatenaryRequest(BaseModel):
     tension_daN: float = Field(..., gt=0, description="Tensão horizontal em daN")
     weight_kg_m: float = Field(..., gt=0, description="Peso linear do condutor em kg/m")
 
-    model_config = {"json_schema_extra": {"example": {
-        "span": 80.0,
-        "ha": 9.0,
-        "hb": 9.0,
-        "tension_daN": 500.0,
-        "weight_kg_m": 0.779,
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "span": 80.0,
+                "ha": 9.0,
+                "hb": 9.0,
+                "tension_daN": 500.0,
+                "weight_kg_m": 0.779,
+            }
+        }
+    }
 
 
 class CatenaryResponse(BaseModel):
@@ -113,6 +148,7 @@ class CatenaryResponse(BaseModel):
 
 
 # ── Esforços em Postes ────────────────────────────────────────────────────────
+
 
 class CaboInput(BaseModel):
     """Dados de um condutor para cálculo de esforços."""
@@ -130,11 +166,15 @@ class PoleLoadRequest(BaseModel):
     condicao: str = Field(default="Normal", description="Condição de carga (Normal, Vento Forte, Gelo)")
     cabos: List[CaboInput] = Field(..., min_length=1, description="Lista de condutores")
 
-    model_config = {"json_schema_extra": {"example": {
-        "concessionaria": "Light",
-        "condicao": "Normal",
-        "cabos": [{"condutor": "556MCM-CA, Nu", "vao": 80, "angulo": 30, "flecha": 1.5}],
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "concessionaria": "Light",
+                "condicao": "Normal",
+                "cabos": [{"condutor": "556MCM-CA, Nu", "vao": 80, "angulo": 30, "flecha": 1.5}],
+            }
+        }
+    }
 
 
 class PoleLoadResponse(BaseModel):

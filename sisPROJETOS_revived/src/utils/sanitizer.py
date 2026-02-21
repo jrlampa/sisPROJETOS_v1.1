@@ -153,8 +153,7 @@ def sanitize_power_factor(value: Any) -> float:
     result = sanitize_numeric(value)
     if not (0 < result <= 1):
         raise ValueError(
-            f"Fator de potência (cos φ) deve estar entre 0 (exclusivo) e 1 (inclusivo). "
-            f"Recebido: {result}"
+            f"Fator de potência (cos φ) deve estar entre 0 (exclusivo) e 1 (inclusivo). " f"Recebido: {result}"
         )
     return result
 
@@ -229,9 +228,7 @@ def sanitize_filepath(
         ext_lower = ext.lower()
         allowed_lower = [e.lower() for e in allowed_extensions]
         if ext_lower not in allowed_lower:
-            raise ValueError(
-                f"Extensão '{ext}' não permitida. Use: {', '.join(allowed_extensions)}"
-            )
+            raise ValueError(f"Extensão '{ext}' não permitida. Use: {', '.join(allowed_extensions)}")
 
     return path
 
