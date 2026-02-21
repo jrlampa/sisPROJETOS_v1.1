@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 430 testes, 100% cobertura, API REST com 7 endpoints + 3 de dados mestres BIM, black+isort limpo, type hints em electrical/catenaria logic)
+**Maturidade:** Produção (v2.1.0 — 430 testes, 100% cobertura, API REST com 7 endpoints + 3 de dados mestres BIM, black+isort limpo, type hints completos em todos os módulos logic e db_manager)
 
 ---
 
@@ -107,11 +107,15 @@ Main (Controller) → orquestra → GUIs
 | `utils/update_checker.py` | ✅ Completo |
 | `utils/__init__.py` | ✅ Completo |
 | `utils/dxf_manager.py` | ✅ Completo |
-| `electrical/logic.py` | ✅ Adicionado v2.1.0 |
-| `catenaria/logic.py` | ✅ Adicionado v2.1.0 |
+| `electrical/logic.py` | ✅ Completo (v2.1.0) |
+| `catenaria/logic.py` | ✅ Completo (v2.1.0) |
+| `cqt/logic.py` | ✅ Completo (v2.1.0) |
+| `pole_load/logic.py` | ✅ Completo (v2.1.0) |
+| `project_creator/logic.py` | ✅ Completo (v2.1.0) |
+| `ai_assistant/logic.py` | ✅ Completo (v2.1.0) |
+| `database/db_manager.py` | ✅ Completo (v2.1.0) |
 | `api/routes/data.py` | ✅ Completo |
-| `database/db_manager.py` | 🔄 Parcial |
-| Demais módulos logic | 🔄 Planejado |
+| `converter/logic.py` | 🔄 Planejado |
 
 ---
 
@@ -362,8 +366,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Sem `pyproject.toml` (black/isort sem config) | ✅ Corrigido | `pyproject.toml` criado com config black+isort |
 | 🟡 Média | API REST incompleta para BIM (sem endpoints de dados mestres) | ✅ Corrigido | `src/api/routes/data.py` criado com 3 endpoints GET |
 | 🟡 Média | CHANGELOG.md desatualizado (apenas v2.0.0, sem v2.1.0) | ✅ Corrigido | Seção [2.1.0] adicionada com todas as mudanças da série |
-| 🟡 Média | Type hints ausentes em módulos logic | ✅ Parcial | `electrical/logic.py` e `catenaria/logic.py` atualizados |
-| 🟡 Média | 22 docs de auditoria stale na raiz do projeto | ✅ Corrigido | Movidos para `docs/archive/` |
+| 🟡 Média | Type hints ausentes em módulos logic | ✅ Completo | Todos os módulos logic + db_manager atualizados |
+| 🔄 Planejado | Type hints em `converter/logic.py` | 🔄 Planejado | Módulo mais complexo (373 linhas) |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -424,6 +428,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | pyproject.toml criado (black+isort config); black aplicado a 16 arquivos src/; isort aplicado a 25 arquivos src/; 3 novos testes (ai_assistant empty msg + catenary None-result via mock); api/app.py pragma:no cover em sys.path guard; cobertura real 100%; total 418 testes |
 | 2026-02-21 | 2.1.0 | Adicionados 3 endpoints GET de dados mestres para integração BIM: GET /api/v1/data/conductors, /data/poles, /data/concessionaires; src/api/routes/data.py criado; 3 novos schemas Pydantic (ConductorOut, PoleOut, ConcessionaireOut); 12 novos testes (total 430, 100% cobertura) |
 | 2026-02-21 | 2.1.0 | CHANGELOG.md atualizado com seção [2.1.0] completa; type hints adicionados em electrical/logic.py e catenaria/logic.py (Optional, Dict, List, NDArray); 22 docs de auditoria stale movidos para docs/archive/ |
+| 2026-02-21 | 2.1.0 | Type hints completados em cqt/logic.py, pole_load/logic.py, project_creator/logic.py, ai_assistant/logic.py e database/db_manager.py; todos os módulos logic + db_manager agora com anotações completas |
 
 ---
 

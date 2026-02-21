@@ -1,4 +1,5 @@
 import math
+from typing import Any, Dict, List, Optional
 
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
@@ -15,19 +16,19 @@ class PoleLoadLogic:
     padrões das concessionárias Light e Enel.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa a lógica de cálculo de esforços e carrega dados."""
         self.db = DatabaseManager()
-        self.DADOS_POSTES_NOMINAL = {}
-        self.DADOS_CONCESSIONARIAS = {}
+        self.DADOS_POSTES_NOMINAL: Dict[str, Dict[str, float]] = {}
+        self.DADOS_CONCESSIONARIAS: Dict[str, Any] = {}
         self.load_poles()
         self.load_concessionaires_data()
 
-    def get_concessionaires(self):
+    def get_concessionaires(self) -> List[str]:
         """Retorna lista de concessionárias cadastradas.
 
         Returns:
-            list: Lista de nomes de concessionárias
+            Lista de nomes de concessionárias.
         """
         try:
             conn = self.db.get_connection()
@@ -39,17 +40,17 @@ class PoleLoadLogic:
         except Exception:
             return ["Light", "Enel"]  # Fallback
 
-    def get_concessionaire_method(self, name):
-        """Returns calculation method for a concessionaire.
+    def get_concessionaire_method(self, name: str) -> str:
+        """Retorna o método de cálculo de uma concessionária.
 
         Args:
-            name (str): Nome da concessionária
+            name: Nome da concessionária.
 
         Returns:
-            str: Método de cálculo ('flecha' ou 'tabela')
+            Método de cálculo ('flecha' ou 'tabela').
 
         Raises:
-            KeyError: Se a concessionária não for encontrada
+            KeyError: Se a concessionária não for encontrada.
         """
         try:
             conn = self.db.get_connection()
@@ -65,8 +66,8 @@ class PoleLoadLogic:
                 raise
             raise KeyError(f"Erro ao buscar concessionária '{name}': {str(e)}")
 
-    def load_poles(self):
-        """Loads poles from SQLite database."""
+    def load_poles(self) -> None:
+        """Carrega postes do banco de dados SQLite."""
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()
@@ -81,7 +82,7 @@ class PoleLoadLogic:
         except Exception as e:
             logger.exception(f"Error loading poles from DB: {e}")
 
-    def load_concessionaires_data(self):
+    def load_concessionaires_data(self) -> None:
         """Carrega estrutura de concessionárias com redes e condutores.
 
         Cria estrutura compatível com GUI:
@@ -105,7 +106,16 @@ class PoleLoadLogic:
             logger.exception(f"Error loading concessionaires data: {e}")
             self.DADOS_CONCESSIONARIAS = {}
 
-    def interpolar(self, tabela, vao):
+    def interpolar(self, tabela: Dict[int, float], vao: float) -> float:
+        """Interpola linearmente a tração para um vão entre dois vãos conhecidos.
+
+        Args:
+            tabela: Dicionário {vao_m: tracao_daN}.
+            vao: Vão a interpolar em metros.
+
+        Returns:
+            Tração interpolada em daN.
+        """
         if not isinstance(tabela, dict):
             return 0
         vaos_conhecidos = sorted(tabela.keys())
@@ -126,7 +136,25 @@ class PoleLoadLogic:
                 return tracao_inf + (tracao_sup - tracao_inf) * ((vao - vao_inf) / (vao_sup - vao_inf))
         return 0  # pragma: no cover
 
-    def calculate_resultant(self, concessionaria, condicao, cabos_input):
+    def calculate_resultant(
+        self,
+        concessionaria: str,
+        condicao: str,
+        cabos_input: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Calcula a resultante vetorial de esforços em um poste.
+
+        Args:
+            concessionaria: Nome da concessionária (ex: 'Light', 'Enel').
+            condicao: Condição de carga ('Normal', 'Vento Forte', 'Gelo').
+            cabos_input: Lista de cabos com campos (condutor, vao, angulo, flecha).
+
+        Returns:
+            Dicionário com resultant_force, resultant_angle, vectors, total_x, total_y.
+
+        Raises:
+            KeyError: Se a concessionária não for encontrada ou entrada inválida.
+        """
         try:
             concessionaria = sanitize_string(concessionaria, max_length=100, allow_empty=False)
             condicao = sanitize_string(condicao, max_length=50, allow_empty=False)
@@ -137,7 +165,7 @@ class PoleLoadLogic:
         fator_seguranca = {"Normal": 1.0, "Vento Forte": 1.5, "Gelo": 2.0}.get(condicao, 1.0)
 
         soma_vetor_x, soma_vetor_y = 0.0, 0.0
-        details = []
+        details: List[Dict[str, Any]] = []
 
         conn = self.db.get_connection()
         cursor = conn.cursor()
@@ -189,8 +217,18 @@ class PoleLoadLogic:
             "total_y": soma_vetor_y * fator_seguranca,
         }
 
-    def suggest_pole(self, resultant_force):
-        """AI based suggestion: picks the most efficient pole for the load."""
+    def suggest_pole(self, resultant_force: float) -> List[Dict[str, Any]]:
+        """Sugere o poste mais adequado para a carga calculada.
+
+        Seleciona o poste de menor carga nominal que suporte a resultante,
+        por material, conforme NBR 8451.
+
+        Args:
+            resultant_force: Força resultante calculada em daN.
+
+        Returns:
+            Lista de postes sugeridos, um por material.
+        """
         conn = self.db.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -207,7 +245,7 @@ class PoleLoadLogic:
         conn.close()
 
         # Pick one per material
-        best_per_material = {}
+        best_per_material: Dict[str, Dict[str, Any]] = {}
         for c in candidates:
             if c[0] not in best_per_material:
                 best_per_material[c[0]] = {"material": c[0], "description": c[1], "load": c[2]}

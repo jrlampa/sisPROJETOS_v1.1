@@ -1,6 +1,7 @@
 import os
 import shutil
 import sqlite3
+from typing import Any, Dict, List, Optional, Tuple
 
 from utils import resource_path
 from utils.logger import get_logger
@@ -16,11 +17,11 @@ class DatabaseManager:
     parâmetros de cálculo.
     """
 
-    def __init__(self, db_path=None):
+    def __init__(self, db_path: Optional[str] = None) -> None:
         """Inicializa o gerenciador de banco de dados.
 
         Args:
-            db_path (str, optional): Caminho personalizado para o banco.
+            db_path: Caminho personalizado para o banco.
                 Se None, usa AppData do usuário para escrita garantida.
         """
         if db_path is None:
@@ -43,11 +44,16 @@ class DatabaseManager:
 
         self.init_db()
 
-    def get_connection(self):
+    def get_connection(self) -> sqlite3.Connection:
+        """Retorna uma conexão SQLite com o banco de dados.
+
+        Returns:
+            Conexão SQLite ativa.
+        """
         return sqlite3.connect(self.db_path)
 
-    def init_db(self):
-        """Initializes the database schema if it doesn't exist."""
+    def init_db(self) -> None:
+        """Inicializa o schema do banco de dados se ainda não existir."""
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -135,7 +141,7 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
-    def _ensure_default_settings(self, cursor):
+    def _ensure_default_settings(self, cursor: sqlite3.Cursor) -> None:
         default_settings = [
             ("updates_enabled", "true"),
             ("update_channel", "stable"),
@@ -145,8 +151,8 @@ class DatabaseManager:
         ]
         cursor.executemany("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", default_settings)
 
-    def pre_populate_data(self, cursor):
-        """Pre-populates the database with initial engineering parameters."""
+    def pre_populate_data(self, cursor: sqlite3.Cursor) -> None:
+        """Pré-popula o banco com parâmetros técnicos iniciais de engenharia."""
         # 1. Concessionaires
         concessionaires = [("Light", "flecha"), ("Enel", "tabela")]
         cursor.executemany("INSERT OR IGNORE INTO concessionaires (name, method) VALUES (?, ?)", concessionaires)
@@ -219,7 +225,15 @@ class DatabaseManager:
             poles,
         )
 
-    def add_conductor(self, data):
+    def add_conductor(self, data: Dict[str, Any]) -> Tuple[bool, str]:
+        """Adiciona um novo condutor ao banco de dados.
+
+        Args:
+            data: Dicionário com 'name', 'weight' e opcionalmente 'breaking'.
+
+        Returns:
+            Tupla (sucesso, mensagem).
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
@@ -237,7 +251,12 @@ class DatabaseManager:
         finally:
             conn.close()
 
-    def get_all_conductors(self):
+    def get_all_conductors(self) -> List[Tuple]:
+        """Retorna todos os condutores cadastrados.
+
+        Returns:
+            Lista de tuplas (name, weight_kg_m) ordenada por nome.
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT name, weight_kg_m FROM conductors ORDER BY name")
@@ -245,7 +264,12 @@ class DatabaseManager:
         conn.close()
         return rows
 
-    def get_all_poles(self):
+    def get_all_poles(self) -> List[Tuple]:
+        """Retorna todos os postes cadastrados.
+
+        Returns:
+            Lista de tuplas (material, format, description, nominal_load_daN).
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -255,11 +279,11 @@ class DatabaseManager:
         conn.close()
         return rows
 
-    def get_all_concessionaires(self):
+    def get_all_concessionaires(self) -> List[Tuple]:
         """Retorna todas as concessionárias com nome e método de cálculo.
 
         Returns:
-            list[tuple]: Lista de (name, method) ordenada por nome.
+            Lista de tuplas (name, method) ordenada por nome.
         """
         conn = self.get_connection()
         try:
@@ -269,7 +293,16 @@ class DatabaseManager:
         finally:
             conn.close()
 
-    def get_setting(self, key, default=None):
+    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Retorna o valor de uma configuração persistida.
+
+        Args:
+            key: Chave da configuração.
+            default: Valor padrão se a chave não existir.
+
+        Returns:
+            Valor da configuração ou default.
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT value FROM app_settings WHERE key = ?", (key,))
@@ -277,7 +310,13 @@ class DatabaseManager:
         conn.close()
         return row[0] if row else default
 
-    def set_setting(self, key, value):
+    def set_setting(self, key: str, value: Any) -> None:
+        """Persiste ou atualiza uma configuração no banco de dados.
+
+        Args:
+            key: Chave da configuração.
+            value: Valor a persistir (convertido para str).
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -293,7 +332,12 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
-    def get_update_settings(self):
+    def get_update_settings(self) -> Dict[str, Any]:
+        """Retorna as configurações de verificação de atualizações.
+
+        Returns:
+            Dicionário com 'enabled', 'channel', 'last_checked', 'interval_days'.
+        """
         return {
             "enabled": self.get_setting("updates_enabled", "true") == "true",
             "channel": self.get_setting("update_channel", "stable"),
@@ -301,7 +345,21 @@ class DatabaseManager:
             "interval_days": int(self.get_setting("update_check_interval_days", "1") or "1"),
         }
 
-    def save_update_settings(self, enabled=None, channel=None, interval_days=None, last_checked=None):
+    def save_update_settings(
+        self,
+        enabled: Optional[bool] = None,
+        channel: Optional[str] = None,
+        interval_days: Optional[int] = None,
+        last_checked: Optional[str] = None,
+    ) -> None:
+        """Persiste as configurações de atualização no banco de dados.
+
+        Args:
+            enabled: Ativa/desativa a verificação de updates.
+            channel: Canal de atualização ('stable' ou 'beta').
+            interval_days: Intervalo em dias entre verificações.
+            last_checked: Data/hora da última verificação (ISO 8601).
+        """
         if enabled is not None:
             self.set_setting("updates_enabled", "true" if enabled else "false")
         if channel is not None:
