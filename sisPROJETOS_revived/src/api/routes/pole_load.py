@@ -3,13 +3,23 @@ Rota de cálculo de esforços em postes — API REST sisPROJETOS.
 
 Endpoints:
 - POST /api/v1/pole-load/resultant  — Calcula resultante de esforços em poste
+- POST /api/v1/pole-load/report     — Gera relatório PDF em Base64 (NBR 8451/8452)
 - GET  /api/v1/pole-load/suggest    — Sugere postes por força resultante (sem cálculo)
 """
 
+import base64
+
 from fastapi import APIRouter, HTTPException, Query
 
-from api.schemas import PoleLoadRequest, PoleLoadResponse, PoleSuggestResponse
+from api.schemas import (
+    PoleLoadReportRequest,
+    PoleLoadReportResponse,
+    PoleLoadRequest,
+    PoleLoadResponse,
+    PoleSuggestResponse,
+)
 from modules.pole_load.logic import PoleLoadLogic
+from modules.pole_load.report import generate_report_to_buffer
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -68,4 +78,46 @@ def calculate_pole_load(request: PoleLoadRequest) -> PoleLoadResponse:
         total_y=result["total_y"],
         vectors=result["vectors"],
         suggested_poles=suggested,
+    )
+
+
+@router.post(
+    "/report",
+    response_model=PoleLoadReportResponse,
+    summary="Gera relatório PDF de esforços em postes (Base64)",
+    description=(
+        "Calcula a resultante de esforços e gera um relatório PDF completo em memória, "
+        "retornando-o codificado em Base64 (RFC 4648). "
+        "Inclui tabela de condutores com tração calculada e resultante vetorial, "
+        "conforme NBR 8451/8452. Padrão consistente com POST /catenary/dxf."
+    ),
+)
+def generate_pole_load_report(request: PoleLoadReportRequest) -> PoleLoadReportResponse:
+    """Calcula a resultante e gera o relatório PDF em memória."""
+    try:
+        result = _logic.calculate_resultant(
+            concessionaria=request.concessionaria,
+            condicao=request.condicao,
+            cabos_input=[c.model_dump() for c in request.cabos],
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    # Build cable data list for the report; 'rede' (network label) is set to the
+    # conductor name since the GUI's network selector is not available in the API context.
+    data = [{"rede": c.condutor, "condutor": c.condutor, "vao": c.vao, "angulo": c.angulo} for c in request.cabos]
+
+    try:
+        pdf_bytes = generate_report_to_buffer(data, result, request.project_name)
+    except Exception as exc:
+        logger.error("Erro ao gerar relatório PDF: %s", exc)
+        raise HTTPException(status_code=500, detail="Erro ao gerar relatório PDF.") from exc
+
+    filename = request.filename if request.filename.endswith(".pdf") else f"{request.filename}.pdf"
+    pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+    logger.debug("Relatório PDF gerado: %s (%d bytes)", filename, len(pdf_bytes))
+    return PoleLoadReportResponse(
+        pdf_base64=pdf_b64,
+        filename=filename,
+        resultant_force=result["resultant_force"],
     )

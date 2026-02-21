@@ -1,3 +1,4 @@
+import io
 import zipfile
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -358,6 +359,56 @@ class ConverterLogic:
                 msp.add_text(name_str, dxfattribs={"height": 2.0, "insert": points[0], "layer": "LINES"})
 
         doc.saveas(filepath)
+
+    def save_to_dxf_to_buffer(self, df: pd.DataFrame) -> bytes:
+        """Exporta dados para DXF em memória, sem gravar em disco.
+
+        Pontos viram entidades POINT; séries de pontos com mesmo nome
+        viram POLYLINE3D. Todas as entidades ficam na layer POINTS ou LINES.
+        Útil para integração via API REST (retorno como Base64 JSON,
+        conforme padrão /catenary/dxf).
+
+        Args:
+            df: DataFrame com colunas Name, Easting, Northing, Elevation.
+
+        Returns:
+            Conteúdo DXF como bytes UTF-8 prontos para codificação Base64.
+
+        Raises:
+            ValueError: Se DataFrame vazio ou colunas necessárias faltando.
+        """
+        if df is None or df.empty:
+            raise ValueError("DataFrame vazio. Carregue e converta um arquivo KML/KMZ primeiro.")
+
+        required_cols = ["Name", "Easting", "Northing", "Elevation"]
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Colunas necessárias faltando no DataFrame: {', '.join(missing_cols)}")
+
+        doc = ezdxf.new("R2010")
+        msp = doc.modelspace()
+
+        grouped = df.groupby("Name")
+
+        for name, group in grouped:
+            name_str = str(name) if name is not None else "Unnamed"
+
+            if len(group) == 1:
+                row = group.iloc[0]
+                pos = (float(row["Easting"]), float(row["Northing"]), float(row["Elevation"]))
+                msp.add_point(pos, dxfattribs={"layer": "POINTS"})
+                msp.add_text(name_str, dxfattribs={"height": 2.0, "insert": pos, "layer": "POINTS"})
+            else:
+                points = [
+                    (float(e), float(n), float(z))
+                    for e, n, z in zip(group["Easting"], group["Northing"], group["Elevation"])
+                ]
+                msp.add_polyline3d(points, dxfattribs={"layer": "LINES"})
+                msp.add_text(name_str, dxfattribs={"height": 2.0, "insert": points[0], "layer": "LINES"})
+
+        buf = io.StringIO()
+        doc.write(buf)
+        return buf.getvalue().encode("utf-8")
 
     def save_to_csv(self, df: pd.DataFrame, filepath: str) -> None:
         """Exporta dados para CSV com formato otimizado para projetos elétricos.

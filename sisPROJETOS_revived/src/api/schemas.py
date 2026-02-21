@@ -432,3 +432,89 @@ class ProjectCreateResponse(BaseModel):
     success: bool = Field(..., description="True se a estrutura foi criada com sucesso")
     message: str = Field(..., description="Mensagem descritiva do resultado")
     project_path: Optional[str] = Field(default=None, description="Caminho completo do projeto criado")
+
+
+# ── Relatório de Esforços em Postes (PDF) ─────────────────────────────────────
+
+
+class PoleLoadReportRequest(BaseModel):
+    """Dados de entrada para geração de relatório PDF de esforços em postes."""
+
+    concessionaria: str = Field(..., description="Nome da concessionária (Light, Enel)")
+    condicao: str = Field(default="Normal", description="Condição de carga (Normal, Vento Forte, Gelo)")
+    cabos: List[CaboInput] = Field(..., min_length=1, description="Lista de condutores")
+    project_name: str = Field(
+        default="Projeto sisPROJETOS",
+        max_length=100,
+        description="Nome do projeto para cabeçalho do relatório",
+    )
+    filename: str = Field(
+        default="relatorio_esforcos.pdf",
+        min_length=1,
+        max_length=100,
+        description="Nome sugerido para o arquivo PDF (ex: 'trecho_01.pdf')",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "concessionaria": "Light",
+                "condicao": "Normal",
+                "cabos": [{"condutor": "556MCM-CA, Nu", "vao": 80, "angulo": 30, "flecha": 1.5}],
+                "project_name": "LT_BT_Centro_SP_2026",
+                "filename": "relatorio_esforcos_trecho01.pdf",
+            }
+        }
+    }
+
+
+class PoleLoadReportResponse(BaseModel):
+    """Relatório PDF de esforços em postes codificado em Base64."""
+
+    pdf_base64: str = Field(..., description="Conteúdo do arquivo PDF codificado em Base64 (RFC 4648)")
+    filename: str = Field(..., description="Nome sugerido para o arquivo PDF")
+    resultant_force: float = Field(..., description="Força resultante calculada em daN")
+
+
+# ── Conversor UTM → DXF (BIM) ─────────────────────────────────────────────────
+
+
+class UTMPointIn(BaseModel):
+    """Ponto UTM para conversão a DXF."""
+
+    name: str = Field(..., min_length=1, description="Identificador do ponto (ex: 'P1', 'TRAFO')")
+    easting: float = Field(..., description="Coordenada Leste UTM em metros")
+    northing: float = Field(..., description="Coordenada Norte UTM em metros")
+    elevation: float = Field(default=0.0, description="Altitude em metros (0 se não disponível)")
+
+
+class UTMToDxfRequest(BaseModel):
+    """Dados de entrada para geração de DXF a partir de pontos UTM via API."""
+
+    points: List[UTMPointIn] = Field(..., min_length=1, description="Lista de pontos UTM")
+    filename: str = Field(
+        default="pontos.dxf",
+        min_length=1,
+        max_length=100,
+        description="Nome sugerido para o arquivo DXF (ex: 'pontos_levantamento.dxf')",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "points": [
+                    {"name": "P1", "easting": 788547.0, "northing": 7634925.0, "elevation": 720.0},
+                    {"name": "P2", "easting": 714315.7, "northing": 7549084.2, "elevation": 580.0},
+                ],
+                "filename": "levantamento_topografico.dxf",
+            }
+        }
+    }
+
+
+class UTMToDxfResponse(BaseModel):
+    """DXF gerado a partir de pontos UTM, codificado em Base64 para integração BIM."""
+
+    dxf_base64: str = Field(..., description="Conteúdo do arquivo DXF codificado em Base64 (RFC 4648)")
+    filename: str = Field(..., description="Nome sugerido para o arquivo DXF")
+    count: int = Field(..., description="Número de pontos incluídos no DXF")

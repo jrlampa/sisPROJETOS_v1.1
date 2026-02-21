@@ -50,9 +50,12 @@ def create_app() -> FastAPI:
             {"name": "Elétrico", "description": "Cálculos elétricos (NBR 5410)"},
             {"name": "CQT", "description": "Custo de Queda de Tensão — Metodologia Enel"},
             {"name": "Catenária", "description": "Cálculo de catenária de condutores e geração de DXF (NBR 5422)"},
-            {"name": "Esforços em Postes", "description": "Esforços mecânicos em postes (NBR 8451)"},
+            {"name": "Esforços em Postes", "description": "Esforços mecânicos em postes e relatório PDF (NBR 8451)"},
             {"name": "Dados Mestres", "description": "Catálogos técnicos para integração BIM"},
-            {"name": "Conversor KML/KMZ", "description": "Conversão KML/KMZ → UTM para integração geoespacial BIM"},
+            {
+                "name": "Conversor KML/KMZ",
+                "description": "Conversão KML/KMZ → UTM → DXF para integração geoespacial BIM",
+            },
             {"name": "Projetos", "description": "Gestão de estrutura de pastas de projetos"},
         ],
     )

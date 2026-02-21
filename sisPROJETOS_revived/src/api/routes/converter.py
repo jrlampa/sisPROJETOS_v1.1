@@ -1,23 +1,21 @@
 """
-Rota de conversão KML/KMZ → UTM — API REST sisPROJETOS.
+Rota de conversão KML/KMZ — API REST sisPROJETOS.
 
-Endpoint: POST /api/v1/converter/kml-to-utm
-Converte conteúdo KML (codificado em Base64) para coordenadas UTM,
-permitindo integração direta com ferramentas BIM sem acesso ao disco local.
+Endpoints:
+- POST /api/v1/converter/kml-to-utm  — Converte KML Base64 para coordenadas UTM JSON
+- POST /api/v1/converter/utm-to-dxf  — Converte pontos UTM JSON para DXF Base64 (BIM)
 
-Fluxo:
-    1. Cliente envia KML em Base64 no corpo JSON
-    2. API decodifica e passa os bytes para ConverterLogic.load_kml_content()
-    3. ConverterLogic.convert_to_utm() projeta para UTM via pyproj
-    4. Retorna lista estruturada de pontos UTM em JSON
+Fluxo BIM completo (dois passos):
+    KML Base64 → /kml-to-utm → pontos UTM JSON → /utm-to-dxf → DXF Base64
 """
 
 import base64
 from typing import List
 
+import pandas as pd
 from fastapi import APIRouter, HTTPException
 
-from api.schemas import KmlConvertRequest, KmlConvertResponse, KmlPointOut
+from api.schemas import KmlConvertRequest, KmlConvertResponse, KmlPointOut, UTMToDxfRequest, UTMToDxfResponse
 from modules.converter.logic import ConverterLogic
 from utils.logger import get_logger
 
@@ -80,3 +78,37 @@ def convert_kml_to_utm(request: KmlConvertRequest) -> KmlConvertResponse:
     ]
 
     return KmlConvertResponse(count=len(points), points=points)
+
+
+@router.post(
+    "/utm-to-dxf",
+    response_model=UTMToDxfResponse,
+    summary="Converte pontos UTM para DXF (Base64)",
+    description=(
+        "Recebe uma lista de pontos com coordenadas UTM (Easting, Northing, Elevation) "
+        "e gera um arquivo DXF em memória, retornando-o codificado em Base64 (RFC 4648). "
+        "Completa o pipeline BIM: KML → /kml-to-utm → /utm-to-dxf → DXF. "
+        "Pontos únicos viram entidades POINT; múltiplos pontos com mesmo nome viram POLYLINE3D. "
+        "DXF 2.5D — altitude em Z (NBR 13133). Zero custo — sem APIs externas."
+    ),
+)
+def convert_utm_to_dxf(request: UTMToDxfRequest) -> UTMToDxfResponse:
+    """Converte lista de pontos UTM em DXF e retorna como Base64."""
+    # Build DataFrame from request points
+    df = pd.DataFrame(
+        [
+            {"Name": p.name, "Easting": p.easting, "Northing": p.northing, "Elevation": p.elevation}
+            for p in request.points
+        ]
+    )
+
+    try:
+        dxf_bytes = _logic.save_to_dxf_to_buffer(df)
+    except ValueError as exc:
+        logger.warning("Falha ao gerar DXF: %s", exc)
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    filename = request.filename if request.filename.endswith(".dxf") else f"{request.filename}.dxf"
+    dxf_b64 = base64.b64encode(dxf_bytes).decode("utf-8")
+    logger.debug("DXF UTM gerado: %s (%d bytes)", filename, len(dxf_bytes))
+    return UTMToDxfResponse(dxf_base64=dxf_b64, filename=filename, count=len(request.points))

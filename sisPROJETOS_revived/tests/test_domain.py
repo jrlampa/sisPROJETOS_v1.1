@@ -11,9 +11,8 @@ Verifica value objects e entidades de domínio:
 
 import pytest
 
-from src.domain.entities import Conductor, Concessionaire, Pole
+from src.domain.entities import Concessionaire, Conductor, Pole
 from src.domain.value_objects import CatenaryResult, SpanResult, UTMCoordinate, VoltageDropResult
-
 
 # ─── UTMCoordinate ────────────────────────────────────────────────────────────
 

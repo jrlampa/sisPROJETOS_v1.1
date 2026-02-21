@@ -418,3 +418,78 @@ class TestConverterCSVExportEdgeCases:
         """Sanitizer: save_to_csv com extensão errada deve lançar ValueError."""
         with pytest.raises(ValueError, match="Extensão"):
             converter.save_to_csv(sample_df, "/tmp/arquivo.xlsx")
+
+
+class TestConverterDxfToBuffer:
+    """Testes para ConverterLogic.save_to_dxf_to_buffer() — cobertura de todos os branches."""
+
+    @pytest.fixture
+    def converter(self):
+        from src.modules.converter.logic import ConverterLogic
+
+        return ConverterLogic()
+
+    @pytest.fixture
+    def sample_df(self):
+        import pandas as pd
+
+        return pd.DataFrame(
+            {
+                "Name": ["P1", "P2"],
+                "Easting": [788547.0, 714315.7],
+                "Northing": [7634925.0, 7549084.2],
+                "Elevation": [720.0, 580.0],
+                "Description": ["Ponto 1", "Ponto 2"],
+                "Type": ["Point", "Point"],
+                "Longitude": [-43.5, -42.9],
+                "Latitude": [-21.5, -22.1],
+                "Zone": [23, 23],
+                "Hemisphere": ["S", "S"],
+            }
+        )
+
+    def test_retorna_bytes_valido(self, converter, sample_df):
+        """save_to_dxf_to_buffer retorna bytes não-vazios com conteúdo DXF."""
+        result = converter.save_to_dxf_to_buffer(sample_df)
+        assert isinstance(result, bytes)
+        assert len(result) > 0
+        # DXF inicia com marcadores de seção
+        assert b"SECTION" in result
+
+    def test_dataframe_vazio_levanta_value_error(self, converter):
+        """Linha 381: DataFrame vazio deve lançar ValueError."""
+        import pandas as pd
+
+        with pytest.raises(ValueError, match="DataFrame vazio"):
+            converter.save_to_dxf_to_buffer(pd.DataFrame())
+
+    def test_colunas_faltando_levanta_value_error(self, converter):
+        """Linha 386: DataFrame sem coluna obrigatória deve lançar ValueError."""
+        import pandas as pd
+
+        df_incompleto = pd.DataFrame({"Name": ["P1"], "Easting": [788547.0]})
+        with pytest.raises(ValueError, match="Colunas necessárias faltando"):
+            converter.save_to_dxf_to_buffer(df_incompleto)
+
+    def test_multiplos_pontos_mesmo_nome_geram_polilinha(self, converter):
+        """Linhas 402-407: Dois pontos com mesmo nome devem gerar layer LINES (polilinha)."""
+        import io
+
+        import ezdxf
+        import pandas as pd
+
+        df = pd.DataFrame(
+            {
+                "Name": ["LINHA1", "LINHA1"],
+                "Easting": [788547.0, 788647.0],
+                "Northing": [7634925.0, 7635025.0],
+                "Elevation": [720.0, 721.0],
+            }
+        )
+        result = converter.save_to_dxf_to_buffer(df)
+        dxf_str = result.decode("utf-8")
+        doc = ezdxf.read(io.StringIO(dxf_str))
+        msp = doc.modelspace()
+        # Deve existir ao menos uma entidade na layer LINES
+        lines_entities = [e for e in msp if e.dxf.layer == "LINES"]
+        assert len(lines_entities) > 0
