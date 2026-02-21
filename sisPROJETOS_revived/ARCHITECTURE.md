@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura do sisPROJETOS v2.0
+# 🏗️ Arquitetura do sisPROJETOS v1.0
 
 ## Visão Geral
 
@@ -382,15 +382,11 @@ cursor.execute("SELECT * FROM projects WHERE id=?", (project_id,))
 
 **Framework:** pytest + pytest-cov
 
-### Cobertura Atual (v2.0.1)
-- **src/utils.py**: 100% ✅
-- **src/modules/project_creator/logic.py**: 93% ✅
-- **src/modules/catenaria/logic.py**: 86% ✅
-- **src/modules/electrical/logic.py**: ~80% ✅ (novo)
-- **src/modules/cqt/logic.py**: ~75% ✅ (novo)
-- **src/modules/converter/logic.py**: ~80% ✅ (expandido)
+### Cobertura Atual (v1.0.0)
+- **Todos os módulos**: 100% ✅
+- **Total de testes**: 388
 
-**Meta:** 80%+ global
+**Meta:** manter 100% global
 
 ### Executar Testes
 ```bash
@@ -416,19 +412,12 @@ pytest tests/ -v --cov=src --cov-report=html
 
 ## Roadmap Arquitetural
 
-### v2.1 (Próxima Release)
-- [ ] Logging system centralizado
-- [ ] Auto-update checker
-- [ ] Error reporting (Sentry)
-- [ ] Multi-threading para cálculos pesados
-
-### v2.2
+### v1.1 (Próxima Release)
 - [ ] Plugin system
-- [ ] RESTful API (FastAPI)
-- [ ] Cloud sync (opcional)
-- [ ] Multi-language support
+- [ ] Multi-language support (i18n)
+- [ ] Dark mode persistido em configurações
 
-### v3.0
+### v1.2
 - [ ] Web version (React + FastAPI)
 - [ ] Collaborative editing
 - [ ] Real-time sync

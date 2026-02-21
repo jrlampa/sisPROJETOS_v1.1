@@ -8,11 +8,11 @@
 
 ## 📋 Resumo Executivo do Projeto
 
-**Nome:** sisPROJETOS v2.x  
+**Nome:** sisPROJETOS v1.x  
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.2.0 — cobertura de testes 100%, API REST Half-way BIM)
+**Maturidade:** Produção (v1.0.0 — cobertura de testes 100%, API REST Half-way BIM)
 
 ---
 
@@ -255,7 +255,7 @@ python -m PyInstaller sisprojetos.spec --clean --noconfirm
 # 2. Gerar instalador
 iscc sisPROJETOS.iss
 
-# Output: installer_output/sisPROJETOS_v2.x.x_Setup.exe
+# Output: installer_output/sisPROJETOS_v1.x.x_Setup.exe
 ```
 
 ### Configuração PyInstaller (`sisprojetos.spec`)
@@ -332,48 +332,32 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Resistividade do Al hardcoded como fallback | ✅ Corrigido | `electrical/logic.py` (agora do DB) |
 | 🟡 Média | Logger ausente em `cqt/logic.py` | ✅ Corrigido | `src/modules/cqt/logic.py` |
 | 🟡 Média | Sanitizer não integrado em logic modules | ✅ Corrigido | `electrical/logic.py` usa sanitizer |
-| 🟢 Baixa | Dark mode não implementado | ✅ Implementado v2.2.0 | `src/styles.py` |
-| 🟢 Baixa | Plugin architecture | Roadmap v2.3 | N/A |
+| 🟢 Baixa | Dark mode não implementado | ✅ Implementado v1.0.0 | `src/styles.py` |
+| 🟢 Baixa | Plugin architecture | Roadmap v1.1 | N/A |
 
 ---
 
 ## 🗺️ Roadmap
 
-### v2.1.x (Atual)
+### v1.0.0 (2026-02-21 — Lançamento Inicial)
 - [x] Logging centralizado (utils/logger.py)
 - [x] Auto-update checker (utils/update_checker.py)
 - [x] CI/CD com GitHub Actions
 - [x] Docker para desenvolvimento/testes
 - [x] MEMORY.md (este arquivo)
-- [x] Cobertura de testes ≥ 90% (244 testes)
-- [x] Cobertura de testes ≥ 97% (273 testes) — converter/catenaria/project_creator a 100%
-- [x] Cobertura de testes **100%** (289 testes) — DB poles+resistivity, todos os módulos a 100%
-- [x] Módulo `utils/sanitizer.py` — sanitização centralizada de dados de entrada (v2.1.4)
-- [x] 64 novos testes unitários para sanitizer (353 testes total)
-
-### v2.2.0 (Q1 2026 — Atual)
+- [x] Cobertura de testes **100%** (388 testes)
+- [x] Módulo `utils/sanitizer.py` — sanitização centralizada de dados de entrada
 - [x] API REST FastAPI para integração Half-way BIM (`src/api/`)
-  - [x] POST `/api/v1/electrical/voltage-drop` — Queda de tensão (NBR 5410)
-  - [x] POST `/api/v1/cqt/calculate` — CQT/BDI (Metodologia Enel)
-  - [x] POST `/api/v1/catenary/calculate` — Catenária (NBR 5422)
-  - [x] POST `/api/v1/pole-load/resultant` — Esforços em postes + sugestão
-  - [x] GET `/health` — Health check
-  - [x] Documentação OpenAPI automática (Swagger UI + ReDoc)
-  - [x] CORS configurado para integração BIM
 - [x] Dark mode — `src/styles.py` com `set_dark_mode()` / `is_dark_mode()`
-- [x] Logger integrado em `cqt/logic.py` (padronização com outros módulos)
-- [x] Sanitizer integrado em `electrical/logic.py` (get_resistivity + calculate_voltage_drop)
-- [x] FastAPI + uvicorn + httpx adicionados ao requirements.txt
-- [x] `run_api.py` — script de entrada para API REST
-- [x] Docker: EXPOSE 8000, variáveis API_HOST/API_PORT, serviço `api` no compose
-- [x] 388 testes total (35 novos: 27 API + 8 dark mode)
+- [x] Logger padronizado em todos os módulos logic
+- [x] Sanitizer integrado em `electrical/logic.py`
 
-### v2.3.0 (Q3 2026)
+### v1.1.0 (Q3 2026)
 - [ ] Plugin architecture
 - [ ] Multi-language support (i18n)
 - [ ] Dark mode persistido em app_settings (DB)
 
-### v3.0.0 (2027)
+### v1.2.0 (2027)
 - [ ] Web version (React + FastAPI)
 - [ ] Collaborative editing
 - [ ] Mobile companion app (React Native)
@@ -396,13 +380,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 
 | Data | Versão | Alterações Principais |
 |------|--------|--------------------|
-| 2026-02-21 | 2.1.0 | Criação do MEMORY.md, Docker setup, fix DXF security |
-| 2026-02-21 | 2.1.0 | Fix ezdxf `set_pos` → `set_placement`; add `pytest-cov` to requirements; add `__init__.py` a todos os módulos; criar `.coveragerc` excluindo GUI de cobertura; aumentar cobertura de 50% → 82% (198 testes); adicionar testes para dxf_manager, __version__, styles, utils, pole_load, project_creator |
-| 2026-02-21 | 2.1.1 | Aumentar cobertura de 82% → 90% (244 testes); criar `test_resource_manager.py` (coverage 73% → 100%); expandir `test_update_checker.py` (65% → 100%); expandir `test_ai_assistant.py` (57% → 98%); expandir `test_db_settings.py` (73% → 94%); cobrir: history/context da IA, beta channel, URLError, custom endpoint, add_conductor, get_all_conductors/poles, ResourceManager frozen mode, singleton |
-| 2026-02-21 | 2.1.2 | Aumentar cobertura de 90% → 97% (273 testes, +29); converter/logic.py: 72% → 100%; catenaria/logic.py: 85% → 100%; project_creator/logic.py: 86% → 100%; novos testes: KMZ loading, geo_interface (Point/LineString/Polygon), path traversal em CSV, falhas de DB, export_dxf, templates_dir ausente, cópia de template com erro, PermissionError/OSError |
-| 2026-02-21 | 2.1.3 | Cobertura de testes 97% → **100%** (289 testes, +16); populado tabela `poles` (13 postes NBR) e `resistivity` no DB; adicionados testes para: cos_phi inválido, fases inválidas, fallback DB em electrical; get_concessionaires exception, get_concessionaire_method DB error, load_poles exception, load_poles loop, ciclo CQT, fallback cables; Groq init com API key; db_manager default path (cópia de recurso, falha de permissão, recurso ausente); pragma no cover em linhas de plataforma Windows e ramos de segurança simbólica |
-| 2026-02-21 | 2.1.4 | Criar `utils/sanitizer.py` (sanitização centralizada: sanitize_string, sanitize_numeric, sanitize_positive, sanitize_power_factor, sanitize_phases, sanitize_filepath, sanitize_code); criar `tests/test_sanitizer.py` (64 testes); 353 testes total; corrigir TODO desatualizado em ARCHITECTURE.md; atualizar docstring de utils/__init__.py; bump versão 2.1.3 → 2.1.4 |
-| 2026-02-21 | 2.2.0 | API REST FastAPI (`src/api/`) com 4 endpoints de cálculo + health check; dark mode em `src/styles.py`; logger integrado em `cqt/logic.py`; sanitizer integrado em `electrical/logic.py`; FastAPI/uvicorn/httpx em requirements.txt; `run_api.py`; Docker EXPOSE 8000 + serviço `api`; 388 testes total (+35: 27 API + 8 dark mode); bump versão 2.1.4 → 2.2.0 |
+| 2026-02-21 | 1.0.0 | Sessões de desenvolvimento consolidadas na v1.0.0 (versionamento zerado): logging, update checker, CI/CD, Docker, cobertura 100% (388 testes), sanitizer, API REST FastAPI, dark mode, sanitizer integrado em electrical/logic.py, logger em cqt/logic.py |
+| 2026-02-21 | 1.0.0 | Versionamento zerado e aplicado de forma coerente em todo o projeto (src/__version__.py, Dockerfile, sisPROJETOS.iss, build-release.yml, README.md, CHANGELOG.md, MEMORY.md, ARCHITECTURE.md, CONTRIBUTING.md) |
 
 ---
 

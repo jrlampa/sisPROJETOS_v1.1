@@ -1,4 +1,4 @@
-# ⚡ sisPROJETOS v2.0
+# ⚡ sisPROJETOS v1.0
 
 > **Sistema Integrado de Projetos Elétricos**  
 > Ferramenta profissional para engenharia elétrica e projetos de redes de distribuição
@@ -41,7 +41,7 @@ Desenvolvido por engenheiros para engenheiros, integra 9 módulos especializados
 
 1. **Download do instalador**:
    - Acesse [Releases](https://github.com/jrlampa/sisPROJETOS_v1.1/releases)
-   - Baixe `sisPROJETOS_v2.0.1_Setup.exe` (~72 MB)
+   - Baixe `sisPROJETOS_v1.0.0_Setup.exe` (~72 MB)
 
 2. **Execute o instalador**:
    - Não requer privilégios de administrador
@@ -194,8 +194,6 @@ Contribuições são bem-vindas! Por favor:
 
 ## 🐛 Problemas Conhecidos
 
-- ⚠️ **Path traversal** em DXF Manager (pendente validação)
-- ⚠️ **SQL injection** em queries antigas (migração para parametrizadas em andamento)
 - ℹ️ Instalador requer 500 MB de espaço temporário (compactação alta)
 
 Veja [Issues](https://github.com/jrlampa/sisPROJETOS_v1.1/issues) para lista completa.
@@ -223,20 +221,13 @@ Engenheiro Eletricista
 
 ## 🌟 Roadmap
 
-### v2.1.0 (Q2 2026)
-- [ ] Sistema de logging centralizado
-- [ ] Auto-update checker
-- [ ] Code signing (certificado comercial)
-- [x] CI/CD com GitHub Actions ✅ **Implementado!**
-
-### v2.2.0 (Q3 2026)
+### v1.1.0 (Q2 2026)
 - [ ] Plugin architecture
-- [ ] RESTful API (FastAPI)
-- [ ] Dark mode
-- [ ] Multi-language support
+- [ ] Multi-language support (i18n)
 
-### v3.0.0 (2027)
-- [ ] Web version (React)
+### v1.2.0 (Q3 2026)
+- [ ] Dark mode persistido em configurações
+- [ ] Web version (React + FastAPI)
 - [ ] Collaborative editing
 - [ ] Mobile app (React Native)
 
