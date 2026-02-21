@@ -94,7 +94,7 @@ class PoleLoadGUI(ctk.CTkFrame):
 
         self.btn_suggest = ctk.CTkButton(
             self.actions_frame,
-            text="Sugerir Melhor Poste (IA)",
+            text="Sugerir Poste Adequado",
             command=self.suggest_best_pole,
             state="disabled",
             **DesignSystem.get_button_style("purple"),
@@ -277,6 +277,7 @@ class PoleLoadGUI(ctk.CTkFrame):
                     text_color=color,
                 )
                 self.btn_report.configure(state="normal")
+                self.btn_suggest.configure(state="normal")
 
         except ValueError:
             messagebox.showerror(

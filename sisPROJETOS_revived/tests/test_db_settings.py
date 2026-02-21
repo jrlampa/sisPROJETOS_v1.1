@@ -108,12 +108,73 @@ class TestDatabaseSettings:
         assert "NewConductor_XYZ" in names
 
     def test_get_all_poles(self, tmp_path):
-        """Testa listagem de postes (pode ser vazia se não pré-populado)."""
+        """Testa listagem de postes pré-populados."""
         db_path = tmp_path / "test_poles.db"
         db = DatabaseManager(db_path=str(db_path))
 
         poles = db.get_all_poles()
         assert isinstance(poles, list)
+        assert len(poles) >= 13  # 13 postes pré-populados
+        materials = {row[0] for row in poles}
+        assert "Concreto" in materials
+        assert "Fibra de Vidro" in materials
+        assert "Madeira" in materials
+
+    def test_add_pole(self, tmp_path):
+        """Testa adição de novo poste."""
+        db_path = tmp_path / "test_add_pole.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        data = {
+            "material": "Concreto",
+            "format": "Circular",
+            "description": "Concreto Circ. 14 m / 800 daN",
+            "height_m": 14.0,
+            "nominal_load_daN": 800.0,
+        }
+        success, msg = db.add_pole(data)
+        assert success is True
+        assert "adicionado" in msg.lower()
+
+        poles = db.get_all_poles()
+        descriptions = [row[2] for row in poles]
+        assert "Concreto Circ. 14 m / 800 daN" in descriptions
+
+    def test_add_pole_duplicate(self, tmp_path):
+        """Testa que poste com descrição duplicada retorna erro."""
+        db_path = tmp_path / "test_add_pole_dup.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        data = {
+            "material": "Madeira",
+            "format": "Roliço",
+            "description": "Madeira Rol. 12 m / 400 daN",
+            "height_m": 12.0,
+            "nominal_load_daN": 400.0,
+        }
+        db.add_pole(data)
+        success, msg = db.add_pole(data)
+
+        assert success is False
+        assert "Erro" in msg
+
+    def test_add_pole_default_format(self, tmp_path):
+        """Testa que formato padrão 'Circular' é usado quando omitido."""
+        db_path = tmp_path / "test_add_pole_fmt.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        data = {
+            "material": "Fibra de Vidro",
+            "description": "Fibra de Vidro Circ. 9 m / 150 daN",
+            "height_m": 9.0,
+            "nominal_load_daN": 150.0,
+        }
+        success, _ = db.add_pole(data)
+        assert success is True
+
+        poles = db.get_all_poles()
+        descriptions = [row[2] for row in poles]
+        assert "Fibra de Vidro Circ. 9 m / 150 daN" in descriptions
 
     def test_database_is_persistent(self, tmp_path):
         """Testa que dados persistem entre instâncias."""

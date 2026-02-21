@@ -228,6 +228,39 @@ class DatabaseManager:
             poles,
         )
 
+    def add_pole(self, data: Dict[str, Any]) -> Tuple[bool, str]:
+        """Adiciona um novo poste ao banco de dados.
+
+        Args:
+            data: Dicionário com 'material', 'format', 'description',
+                  'height_m' e 'nominal_load_daN'.
+
+        Returns:
+            Tupla (sucesso, mensagem).
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO poles (material, format, description, height_m, nominal_load_daN)
+                VALUES (?, ?, ?, ?, ?)
+            """,
+                (
+                    data["material"],
+                    data.get("format", "Circular"),
+                    data["description"],
+                    data["height_m"],
+                    data["nominal_load_daN"],
+                ),
+            )
+            conn.commit()
+            return True, "Poste adicionado."
+        except sqlite3.IntegrityError:
+            return False, "Erro: Poste já cadastrado (descrição duplicada)."
+        finally:
+            conn.close()
+
     def add_conductor(self, data: Dict[str, Any]) -> Tuple[bool, str]:
         """Adiciona um novo condutor ao banco de dados.
 
