@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.0.0 — reescrita completa Python 3.12, 388 testes, 100% cobertura, API REST)
+**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 393 testes, 100% cobertura, API REST)
 
 ---
 
@@ -357,9 +357,9 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 - [x] Sanitizer integrado em `electrical/logic.py`
 
 ### v2.1.0 (Q3 2026)
+- [x] Dark mode persistido em app_settings (DB) — `get_appearance_settings()` / `save_appearance_settings()` em db_manager.py; aba "Aparência" em settings/gui.py
 - [ ] Plugin architecture
 - [ ] Multi-language support (i18n)
-- [ ] Dark mode persistido em app_settings (DB)
 
 ### v2.2.0 (2027)
 - [ ] Web version (React + FastAPI)
@@ -386,6 +386,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 |------|--------|--------------------|
 | 2026-02-21 | 2.0.0 | Sessões de desenvolvimento consolidadas na v2.0.0: logging, update checker, CI/CD, Docker, cobertura 100% (388 testes), sanitizer, API REST FastAPI, dark mode, sanitizer integrado em electrical/logic.py, logger em cqt/logic.py |
 | 2026-02-21 | 2.0.0 | Análise de maturidade: 1.0.0 incoerente pois legacy Python 2.7 era v1.1.0; reescrita completa Python 3.12 = breaking change = major bump para 2.0.0; badges do README atualizados (125→388 testes, 45%→100% cobertura) |
+| 2026-02-21 | 2.1.0 | Dark mode persistido em DB: `get_appearance_settings()` / `save_appearance_settings()` em db_manager.py; aba "Aparência" em settings/gui.py; 5 novos testes (total 393) |
 
 ---
 

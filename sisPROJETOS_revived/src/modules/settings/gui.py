@@ -4,7 +4,7 @@ from tkinter import messagebox
 from __version__ import __version__
 from database.db_manager import DatabaseManager
 from utils.update_checker import UpdateChecker
-
+import styles
 from styles import DesignSystem
 
 
@@ -42,10 +42,12 @@ class SettingsGUI(ctk.CTkFrame):
         self.tab_cond = self.tabview.add("Condutores")
         self.tab_poles = self.tabview.add("Postes")
         self.tab_updates = self.tabview.add("Atualizações")
+        self.tab_appearance = self.tabview.add("Aparência")
 
         self.setup_conductors_tab()
         self.setup_poles_tab()
         self.setup_updates_tab()
+        self.setup_appearance_tab()
 
         # Footer
         self.footer = ctk.CTkFrame(self, fg_color="transparent")
@@ -188,6 +190,42 @@ class SettingsGUI(ctk.CTkFrame):
             command=self.check_updates_now,
             **DesignSystem.get_button_style("secondary"),
         ).pack(anchor="w", padx=20, pady=(0, 20))
+
+    def setup_appearance_tab(self):
+        appearance_settings = self.db.get_appearance_settings()
+
+        frame = ctk.CTkFrame(self.tab_appearance, **DesignSystem.get_frame_style())
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            frame,
+            text="Aparência",
+            font=DesignSystem.FONT_BODY,
+            text_color=DesignSystem.TEXT_MAIN,
+        ).pack(anchor="w", padx=20, pady=(20, 10))
+
+        self.var_dark_mode = ctk.BooleanVar(value=appearance_settings["dark_mode"])
+        self.switch_dark_mode = ctk.CTkSwitch(
+            frame,
+            text="Modo escuro",
+            variable=self.var_dark_mode,
+            progress_color=DesignSystem.ACCENT_PRIMARY,
+            button_color=DesignSystem.ACCENT_SECONDARY,
+        )
+        self.switch_dark_mode.pack(anchor="w", padx=20, pady=8)
+
+        ctk.CTkButton(
+            frame,
+            text="Salvar Aparência",
+            command=self.save_appearance_preferences,
+            **DesignSystem.get_button_style("primary"),
+        ).pack(anchor="w", padx=20, pady=(16, 10))
+
+    def save_appearance_preferences(self):
+        dark_mode = self.var_dark_mode.get()
+        self.db.save_appearance_settings(dark_mode=dark_mode)
+        styles.set_dark_mode(dark_mode)
+        messagebox.showinfo("Aparência", "Configurações de aparência salvas com sucesso.\nReinicie o aplicativo para aplicar o tema.")
 
     def save_conductor(self):
         name = self.ent_cond_name.get()
