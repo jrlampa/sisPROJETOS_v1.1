@@ -5,7 +5,7 @@ Este arquivo é a fonte única de verdade para versioning.
 Todos os outros arquivos devem importar daqui.
 """
 
-__version__ = "2.1.3"
+__version__ = "2.1.4"
 __build__ = "20260221"
 __author__ = "sisPROJETOS Team"
 __copyright__ = "Copyright (c) 2026 sisPROJETOS"
