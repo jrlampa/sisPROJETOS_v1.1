@@ -287,7 +287,7 @@ Se aplicável, adicione screenshots.
 
 **Ambiente**
 - OS: Windows 10/11
-- Versão sisPROJETOS: 1.0.0
+- Versão sisPROJETOS: 2.0.0
 - Python: 3.12.1
 
 **Logs**

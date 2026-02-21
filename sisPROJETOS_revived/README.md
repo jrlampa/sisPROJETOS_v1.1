@@ -1,4 +1,4 @@
-# ⚡ sisPROJETOS v1.0
+# ⚡ sisPROJETOS v2.0
 
 > **Sistema Integrado de Projetos Elétricos**  
 > Ferramenta profissional para engenharia elétrica e projetos de redes de distribuição
@@ -6,11 +6,11 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.txt)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010/11-lightgrey.svg)]()
-[![Tests](https://img.shields.io/badge/Tests-125%20passing-brightgreen.svg)]()
-[![Coverage](https://img.shields.io/badge/Coverage-~45%25-orange.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-388%20passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)]()
 [![Logging](https://img.shields.io/badge/Logging-Centralized-blue.svg)]()
 [![AutoUpdate](https://img.shields.io/badge/AutoUpdate-Implemented-brightgreen.svg)]()
-[![Code Quality](https://img.shields.io/badge/Quality-9.5/10-brightgreen.svg)]()
+[![API](https://img.shields.io/badge/API-REST%20FastAPI-blue.svg)]()
 [![CI](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/ci.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/ci.yml)
 [![Release](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/release.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/release.yml)
 ---
@@ -41,7 +41,7 @@ Desenvolvido por engenheiros para engenheiros, integra 9 módulos especializados
 
 1. **Download do instalador**:
    - Acesse [Releases](https://github.com/jrlampa/sisPROJETOS_v1.1/releases)
-   - Baixe `sisPROJETOS_v1.0.0_Setup.exe` (~72 MB)
+   - Baixe `sisPROJETOS_v2.0.0_Setup.exe` (~72 MB)
 
 2. **Execute o instalador**:
    - Não requer privilégios de administrador
@@ -221,11 +221,11 @@ Engenheiro Eletricista
 
 ## 🌟 Roadmap
 
-### v1.1.0 (Q2 2026)
+### v2.1.0 (Q3 2026)
 - [ ] Plugin architecture
 - [ ] Multi-language support (i18n)
 
-### v1.2.0 (Q3 2026)
+### v2.2.0 (2027)
 - [ ] Dark mode persistido em configurações
 - [ ] Web version (React + FastAPI)
 - [ ] Collaborative editing

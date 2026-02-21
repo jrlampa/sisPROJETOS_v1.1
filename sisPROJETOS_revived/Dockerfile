@@ -10,7 +10,7 @@ FROM python:3.12-slim
 
 LABEL maintainer="João Rodrigo Lampa <contato@exemplo.com.br>"
 LABEL description="sisPROJETOS - Sistema Integrado de Projetos Elétricos"
-LABEL version="1.0.0"
+LABEL version="2.0.0"
 
 # Variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \

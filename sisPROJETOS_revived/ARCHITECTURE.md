@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura do sisPROJETOS v1.0
+# 🏗️ Arquitetura do sisPROJETOS v2.0
 
 ## Visão Geral
 
@@ -412,12 +412,12 @@ pytest tests/ -v --cov=src --cov-report=html
 
 ## Roadmap Arquitetural
 
-### v1.1 (Próxima Release)
+### v2.1 (Próxima Release)
 - [ ] Plugin system
 - [ ] Multi-language support (i18n)
 - [ ] Dark mode persistido em configurações
 
-### v1.2
+### v2.2
 - [ ] Web version (React + FastAPI)
 - [ ] Collaborative editing
 - [ ] Real-time sync

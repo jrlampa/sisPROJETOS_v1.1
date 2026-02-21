@@ -2,7 +2,7 @@
 ; Professional Installer for Power Distribution Engineering Tool
 
 #define MyAppName "sisPROJETOS"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "Engenharia de Projetos"
 #define MyAppExeName "sisPROJETOS.exe"
 #define SourcePath "dist\sisPROJETOS"

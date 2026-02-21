@@ -8,11 +8,11 @@
 
 ## 📋 Resumo Executivo do Projeto
 
-**Nome:** sisPROJETOS v1.x  
+**Nome:** sisPROJETOS v2.x  
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v1.0.0 — cobertura de testes 100%, API REST Half-way BIM)
+**Maturidade:** Produção (v2.0.0 — reescrita completa Python 3.12, 388 testes, 100% cobertura, API REST)
 
 ---
 
@@ -255,7 +255,7 @@ python -m PyInstaller sisprojetos.spec --clean --noconfirm
 # 2. Gerar instalador
 iscc sisPROJETOS.iss
 
-# Output: installer_output/sisPROJETOS_v1.x.x_Setup.exe
+# Output: installer_output/sisPROJETOS_v2.x.x_Setup.exe
 ```
 
 ### Configuração PyInstaller (`sisprojetos.spec`)
@@ -332,14 +332,18 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Resistividade do Al hardcoded como fallback | ✅ Corrigido | `electrical/logic.py` (agora do DB) |
 | 🟡 Média | Logger ausente em `cqt/logic.py` | ✅ Corrigido | `src/modules/cqt/logic.py` |
 | 🟡 Média | Sanitizer não integrado em logic modules | ✅ Corrigido | `electrical/logic.py` usa sanitizer |
-| 🟢 Baixa | Dark mode não implementado | ✅ Implementado v1.0.0 | `src/styles.py` |
-| 🟢 Baixa | Plugin architecture | Roadmap v1.1 | N/A |
+| 🟢 Baixa | Dark mode não implementado | ✅ Implementado v2.0.0 | `src/styles.py` |
+| 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
 
 ## 🗺️ Roadmap
 
-### v1.0.0 (2026-02-21 — Lançamento Inicial)
+### v2.0.0 (2026-02-21 — Lançamento Inicial da Série 2.x)
+- [x] Reescrita completa Python 2.7 → Python 3.12 (breaking change = major bump)
+- [x] Interface CustomTkinter (era Tkinter)
+- [x] Arquitetura MVC desacoplada
+- [x] 8 módulos funcionais com separação GUI/Logic
 - [x] Logging centralizado (utils/logger.py)
 - [x] Auto-update checker (utils/update_checker.py)
 - [x] CI/CD com GitHub Actions
@@ -352,12 +356,12 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 - [x] Logger padronizado em todos os módulos logic
 - [x] Sanitizer integrado em `electrical/logic.py`
 
-### v1.1.0 (Q3 2026)
+### v2.1.0 (Q3 2026)
 - [ ] Plugin architecture
 - [ ] Multi-language support (i18n)
 - [ ] Dark mode persistido em app_settings (DB)
 
-### v1.2.0 (2027)
+### v2.2.0 (2027)
 - [ ] Web version (React + FastAPI)
 - [ ] Collaborative editing
 - [ ] Mobile companion app (React Native)
@@ -380,8 +384,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 
 | Data | Versão | Alterações Principais |
 |------|--------|--------------------|
-| 2026-02-21 | 1.0.0 | Sessões de desenvolvimento consolidadas na v1.0.0 (versionamento zerado): logging, update checker, CI/CD, Docker, cobertura 100% (388 testes), sanitizer, API REST FastAPI, dark mode, sanitizer integrado em electrical/logic.py, logger em cqt/logic.py |
-| 2026-02-21 | 1.0.0 | Versionamento zerado e aplicado de forma coerente em todo o projeto (src/__version__.py, Dockerfile, sisPROJETOS.iss, build-release.yml, README.md, CHANGELOG.md, MEMORY.md, ARCHITECTURE.md, CONTRIBUTING.md) |
+| 2026-02-21 | 2.0.0 | Sessões de desenvolvimento consolidadas na v2.0.0: logging, update checker, CI/CD, Docker, cobertura 100% (388 testes), sanitizer, API REST FastAPI, dark mode, sanitizer integrado em electrical/logic.py, logger em cqt/logic.py |
+| 2026-02-21 | 2.0.0 | Análise de maturidade: 1.0.0 incoerente pois legacy Python 2.7 era v1.1.0; reescrita completa Python 3.12 = breaking change = major bump para 2.0.0; badges do README atualizados (125→388 testes, 45%→100% cobertura) |
 
 ---
 
