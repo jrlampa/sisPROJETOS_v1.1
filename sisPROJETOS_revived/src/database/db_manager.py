@@ -141,6 +141,7 @@ class DatabaseManager:
             ("update_channel", "stable"),
             ("update_last_checked", ""),
             ("update_check_interval_days", "1"),
+            ("dark_mode", "false"),
         ]
         cursor.executemany("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", default_settings)
 
@@ -295,3 +296,24 @@ class DatabaseManager:
             self.set_setting("update_check_interval_days", str(interval_days))
         if last_checked is not None:
             self.set_setting("update_last_checked", last_checked)
+
+    def get_appearance_settings(self) -> dict:
+        """Retorna as configurações de aparência da aplicação.
+
+        Returns:
+            dict: Dicionário com as configurações de aparência.
+                  Chave 'dark_mode' é um booleano.
+        """
+        return {
+            "dark_mode": self.get_setting("dark_mode", "false") == "true",
+        }
+
+    def save_appearance_settings(self, dark_mode: bool | None = None) -> None:
+        """Persiste as configurações de aparência no banco de dados.
+
+        Args:
+            dark_mode: True para ativar modo escuro, False para desativar.
+                       None mantém o valor atual.
+        """
+        if dark_mode is not None:
+            self.set_setting("dark_mode", "true" if dark_mode else "false")

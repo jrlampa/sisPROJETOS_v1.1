@@ -124,6 +124,60 @@ class TestDatabaseSettings:
         val = db2.get_setting("persistent_key")
         assert val == "persistent_value"
 
+    def test_default_appearance_settings(self, tmp_path):
+        """Testa que o modo escuro está desativado por padrão."""
+        db_path = tmp_path / "test_appearance_default.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        settings = db.get_appearance_settings()
+
+        assert "dark_mode" in settings
+        assert settings["dark_mode"] is False
+
+    def test_save_and_get_appearance_dark_mode_on(self, tmp_path):
+        """Testa que modo escuro é persistido corretamente quando ativado."""
+        db_path = tmp_path / "test_appearance_on.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        db.save_appearance_settings(dark_mode=True)
+        settings = db.get_appearance_settings()
+
+        assert settings["dark_mode"] is True
+
+    def test_save_and_get_appearance_dark_mode_off(self, tmp_path):
+        """Testa que modo escuro é persistido corretamente quando desativado."""
+        db_path = tmp_path / "test_appearance_off.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        db.save_appearance_settings(dark_mode=True)
+        db.save_appearance_settings(dark_mode=False)
+        settings = db.get_appearance_settings()
+
+        assert settings["dark_mode"] is False
+
+    def test_save_appearance_none_preserves_value(self, tmp_path):
+        """Testa que save_appearance_settings(None) não altera o valor existente."""
+        db_path = tmp_path / "test_appearance_none.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        db.save_appearance_settings(dark_mode=True)
+        db.save_appearance_settings(dark_mode=None)
+        settings = db.get_appearance_settings()
+
+        assert settings["dark_mode"] is True
+
+    def test_appearance_persistent_across_instances(self, tmp_path):
+        """Testa que configuração de aparência persiste entre instâncias do DB."""
+        db_path = str(tmp_path / "test_appearance_persist.db")
+
+        db1 = DatabaseManager(db_path=db_path)
+        db1.save_appearance_settings(dark_mode=True)
+
+        db2 = DatabaseManager(db_path=db_path)
+        settings = db2.get_appearance_settings()
+
+        assert settings["dark_mode"] is True
+
 
 class TestDatabaseManagerDefaultPath:
     """Testes para o caminho padrão do DatabaseManager (sem db_path)."""
