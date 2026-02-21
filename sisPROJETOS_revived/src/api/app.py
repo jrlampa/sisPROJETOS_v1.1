@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from __version__ import __version__  # noqa: E402
-from api.routes import catenary, cqt, data, electrical, pole_load
+from api.routes import catenary, converter, cqt, data, electrical, pole_load
 
 
 def create_app() -> FastAPI:
@@ -51,6 +51,7 @@ def create_app() -> FastAPI:
             {"name": "Catenária", "description": "Cálculo de catenária de condutores (NBR 5422)"},
             {"name": "Esforços em Postes", "description": "Esforços mecânicos em postes (NBR 8451)"},
             {"name": "Dados Mestres", "description": "Catálogos técnicos para integração BIM"},
+            {"name": "Conversor KML/KMZ", "description": "Conversão KML/KMZ → UTM para integração geoespacial BIM"},
         ],
     )
 
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(catenary.router, prefix=PREFIX)
     app.include_router(pole_load.router, prefix=PREFIX)
     app.include_router(data.router, prefix=PREFIX)
+    app.include_router(converter.router, prefix=PREFIX)
 
     @app.get("/health", tags=["Infra"], summary="Verificação de saúde da API")
     def health_check():

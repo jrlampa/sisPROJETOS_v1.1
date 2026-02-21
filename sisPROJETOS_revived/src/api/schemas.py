@@ -212,3 +212,50 @@ class ConcessionaireOut(BaseModel):
 
     name: str = Field(..., description="Nome da concessionária")
     method: str = Field(..., description="Método de cálculo (flecha, tabela)")
+
+
+# ── Conversor KML/KMZ (BIM) ──────────────────────────────────────────────────
+
+
+class KmlConvertRequest(BaseModel):
+    """Dados de entrada para conversão KML → UTM via API.
+
+    O conteúdo KML deve ser enviado como string Base64 (RFC 4648).
+    Tanto arquivos .kml quanto o conteúdo interno de .kmz são aceitos.
+    """
+
+    kml_base64: str = Field(
+        ...,
+        description="Conteúdo do arquivo KML codificado em Base64 (RFC 4648)",
+        min_length=1,
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "kml_base64": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4K...",
+            }
+        }
+    }
+
+
+class KmlPointOut(BaseModel):
+    """Coordenadas UTM de um ponto extraído do KML."""
+
+    name: str = Field(..., description="Nome do placemark")
+    description: str = Field(default="", description="Descrição do placemark")
+    type: str = Field(..., description="Tipo de geometria (Point, LineString, Polygon)")
+    longitude: float = Field(..., description="Longitude WGS84 em graus decimais")
+    latitude: float = Field(..., description="Latitude WGS84 em graus decimais")
+    easting: float = Field(..., description="Coordenada Leste UTM em metros")
+    northing: float = Field(..., description="Coordenada Norte UTM em metros")
+    zone: int = Field(..., description="Zona UTM (1–60)")
+    hemisphere: str = Field(..., description="Hemisfério (N ou S)")
+    elevation: float = Field(default=0.0, description="Altitude em metros (0 se ausente)")
+
+
+class KmlConvertResponse(BaseModel):
+    """Resposta da conversão KML → UTM."""
+
+    count: int = Field(..., description="Número de pontos convertidos")
+    points: List[KmlPointOut] = Field(..., description="Lista de pontos com coordenadas UTM")

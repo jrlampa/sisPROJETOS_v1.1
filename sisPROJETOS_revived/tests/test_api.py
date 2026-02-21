@@ -7,7 +7,10 @@ Cobre todos os endpoints da API Half-way BIM:
 - POST /api/v1/catenary/calculate
 - POST /api/v1/pole-load/resultant
 - GET  /health
+- POST /api/v1/converter/kml-to-utm
 """
+
+import base64
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,11 +20,13 @@ from fastapi.testclient import TestClient
 def client():
     """Cliente de testes FastAPI (reutilizado em todos os testes do módulo)."""
     from src.api.app import create_app
+
     app = create_app()
     return TestClient(app)
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────
+
 
 class TestHealth:
     def test_health_returns_ok(self, client):
@@ -37,6 +42,7 @@ class TestHealth:
 
 
 # ── Elétrico ───────────────────────────────────────────────────────────────────
+
 
 class TestElectricalEndpoint:
     _URL = "/api/v1/electrical/voltage-drop"
@@ -105,13 +111,44 @@ class TestElectricalEndpoint:
 
 # ── CQT ────────────────────────────────────────────────────────────────────────
 
+
 class TestCQTEndpoint:
     _URL = "/api/v1/cqt/calculate"
 
     _VALID_SEGMENTS = [
-        {"ponto": "TRAFO", "montante": "", "metros": 0, "cabo": "", "mono": 0, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
-        {"ponto": "P1", "montante": "TRAFO", "metros": 50, "cabo": "3x35+54.6mm² Al", "mono": 5, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
-        {"ponto": "P2", "montante": "P1", "metros": 30, "cabo": "3x35+54.6mm² Al", "mono": 3, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
+        {
+            "ponto": "TRAFO",
+            "montante": "",
+            "metros": 0,
+            "cabo": "",
+            "mono": 0,
+            "bi": 0,
+            "tri": 0,
+            "tri_esp": 0,
+            "carga_esp": 0,
+        },
+        {
+            "ponto": "P1",
+            "montante": "TRAFO",
+            "metros": 50,
+            "cabo": "3x35+54.6mm² Al",
+            "mono": 5,
+            "bi": 0,
+            "tri": 0,
+            "tri_esp": 0,
+            "carga_esp": 0,
+        },
+        {
+            "ponto": "P2",
+            "montante": "P1",
+            "metros": 30,
+            "cabo": "3x35+54.6mm² Al",
+            "mono": 3,
+            "bi": 0,
+            "tri": 0,
+            "tri_esp": 0,
+            "carga_esp": 0,
+        },
     ]
 
     def test_calculo_valido(self, client):
@@ -126,7 +163,17 @@ class TestCQTEndpoint:
 
     def test_sem_trafo_retorna_erro(self, client):
         segments = [
-            {"ponto": "P1", "montante": "", "metros": 50, "cabo": "3x35+54.6mm² Al", "mono": 5, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
+            {
+                "ponto": "P1",
+                "montante": "",
+                "metros": 50,
+                "cabo": "3x35+54.6mm² Al",
+                "mono": 5,
+                "bi": 0,
+                "tri": 0,
+                "tri_esp": 0,
+                "carga_esp": 0,
+            },
         ]
         payload = {"segments": segments, "trafo_kva": 112.5, "social_class": "B"}
         resp = client.post(self._URL, json=payload)
@@ -148,6 +195,7 @@ class TestCQTEndpoint:
 
 
 # ── Catenária ──────────────────────────────────────────────────────────────────
+
 
 class TestCatenaryEndpoint:
     _URL = "/api/v1/catenary/calculate"
@@ -190,6 +238,7 @@ class TestCatenaryEndpoint:
 
 
 # ── Esforços em Postes ─────────────────────────────────────────────────────────
+
 
 class TestPoleLoadEndpoint:
     _URL = "/api/v1/pole-load/resultant"
@@ -262,6 +311,7 @@ class TestPoleLoadEndpoint:
 
 
 # ── Cobertura de branches defensivos ─────────────────────────────────────────
+
 
 class TestCatenaryEndpointDefensiveBranches:
     """Cobre branches defensivos da rota catenary que não são alcançados via
@@ -377,3 +427,90 @@ class TestDataEndpoints:
         )
         resp = client.get("/api/v1/data/concessionaires")
         assert resp.status_code == 500
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/converter/kml-to-utm
+# ---------------------------------------------------------------------------
+
+# Minimal valid KML with a single Point placemark (São Paulo coords)
+_KML_MINIMAL = b"""<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Poste P1</name>
+      <description>Teste BIM</description>
+      <Point>
+        <coordinates>-46.6333,-23.5505,850</coordinates>
+      </Point>
+    </Placemark>
+  </Document>
+</kml>"""
+
+
+class TestConverterKmlEndpoint:
+    """Testes para POST /api/v1/converter/kml-to-utm."""
+
+    def test_retorna_200_com_kml_valido(self, client):
+        """Happy path: KML válido retorna 200 com lista de pontos UTM."""
+        payload = {"kml_base64": base64.b64encode(_KML_MINIMAL).decode()}
+        resp = client.post("/api/v1/converter/kml-to-utm", json=payload)
+        assert resp.status_code == 200
+
+    def test_resposta_tem_campos_count_e_points(self, client):
+        """Verifica campos obrigatórios na resposta."""
+        payload = {"kml_base64": base64.b64encode(_KML_MINIMAL).decode()}
+        data = client.post("/api/v1/converter/kml-to-utm", json=payload).json()
+        assert "count" in data
+        assert "points" in data
+        assert data["count"] == len(data["points"])
+
+    def test_ponto_tem_coordenadas_utm_validas(self, client):
+        """Coordenadas UTM devem ser números positivos para o Brasil."""
+        payload = {"kml_base64": base64.b64encode(_KML_MINIMAL).decode()}
+        data = client.post("/api/v1/converter/kml-to-utm", json=payload).json()
+        pt = data["points"][0]
+        assert pt["name"] == "Poste P1"
+        assert pt["hemisphere"] == "S"
+        assert pt["zone"] == 23
+        assert pt["easting"] > 100_000  # UTM Easting > 100 km
+        assert pt["northing"] > 7_000_000  # UTM Northing Sul do equador (7M+)
+        assert pt["elevation"] == 850.0
+
+    def test_base64_invalido_retorna_422(self, client):
+        """Payload não é Base64 válido → 422."""
+        payload = {"kml_base64": "!!! not base64 !!!"}
+        resp = client.post("/api/v1/converter/kml-to-utm", json=payload)
+        assert resp.status_code == 422
+
+    def test_kml_vazio_retorna_422(self, client):
+        """Base64 de conteúdo vazio → 422 (KML vazio)."""
+        payload = {"kml_base64": base64.b64encode(b"").decode()}
+        resp = client.post("/api/v1/converter/kml-to-utm", json=payload)
+        assert resp.status_code == 422
+
+    def test_kml_sem_placemarks_retorna_422(self, client, mocker):
+        """KML sem placemarks → load_kml_content levanta ValueError → 422."""
+        mocker.patch(
+            "api.routes.converter._logic.load_kml_content",
+            side_effect=ValueError("No features found in KML file"),
+        )
+        payload = {"kml_base64": base64.b64encode(_KML_MINIMAL).decode()}
+        resp = client.post("/api/v1/converter/kml-to-utm", json=payload)
+        assert resp.status_code == 422
+        detail = resp.json()["detail"].lower()
+        assert "features" in detail or "kml" in detail
+
+    def test_falha_na_conversao_utm_retorna_422(self, client, mocker):
+        """Erro na conversão UTM → 422."""
+        mocker.patch(
+            "api.routes.converter._logic.load_kml_content",
+            return_value=["mock_placemark"],
+        )
+        mocker.patch(
+            "api.routes.converter._logic.convert_to_utm",
+            side_effect=ValueError("No valid geometries found"),
+        )
+        payload = {"kml_base64": base64.b64encode(_KML_MINIMAL).decode()}
+        resp = client.post("/api/v1/converter/kml-to-utm", json=payload)
+        assert resp.status_code == 422

@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 430 testes, 100% cobertura, API REST com 7 endpoints + 3 de dados mestres BIM, black+isort limpo, type hints completos em todos os módulos logic e db_manager)
+**Maturidade:** Produção (v2.1.0 — 437 testes, 100% cobertura, API REST com 11 endpoints (7 cálculo + 3 dados mestres BIM + 1 conversor geoespacial), black+isort limpo, type hints completos em todos os módulos)
 
 ---
 
@@ -71,6 +71,7 @@ Main (Controller) → orquestra → GUIs
 | `routes/catenary.py` | POST `/api/v1/catenary/calculate` |
 | `routes/pole_load.py` | POST `/api/v1/pole-load/resultant` |
 | `routes/data.py` | GET `/api/v1/data/conductors`, `/data/poles`, `/data/concessionaires` |
+| `routes/converter.py` | POST `/api/v1/converter/kml-to-utm` |
 
 ### Utilitários (src/utils/)
 
@@ -115,7 +116,7 @@ Main (Controller) → orquestra → GUIs
 | `ai_assistant/logic.py` | ✅ Completo (v2.1.0) |
 | `database/db_manager.py` | ✅ Completo (v2.1.0) |
 | `api/routes/data.py` | ✅ Completo |
-| `converter/logic.py` | 🔄 Planejado |
+| `converter/logic.py` | ✅ Completo (v2.1.0) |
 
 ---
 
@@ -178,7 +179,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 430 (todos passando, 100% cobertura)  
+**Total de testes:** 437 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -201,7 +202,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
 | `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
-| `test_api.py` | `api/` (todos os endpoints REST, incluindo dados mestres) | ✅ |
+| `test_api.py` | `api/` (todos os endpoints REST, incluindo dados mestres e conversor KML) | ✅ |
 
 ### Executar Testes
 
@@ -367,7 +368,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | API REST incompleta para BIM (sem endpoints de dados mestres) | ✅ Corrigido | `src/api/routes/data.py` criado com 3 endpoints GET |
 | 🟡 Média | CHANGELOG.md desatualizado (apenas v2.0.0, sem v2.1.0) | ✅ Corrigido | Seção [2.1.0] adicionada com todas as mudanças da série |
 | 🟡 Média | Type hints ausentes em módulos logic | ✅ Completo | Todos os módulos logic + db_manager atualizados |
-| 🔄 Planejado | Type hints em `converter/logic.py` | 🔄 Planejado | Módulo mais complexo (373 linhas) |
+| 🔄 Planejado | Type hints em `converter/logic.py` | ✅ Completo (v2.1.0) | Todas as anotações + Tuple[float, ...] para coords |
+| 🔄 Planejado | POST /api/v1/converter/kml-to-utm | ✅ Implementado (v2.1.0) | Aceita KML Base64, retorna UTM JSON; integração BIM geoespacial |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -428,7 +430,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | pyproject.toml criado (black+isort config); black aplicado a 16 arquivos src/; isort aplicado a 25 arquivos src/; 3 novos testes (ai_assistant empty msg + catenary None-result via mock); api/app.py pragma:no cover em sys.path guard; cobertura real 100%; total 418 testes |
 | 2026-02-21 | 2.1.0 | Adicionados 3 endpoints GET de dados mestres para integração BIM: GET /api/v1/data/conductors, /data/poles, /data/concessionaires; src/api/routes/data.py criado; 3 novos schemas Pydantic (ConductorOut, PoleOut, ConcessionaireOut); 12 novos testes (total 430, 100% cobertura) |
 | 2026-02-21 | 2.1.0 | CHANGELOG.md atualizado com seção [2.1.0] completa; type hints adicionados em electrical/logic.py e catenaria/logic.py (Optional, Dict, List, NDArray); 22 docs de auditoria stale movidos para docs/archive/ |
-| 2026-02-21 | 2.1.0 | Type hints completados em cqt/logic.py, pole_load/logic.py, project_creator/logic.py, ai_assistant/logic.py e database/db_manager.py; todos os módulos logic + db_manager agora com anotações completas |
+| 2026-02-21 | 2.1.0 | Type hints completados em converter/logic.py (último módulo logic planejado); novo método load_kml_content(bytes) para uso sem filesystem; POST /api/v1/converter/kml-to-utm endpoint criado (aceita KML Base64, retorna UTM JSON); 7 novos testes; total 437 testes, 100% cobertura |
 
 ---
 
