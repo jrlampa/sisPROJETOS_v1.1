@@ -100,3 +100,71 @@ def test_templates_directory_validation(temp_project_dir):
     # Se retornar False, deve ser porque diretório não existe
     # Se retornar True, diretório existe
     assert isinstance(is_valid, bool)
+
+
+# ---------------------------------------------------------------------------
+# Testes adicionais para cobertura de branches específicos
+# ---------------------------------------------------------------------------
+
+def test_validate_templates_directory_not_exists(tmp_path, monkeypatch):
+    """Testa que _validate_templates_directory retorna False se não existe."""
+    logic = ProjectCreatorLogic()
+    # Aponta templates para diretório que não existe
+    nonexistent = tmp_path / "nonexistent_templates"
+    from pathlib import Path
+    monkeypatch.setattr(logic, "templates_dir", nonexistent)
+    assert logic._validate_templates_directory() is False
+
+
+def test_validate_templates_directory_is_file(tmp_path, monkeypatch):
+    """Testa que _validate_templates_directory retorna False se é arquivo."""
+    logic = ProjectCreatorLogic()
+    # Cria um arquivo onde se esperaria um diretório
+    fake_file = tmp_path / "templates_file"
+    fake_file.write_text("not a directory")
+    monkeypatch.setattr(logic, "templates_dir", fake_file)
+    assert logic._validate_templates_directory() is False
+
+
+def test_create_structure_with_missing_templates(tmp_path, monkeypatch):
+    """Testa criação de projeto quando templates estão ausentes."""
+    from pathlib import Path
+    logic = ProjectCreatorLogic()
+    # Aponta para diretório existente mas sem templates
+    empty_templates = tmp_path / "empty_templates"
+    empty_templates.mkdir()
+    monkeypatch.setattr(logic, "templates_dir", empty_templates)
+
+    success, msg = logic.create_structure("ProjSemTemplates", str(tmp_path))
+    # Deve ter sucesso mesmo sem templates (apenas avisa)
+    assert success is True
+    project_path = tmp_path / "ProjSemTemplates"
+    assert project_path.exists()
+    assert "info.txt" in [f.name for f in project_path.iterdir()]
+
+
+def test_create_structure_permission_error(tmp_path, monkeypatch):
+    """Testa erro de permissão ao criar projeto."""
+    logic = ProjectCreatorLogic()
+
+    def mock_mkdir(*args, **kwargs):
+        raise PermissionError("Permission denied")
+
+    from pathlib import Path
+    monkeypatch.setattr(Path, "mkdir", mock_mkdir)
+
+    success, msg = logic.create_structure("ProjPermissao", str(tmp_path))
+    assert success is False
+    assert "permissão" in msg.lower() or "Sem permissão" in msg
+
+
+def test_info_file_contains_templates_info(tmp_path):
+    """Testa que info.txt registra quantos templates foram copiados."""
+    logic = ProjectCreatorLogic()
+    project_name = "InfoTemplates"
+
+    logic.create_structure(project_name, str(tmp_path))
+    info_path = tmp_path / project_name / "info.txt"
+
+    content = info_path.read_text(encoding="utf-8")
+    assert "Templates Copiados:" in content

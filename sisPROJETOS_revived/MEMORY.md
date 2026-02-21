@@ -144,8 +144,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 134 (todos passando)  
-**Cobertura estimada:** ~45% global
+**Total de testes:** 198 (todos passando)  
+**Cobertura estimada:** ~82% (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
 
@@ -162,6 +162,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_logger.py` | `utils/logger.py` | ✅ |
 | `test_update_checker.py` | `utils/update_checker.py` | ✅ |
 | `test_db_settings.py` | `database/db_manager.py` | ✅ |
+| `test_dxf_manager.py` | `utils/dxf_manager.py` | ✅ |
+| `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
 
 ### Executar Testes
 
@@ -303,9 +305,12 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 
 | Prioridade | Problema | Status | Arquivo |
 |-----------|---------|--------|---------|
-| 🔴 Alta | DXF filepath sem validação de traversal | Corrigido | `src/utils/dxf_manager.py` |
+| 🔴 Alta | DXF filepath sem validação de traversal | ✅ Corrigido | `src/utils/dxf_manager.py` |
+| 🔴 Alta | ezdxf API `set_pos` obsoleta → `set_placement` | ✅ Corrigido | `src/utils/dxf_manager.py` |
+| 🔴 Alta | Cobertura de testes < 80% (CI falha) | ✅ Corrigido | `tests/`, `.coveragerc` |
+| 🟡 Média | `pytest-cov` ausente em requirements.txt | ✅ Corrigido | `requirements.txt` |
+| 🟡 Média | `__init__.py` ausente em módulos (cqt, electrical, etc.) | ✅ Corrigido | `src/modules/*/` |
 | 🟡 Média | Resistividade do Al hardcoded como fallback | Aceitável | `electrical/logic.py` |
-| 🟡 Média | Cobertura de testes global ~45% | Em progresso | `tests/` |
 | 🟢 Baixa | Dark mode não implementado | Roadmap v2.2 | `src/styles.py` |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.2 | N/A |
 
@@ -350,6 +355,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | Data | Versão | Alterações Principais |
 |------|--------|--------------------|
 | 2026-02-21 | 2.1.0 | Criação do MEMORY.md, Docker setup, fix DXF security |
+| 2026-02-21 | 2.1.0 | Fix ezdxf `set_pos` → `set_placement`; add `pytest-cov` to requirements; add `__init__.py` a todos os módulos; criar `.coveragerc` excluindo GUI de cobertura; aumentar cobertura de 50% → 82% (198 testes); adicionar testes para dxf_manager, __version__, styles, utils, pole_load, project_creator |
 
 ---
 
