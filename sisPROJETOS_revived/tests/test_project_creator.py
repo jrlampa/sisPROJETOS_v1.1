@@ -168,3 +168,54 @@ def test_info_file_contains_templates_info(tmp_path):
 
     content = info_path.read_text(encoding="utf-8")
     assert "Templates Copiados:" in content
+
+
+# ============================================================
+# Testes adicionais para cobertura de branches
+# ============================================================
+
+def test_templates_dir_not_found(tmp_path):
+    """Cobre linha 59: retorna falso quando templates_dir não existe."""
+    logic = ProjectCreatorLogic()
+    logic.templates_dir = Path("/caminho/inexistente/templates_xyz_abc")
+
+    success, msg = logic.create_structure("ProjSemTemplates", str(tmp_path))
+    assert success is False
+    assert "templates" in msg.lower() or "Reinstale" in msg
+
+
+def test_template_copy_exception(tmp_path, mocker):
+    """Cobre linhas 98-100: shutil.copy2 lança exceção durante cópia."""
+    mocker.patch(
+        "src.modules.project_creator.logic.shutil.copy2",
+        side_effect=OSError("Disco cheio"),
+    )
+
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure("ProjCopyFail", str(tmp_path))
+
+    # Projecto criado mas com aviso de templates ausentes
+    assert success is True
+    assert "sucesso" in msg.lower()
+
+
+def test_create_structure_oserror(tmp_path, mocker):
+    """Cobre linhas 123-124: OSError ao criar diretório do projeto."""
+    mocker.patch.object(Path, "mkdir", side_effect=OSError("Disco cheio"))
+
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure("ProjOSError", str(tmp_path))
+
+    assert success is False
+    assert "sistema" in msg.lower() or "Erro" in msg
+
+
+def test_create_structure_unexpected_exception(tmp_path, mocker):
+    """Cobre linhas 125-127: exceção inesperada durante criação do projeto."""
+    mocker.patch.object(Path, "mkdir", side_effect=RuntimeError("Erro inesperado"))
+
+    logic = ProjectCreatorLogic()
+    success, msg = logic.create_structure("ProjException", str(tmp_path))
+
+    assert success is False
+    assert "inesperado" in msg.lower() or "Erro" in msg
