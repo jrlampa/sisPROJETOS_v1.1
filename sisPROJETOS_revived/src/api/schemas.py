@@ -167,6 +167,15 @@ class CatenaryRequest(BaseModel):
     hb: float = Field(default=0.0, description="Altura do suporte B em metros")
     tension_daN: float = Field(..., gt=0, description="Tensão horizontal em daN")
     weight_kg_m: float = Field(..., gt=0, description="Peso linear do condutor em kg/m")
+    min_clearance_m: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description=(
+            "Distância mínima ao solo em metros para verificação de folga (NBR 5422). "
+            "BT urbana = 6,0 m; BT rural = 5,5 m; MT = 7,0 m. "
+            "Se fornecido, a resposta incluirá 'within_clearance' indicando conformidade."
+        ),
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -176,6 +185,7 @@ class CatenaryRequest(BaseModel):
                 "hb": 9.0,
                 "tension_daN": 500.0,
                 "weight_kg_m": 0.779,
+                "min_clearance_m": 6.0,
             }
         }
     }
@@ -187,6 +197,13 @@ class CatenaryResponse(BaseModel):
     sag: float = Field(..., description="Flecha máxima em metros")
     tension: float = Field(..., description="Tensão horizontal em daN")
     catenary_constant: float = Field(..., description="Constante catenária 'a' em metros")
+    within_clearance: Optional[bool] = Field(
+        default=None,
+        description=(
+            "True se a flecha respeita a distância mínima ao solo (NBR 5422). "
+            "Preenchido somente quando 'min_clearance_m' é fornecido na requisição."
+        ),
+    )
 
 
 # ── Esforços em Postes ────────────────────────────────────────────────────────
