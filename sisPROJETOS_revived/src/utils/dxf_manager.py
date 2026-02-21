@@ -60,7 +60,7 @@ class DXFManager:
         DXFManager._add_pole_marker(msp, points[-1])
 
         # Add labels
-        msp.add_text(f"Sag: {sag:.2f}m", dxfattribs={"height": 0.5, "layer": "ANNOTATIONS"}).set_pos(
+        msp.add_text(f"Sag: {sag:.2f}m", dxfattribs={"height": 0.5, "layer": "ANNOTATIONS"}).set_placement(
             points[len(points) // 2]
         )
 
@@ -97,6 +97,6 @@ class DXFManager:
         for _, row in df.iterrows():
             pos = (row["Easting"], row["Northing"], row.get("Elevation", 0))
             msp.add_point(pos, dxfattribs={"layer": "POINTS"})
-            msp.add_text(str(row["Name"]), dxfattribs={"height": 2.0, "layer": "POINTS"}).set_pos(pos)
+            msp.add_text(str(row["Name"]), dxfattribs={"height": 2.0, "layer": "POINTS"}).set_placement(pos)
 
         doc.saveas(safe_path)

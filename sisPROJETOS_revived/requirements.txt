@@ -13,4 +13,5 @@ groq
 python-dotenv
 # Testing
 pytest
+pytest-cov
 pytest-mock

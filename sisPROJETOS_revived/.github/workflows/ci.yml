@@ -74,7 +74,7 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=${{ env.COVERAGE_MIN }}
+          pytest tests/ -v --cov=src --cov-config=.coveragerc --cov-report=xml --cov-report=term-missing --cov-fail-under=${{ env.COVERAGE_MIN }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       
@@ -110,7 +110,7 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest tests/ -v --cov=src --cov-report=xml --cov-fail-under=${{ env.COVERAGE_MIN }}
+          pytest tests/ -v --cov=src --cov-config=.coveragerc --cov-report=xml --cov-fail-under=${{ env.COVERAGE_MIN }}
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
