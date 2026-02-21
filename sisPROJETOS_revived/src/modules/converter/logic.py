@@ -3,6 +3,11 @@ import pandas as pd
 import ezdxf
 from pyproj import CRS, Transformer
 from fastkml import kml
+from utils.logger import get_logger
+from utils.sanitizer import sanitize_filepath
+
+
+logger = get_logger(__name__)
 
 
 class ConverterLogic:
@@ -17,10 +22,10 @@ class ConverterLogic:
         pass
 
     def load_file(self, filepath):
-        """Loads KMZ or KML file and returns features.
+        """Carrega arquivo KMZ ou KML e retorna lista de placemarks.
 
         Args:
-            filepath: Path to KML or KMZ file
+            filepath: Caminho para o arquivo KML ou KMZ.
 
         Returns:
             List of placemarks extracted from the file
@@ -29,6 +34,7 @@ class ConverterLogic:
             ValueError: If file is empty or contains no KML data
             FileNotFoundError: If KML file not found in KMZ archive
         """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".kmz", ".kml"])
         try:
             if filepath.lower().endswith(".kmz"):
                 with zipfile.ZipFile(filepath, "r") as zf:
@@ -262,6 +268,16 @@ class ConverterLogic:
         return pd.DataFrame(data)
 
     def save_to_excel(self, df, filepath):
+        """Exporta dados para arquivo Excel (.xlsx).
+
+        Args:
+            df: DataFrame com dados convertidos.
+            filepath: Caminho do arquivo XLSX de saída.
+
+        Raises:
+            ValueError: Se o caminho for inválido.
+        """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".xlsx", ".xls"])
         df.to_excel(filepath, index=False)
 
     def save_to_dxf(self, df, filepath):
@@ -274,6 +290,7 @@ class ConverterLogic:
         Raises:
             ValueError: Se DataFrame vazio ou colunas necessárias faltando
         """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".dxf"])
         # Validate DataFrame
         if df is None or df.empty:
             raise ValueError("DataFrame vazio. Carregue e converta um arquivo KML/KMZ primeiro.")
@@ -326,6 +343,7 @@ class ConverterLogic:
         Raises:
             ValueError: If DataFrame is empty
         """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".csv"])
         if df.empty:
             raise ValueError("Cannot export empty DataFrame to CSV")
 

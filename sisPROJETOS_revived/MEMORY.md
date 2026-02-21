@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 408 testes, 100% cobertura, API REST, sanitizer em todos os módulos logic)
+**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 415 testes, 100% cobertura, API REST, sanitizer + logger em todos os módulos logic)
 
 ---
 
@@ -158,7 +158,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 408 (todos passando)  
+**Total de testes:** 415 (todos passando)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -167,7 +167,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 |-----------------|---------------|--------|
 | `test_electrical.py` | `electrical/logic.py` | ✅ |
 | `test_cqt.py` | `cqt/logic.py` | ✅ |
-| `test_converter.py` | `converter/logic.py` | ✅ |
+| `test_converter.py` | `converter/logic.py` (principal) | ✅ |
+| `test_converter_edge_cases.py` | `converter/logic.py` (edge cases: load_file, UTM, CSV) | ✅ |
 | `test_converter_e2e.py` | Pipeline completo KMZ→DXF | ✅ |
 | `test_catenary.py` | `catenaria/logic.py` | ✅ |
 | `test_pole_load.py` | `pole_load/logic.py` | ✅ |
@@ -335,6 +336,10 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Versão em `__version__.py` desatualizada (2.0.0 vs 2.1.0) | ✅ Corrigido | `src/__version__.py` |
 | 🟡 Média | Comentários excessivos em `catenaria/logic.py` | ✅ Corrigido | `src/modules/catenaria/logic.py` |
 | 🟢 Baixa | Dark mode não implementado | ✅ Implementado v2.0.0 | `src/styles.py` |
+| 🟡 Média | Logger + sanitizer ausentes em `converter/logic.py` | ✅ Corrigido | `src/modules/converter/logic.py` |
+| 🟡 Média | `ai_assistant/logic.py` com `sys.path.append` anti-pattern; sem logger/sanitizer | ✅ Corrigido | `src/modules/ai_assistant/logic.py` |
+| 🟡 Média | `test_converter.py` acima de 500 linhas (765) | ✅ Corrigido | `tests/test_converter_edge_cases.py` criado |
+| 🟡 Média | Dockerfile LABEL version desatualizado (2.0.0) | ✅ Corrigido | `Dockerfile` |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -390,7 +395,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.0.0 | Sessões de desenvolvimento consolidadas na v2.0.0: logging, update checker, CI/CD, Docker, cobertura 100% (388 testes), sanitizer, API REST FastAPI, dark mode, sanitizer integrado em electrical/logic.py, logger em cqt/logic.py |
 | 2026-02-21 | 2.0.0 | Análise de maturidade: 1.0.0 incoerente pois legacy Python 2.7 era v1.1.0; reescrita completa Python 3.12 = breaking change = major bump para 2.0.0; badges do README atualizados (125→388 testes, 45%→100% cobertura) |
 | 2026-02-21 | 2.1.0 | Dark mode persistido em DB: `get_appearance_settings()` / `save_appearance_settings()` em db_manager.py; aba "Aparência" em settings/gui.py; 5 novos testes (total 393) |
-| 2026-02-21 | 2.1.0 | Sanitizer integrado em todos os módulos logic (catenaria, pole_load, cqt, project_creator); versão corrigida em `__version__.py`; comentários excessivos removidos de catenaria/logic.py; 15 novos testes de sanitização (total 408) |
+| 2026-02-21 | 2.1.0 | Sanitizer integrado em todos os módulos logic (catenaria, pole_load, cqt, project_creator); versão corrigida em `__version__.py`; comentários excessivos removidos de catenaria/logic.py; 15 novos testes de sanitização (total 410) |
+| 2026-02-21 | 2.1.0 | Logger + sanitizer adicionados em converter/logic.py e ai_assistant/logic.py; removido sys.path.append anti-pattern de ai_assistant/logic.py; test_converter.py modularizado (765→390 linhas) → test_converter_edge_cases.py criado; Dockerfile LABEL versão corrigido (2.0.0→2.1.0); 5 novos testes sanitizer para converter; total 415 testes |
 
 ---
 

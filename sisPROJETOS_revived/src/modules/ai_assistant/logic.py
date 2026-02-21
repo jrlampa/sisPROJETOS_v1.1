@@ -1,17 +1,24 @@
 import os
-import sys
 
-# Adjust path for internal module access
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+from groq import Groq
+from dotenv import load_dotenv
+from utils import resource_path
+from utils.logger import get_logger
+from utils.sanitizer import sanitize_string
 
-from groq import Groq  # noqa: E402
-from dotenv import load_dotenv  # noqa: E402
-from utils import resource_path  # noqa: E402
+
+logger = get_logger(__name__)
 
 
 class AIAssistantLogic:
+    """Lógica do assistente de IA via Groq API (LLaMA 3.3).
+
+    Consulta técnica especializada em engenharia de redes de distribuição
+    elétrica, com suporte a contexto de projeto e histórico de conversa.
+    """
+
     def __init__(self):
-        # Load .env from project root using centralized helper
+        """Inicializa o assistente de IA carregando credenciais do .env."""
         dotenv_path = resource_path(".env")
         load_dotenv(dotenv_path)
 
@@ -20,8 +27,9 @@ class AIAssistantLogic:
             self.client = Groq(api_key=self.api_key)
         else:
             self.client = None
+            logger.warning("GROQ_API_KEY não configurada — módulo IA desativado.")
 
-        self.model = "llama-3.3-70b-versatile"  # Premium fast model
+        self.model = "llama-3.3-70b-versatile"
 
         self.system_prompt = (
             "Você é o Consultor Técnico Sênior do sistema sisPROJETOS, especialista em engenharia de distribuição de energia elétrica. "
@@ -38,11 +46,23 @@ class AIAssistantLogic:
         )
 
     def get_response(self, user_message, history=None, project_context=None):
-        """
-        Gets a response from Groq API with optional project context.
+        """Obtém resposta da Groq API com contexto de projeto opcional.
+
+        Args:
+            user_message (str): Mensagem do usuário a ser enviada.
+            history (list[tuple], optional): Histórico [(user, assistant), ...].
+            project_context (dict, optional): Contexto atual do projeto.
+
+        Returns:
+            str: Resposta do assistente ou mensagem de erro.
         """
         if not self.client:
             return "Erro: Chave API Groq não configurada no arquivo .env."
+
+        try:
+            user_message = sanitize_string(user_message, max_length=4000, allow_empty=False)
+        except ValueError:
+            return "Erro: Mensagem vazia ou inválida."
 
         try:
             # Build context string
@@ -82,4 +102,5 @@ class AIAssistantLogic:
 
             return completion.choices[0].message.content
         except Exception as e:
+            logger.error("Erro ao contatar Groq API: %s", e)
             return f"Erro ao contatar Groq AI: {str(e)}"
