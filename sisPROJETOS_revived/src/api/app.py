@@ -41,7 +41,8 @@ def create_app() -> FastAPI:
         description=(
             "Fornece endpoints de cálculo de engenharia elétrica para integração "
             "com sistemas BIM (Building Information Modeling) e outras ferramentas. "
-            "Todos os cálculos seguem normas ABNT (NBR 5410, NBR 5422, NBR 8451)."
+            "Cálculos seguem ABNT (NBR 5410, NBR 5422, NBR 8451) por padrão, com suporte "
+            "a ANEEL/PRODIST Módulo 8 e normas de concessionárias (Light, Enel) via 'standard_name'."
         ),
         contact={"name": "sisPROJETOS", "url": "https://github.com/jrlampa/sisPROJETOS_v1.1"},
         license_info={"name": "MIT"},

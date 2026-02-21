@@ -2,21 +2,48 @@
 Rota de cálculo elétrico — API REST sisPROJETOS.
 
 Endpoints:
-- POST /api/v1/electrical/voltage-drop  — Cálculo de queda de tensão (NBR 5410)
+- GET  /api/v1/electrical/standards     — Lista padrões normativos disponíveis (ABNT/ANEEL/PRODIST)
 - GET  /api/v1/electrical/materials     — Lista materiais e resistividades do catálogo
+- POST /api/v1/electrical/voltage-drop  — Cálculo de queda de tensão (NBR 5410 / ANEEL PRODIST)
 """
 
 from typing import List
 
 from fastapi import APIRouter, HTTPException
 
-from api.schemas import MaterialOut, VoltageDropRequest, VoltageDropResponse
+from api.schemas import MaterialOut, StandardOut, VoltageDropRequest, VoltageDropResponse
+from domain.standards import ALL_STANDARDS, NBR_5410, get_standard_by_name
 from modules.electrical.logic import ElectricalLogic
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/electrical", tags=["Elétrico"])
 _logic = ElectricalLogic()
+
+
+@router.get(
+    "/standards",
+    response_model=List[StandardOut],
+    summary="Lista padrões normativos de queda de tensão",
+    description=(
+        "Retorna todos os padrões regulatórios disponíveis para avaliação de queda de tensão: "
+        "ABNT NBR 5410, ANEEL/PRODIST Módulo 8 (BT e MT) e normas de concessionárias (Light, Enel). "
+        "Use o campo 'name' para selecionar o padrão no campo 'standard_name' do endpoint /voltage-drop. "
+        "Quando 'overrides_abnt=true', o campo 'override_toast_pt_br' deve ser exibido como toast na interface."
+    ),
+)
+def list_standards() -> List[StandardOut]:
+    """Retorna todos os padrões normativos pré-definidos ordenados por limite máximo."""
+    return [
+        StandardOut(
+            name=s.name,
+            source=s.source,
+            max_drop_percent=s.max_drop_percent,
+            overrides_abnt=s.overrides_abnt,
+            override_toast_pt_br=s.override_toast_pt_br if s.override_toast_pt_br else None,
+        )
+        for s in sorted(ALL_STANDARDS, key=lambda s: s.max_drop_percent)
+    ]
 
 
 @router.get(
@@ -42,15 +69,30 @@ def list_materials() -> List[MaterialOut]:
 @router.post(
     "/voltage-drop",
     response_model=VoltageDropResponse,
-    summary="Calcula queda de tensão (NBR 5410)",
+    summary="Calcula queda de tensão (NBR 5410 / ANEEL PRODIST)",
     description=(
-        "Calcula a queda de tensão percentual em um circuito elétrico "
-        "com base na potência, distância, tensão, material e seção do condutor, "
-        "conforme NBR 5410."
+        "Calcula a queda de tensão percentual em um circuito elétrico conforme o padrão normativo "
+        "selecionado. Por padrão aplica NBR 5410 (limite 5%). Quando uma norma de concessionária ou "
+        "ANEEL/PRODIST é selecionada via 'standard_name', a ABNT é ignorada e a resposta inclui "
+        "'override_toast' com a mensagem de aviso em pt-BR a ser exibida na interface."
     ),
 )
 def calculate_voltage_drop(request: VoltageDropRequest) -> VoltageDropResponse:
-    """Calcula queda de tensão e retorna resultado estruturado."""
+    """Calcula queda de tensão e retorna resultado estruturado com padrão normativo aplicado."""
+    # Resolve normative standard (default: NBR 5410)
+    if request.standard_name is not None:
+        standard = get_standard_by_name(request.standard_name)
+        if standard is None:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Padrão normativo desconhecido: '{request.standard_name}'. "
+                    "Use GET /api/v1/electrical/standards para listar os disponíveis."
+                ),
+            )
+    else:
+        standard = NBR_5410
+
     result = _logic.calculate_voltage_drop(
         power_kw=request.power_kw,
         distance_m=request.distance_m,
@@ -63,4 +105,12 @@ def calculate_voltage_drop(request: VoltageDropRequest) -> VoltageDropResponse:
     if result is None:
         logger.warning("Cálculo de queda de tensão retornou None para %s", request.model_dump())
         raise HTTPException(status_code=422, detail="Dados inválidos para o cálculo de queda de tensão.")
-    return VoltageDropResponse(**result)
+
+    return VoltageDropResponse(
+        current=result["current"],
+        delta_v_volts=result["delta_v_volts"],
+        percentage_drop=result["percentage_drop"],
+        allowed=standard.check(result["percentage_drop"]),
+        standard_name=standard.name,
+        override_toast=standard.override_toast_pt_br if standard.override_toast_pt_br else None,
+    )

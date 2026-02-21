@@ -21,7 +21,7 @@ class MaterialOut(BaseModel):
 
 
 class VoltageDropRequest(BaseModel):
-    """Dados de entrada para cálculo de queda de tensão (NBR 5410)."""
+    """Dados de entrada para cálculo de queda de tensão (NBR 5410 / ANEEL PRODIST)."""
 
     power_kw: float = Field(..., gt=0, description="Potência ativa em kW")
     distance_m: float = Field(..., gt=0, description="Comprimento do trecho em metros")
@@ -30,6 +30,15 @@ class VoltageDropRequest(BaseModel):
     section_mm2: float = Field(..., gt=0, description="Seção transversal do condutor em mm²")
     cos_phi: float = Field(default=0.92, gt=0, le=1, description="Fator de potência cos φ")
     phases: int = Field(default=3, description="Número de fases (1 ou 3)")
+    standard_name: Optional[str] = Field(
+        default=None,
+        description=(
+            "Nome do padrão normativo a aplicar. Se omitido, usa 'NBR 5410' (limite 5%). "
+            "Use GET /api/v1/electrical/standards para listar os disponíveis. "
+            "Quando uma norma de concessionária é aplicada, ABNT NBR 5410 é ignorada "
+            "e a resposta inclui o toast explicativo em pt-BR (ANEEL/PRODIST Módulo 8)."
+        ),
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -41,18 +50,43 @@ class VoltageDropRequest(BaseModel):
                 "section_mm2": 35.0,
                 "cos_phi": 0.92,
                 "phases": 3,
+                "standard_name": "PRODIST Módulo 8 — BT",
             }
         }
     }
 
 
 class VoltageDropResponse(BaseModel):
-    """Resultado do cálculo de queda de tensão."""
+    """Resultado do cálculo de queda de tensão com padrão normativo aplicado."""
 
     current: float = Field(..., description="Corrente calculada em Ampères")
     delta_v_volts: float = Field(..., description="Queda de tensão em Volts")
     percentage_drop: float = Field(..., description="Queda de tensão percentual (%)")
-    allowed: bool = Field(..., description="True se ≤ 5% (limite NBR 5410)")
+    allowed: bool = Field(..., description="True se dentro do limite do padrão normativo aplicado")
+    standard_name: str = Field(..., description="Padrão normativo aplicado (ex: 'NBR 5410')")
+    override_toast: Optional[str] = Field(
+        default=None,
+        description=(
+            "Mensagem de aviso em pt-BR quando norma de concessionária ou ANEEL/PRODIST "
+            "sobrepõe a ABNT NBR 5410. Exibir como toast na interface."
+        ),
+    )
+
+
+# ── Padrões Normativos ────────────────────────────────────────────────────────
+
+
+class StandardOut(BaseModel):
+    """Dados de um padrão regulatório de queda de tensão."""
+
+    name: str = Field(..., description="Nome do padrão (ex: 'NBR 5410', 'PRODIST Módulo 8 — BT')")
+    source: str = Field(..., description="Origem normativa (ABNT, ANEEL/PRODIST, CONCESSIONAIRE)")
+    max_drop_percent: float = Field(..., description="Limite máximo de queda de tensão em %")
+    overrides_abnt: bool = Field(..., description="True quando este padrão substitui a ABNT NBR 5410")
+    override_toast_pt_br: Optional[str] = Field(
+        default=None,
+        description="Mensagem toast em pt-BR a exibir quando ABNT é ignorada (null se não sobrepõe)",
+    )
 
 
 # ── CQT ───────────────────────────────────────────────────────────────────────
