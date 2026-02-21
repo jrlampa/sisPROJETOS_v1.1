@@ -411,3 +411,23 @@ class TestCQTLogic:
         # Deve ter normalizado para uppercase
         assert 'TRAFO' in result['results']
         assert 'P1' in result['results']
+
+    def test_validate_and_sort_cycle_detection(self, cqt):
+        """Testa detecção de ciclo na topologia."""
+        # P1 → P2 → P1 (ciclo), sem TRAFO como raiz direta
+        segments = [
+            {'ponto': 'TRAFO', 'montante': ''},
+            {'ponto': 'P1', 'montante': 'P2'},
+            {'ponto': 'P2', 'montante': 'P1'},
+        ]
+        ok, msg, _ = cqt.validate_and_sort(segments)
+        assert ok is False
+        assert "Ciclo" in msg or "isolado" in msg
+
+    def test_get_cable_coefs_db_exception(self, cqt, mocker):
+        """Testa fallback de get_cable_coefs quando banco de dados lança exceção."""
+        mocker.patch.object(cqt.db, 'get_connection', side_effect=Exception("DB error"))
+        coefs = cqt.get_cable_coefs()
+        assert isinstance(coefs, dict)
+        assert "2#16(25)mm² Al" in coefs
+        assert coefs["2#16(25)mm² Al"] == pytest.approx(0.7779)

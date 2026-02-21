@@ -278,3 +278,58 @@ class TestElectricalLogic:
         # Seção dobrada = queda reduzida pela metade
         ratio = result_25mm['percentage_drop'] / result_50mm['percentage_drop']
         assert 1.9 < ratio < 2.1
+
+    def test_calculate_voltage_drop_invalid_cos_phi_zero(self, electrical):
+        """Testa cálculo com fator de potência zero (inválido)."""
+        result = electrical.calculate_voltage_drop(
+            power_kw=100,
+            distance_m=200,
+            voltage_v=380,
+            material='Alumínio',
+            section_mm2=50,
+            cos_phi=0,
+            phases=3
+        )
+        assert result is None
+
+    def test_calculate_voltage_drop_invalid_cos_phi_above_one(self, electrical):
+        """Testa cálculo com fator de potência acima de 1 (inválido)."""
+        result = electrical.calculate_voltage_drop(
+            power_kw=100,
+            distance_m=200,
+            voltage_v=380,
+            material='Alumínio',
+            section_mm2=50,
+            cos_phi=1.5,
+            phases=3
+        )
+        assert result is None
+
+    def test_calculate_voltage_drop_invalid_phases(self, electrical):
+        """Testa cálculo com número de fases inválido."""
+        result = electrical.calculate_voltage_drop(
+            power_kw=100,
+            distance_m=200,
+            voltage_v=380,
+            material='Alumínio',
+            section_mm2=50,
+            cos_phi=0.92,
+            phases=2
+        )
+        assert result is None
+
+    def test_get_resistivity_db_exception(self, electrical, mocker):
+        """Testa fallback quando banco de dados lança exceção."""
+        mocker.patch.object(electrical.db, 'get_connection', side_effect=Exception("DB error"))
+        rho = electrical.get_resistivity('Alumínio')
+        assert rho == 0.0282  # Default fallback
+
+    def test_get_resistivity_aluminum_from_db(self, electrical):
+        """Testa que alumínio tem resistividade correta do banco."""
+        rho = electrical.get_resistivity('Alumínio')
+        assert rho == pytest.approx(0.0282, rel=1e-3)
+
+    def test_get_resistivity_copper_from_db(self, electrical):
+        """Testa que cobre tem resistividade correta do banco."""
+        rho = electrical.get_resistivity('Cobre')
+        assert rho == pytest.approx(0.0175, rel=1e-3)

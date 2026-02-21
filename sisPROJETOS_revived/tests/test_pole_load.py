@@ -178,3 +178,42 @@ def test_calculate_resultant_enel_with_interpolation():
     res = logic.calculate_resultant("Enel", "Normal", inputs)
     assert res is not None
     assert res["resultant_force"] >= 0
+
+
+def test_get_concessionaires_db_exception(mocker):
+    """Testa fallback de get_concessionaires quando DB lança exceção."""
+    logic = PoleLoadLogic()
+    mocker.patch.object(logic.db, 'get_connection', side_effect=Exception("DB error"))
+    result = logic.get_concessionaires()
+    assert result == ["Light", "Enel"]
+
+
+def test_get_concessionaire_method_db_error(mocker):
+    """Testa KeyError quando DB lança erro não-KeyError em get_concessionaire_method."""
+    logic = PoleLoadLogic()
+    mocker.patch.object(logic.db, 'get_connection', side_effect=Exception("DB failure"))
+    with pytest.raises(KeyError, match="Erro ao buscar concessionária"):
+        logic.get_concessionaire_method("Light")
+
+
+def test_load_poles_db_exception(mocker):
+    """Testa tratamento de exceção em load_poles."""
+    # Mock the DB to fail during cursor.execute inside load_poles
+    logic = PoleLoadLogic.__new__(PoleLoadLogic)
+    logic.db = mocker.MagicMock()
+    logic.DADOS_POSTES_NOMINAL = {}
+    logic.DADOS_CONCESSIONARIAS = {}
+    mock_conn = mocker.MagicMock()
+    mock_conn.cursor.return_value.execute.side_effect = Exception("DB error")
+    logic.db.get_connection.return_value = mock_conn
+    # Should not raise — logs the error
+    logic.load_poles()
+    assert logic.DADOS_POSTES_NOMINAL == {}
+
+
+def test_poles_loaded_from_db():
+    """Testa que postes são carregados corretamente do banco de dados."""
+    logic = PoleLoadLogic()
+    # Deve ter pelo menos os materiais básicos
+    assert len(logic.DADOS_POSTES_NOMINAL) > 0
+    assert "Concreto" in logic.DADOS_POSTES_NOMINAL

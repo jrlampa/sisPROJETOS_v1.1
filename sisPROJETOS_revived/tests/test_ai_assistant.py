@@ -123,3 +123,13 @@ def test_ai_assistant_system_prompt_is_in_pt_br(mock_groq):
     logic = AIAssistantLogic()
     assert "engenharia" in logic.system_prompt.lower()
     assert "normas" in logic.system_prompt.lower()
+
+
+@patch('src.modules.ai_assistant.logic.Groq')
+def test_ai_assistant_initializes_client_when_api_key_set(mock_groq):
+    """Testa que o cliente Groq é inicializado quando GROQ_API_KEY está configurado."""
+    with patch.dict('os.environ', {'GROQ_API_KEY': 'test-key-123'}):
+        logic = AIAssistantLogic()
+        assert logic.api_key == 'test-key-123'
+        assert logic.client is not None
+        mock_groq.assert_called_once_with(api_key='test-key-123')

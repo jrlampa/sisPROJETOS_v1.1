@@ -1,3 +1,4 @@
+import os
 import pytest
 from src.database.db_manager import DatabaseManager
 
@@ -122,3 +123,45 @@ class TestDatabaseSettings:
         db2 = DatabaseManager(db_path=db_path)
         val = db2.get_setting("persistent_key")
         assert val == "persistent_value"
+
+
+class TestDatabaseManagerDefaultPath:
+    """Testes para o caminho padrão do DatabaseManager (sem db_path)."""
+
+    def test_db_manager_copies_resource_db_when_missing(self, tmp_path, mocker):
+        """Testa cópia do DB de recursos quando DB da aplicação está ausente."""
+        import shutil as shutil_mod
+
+        # Point APPDATA to tmp_path so app DB will be in tmp_path/sisPROJETOS/
+        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+
+        # Make resource_path return a real file that exists
+        resource_db = tmp_path / "resource.db"
+        resource_db.write_bytes(b"")
+
+        mocker.patch('src.database.db_manager.resource_path', return_value=str(resource_db))
+
+        db = DatabaseManager()
+        assert os.path.exists(db.db_path)
+
+    def test_db_manager_handles_copy_failure_gracefully(self, tmp_path, mocker):
+        """Testa que falha na cópia do DB de recursos é tratada sem crash."""
+        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+
+        resource_db = tmp_path / "resource.db"
+        resource_db.write_bytes(b"")
+
+        mocker.patch('src.database.db_manager.resource_path', return_value=str(resource_db))
+        mocker.patch('src.database.db_manager.shutil.copy2', side_effect=PermissionError("access denied"))
+
+        # Should not raise — error is logged as warning
+        db = DatabaseManager()
+        assert db.db_path is not None
+
+    def test_db_manager_skips_copy_when_resource_missing(self, tmp_path, mocker):
+        """Testa que cópia é ignorada quando DB de recursos não existe."""
+        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+        mocker.patch('src.database.db_manager.resource_path', return_value=str(tmp_path / "nonexistent.db"))
+
+        db = DatabaseManager()
+        assert os.path.exists(db.db_path)
