@@ -1,5 +1,10 @@
 import math
 from database.db_manager import DatabaseManager
+from utils.logger import get_logger
+from utils.sanitizer import sanitize_positive, sanitize_power_factor, sanitize_phases, sanitize_string
+
+
+logger = get_logger(__name__)
 
 
 class ElectricalLogic:
@@ -24,10 +29,11 @@ class ElectricalLogic:
             float: Resistividade em ohm.mm²/m (padrão: 0.0282 para Al)
         """
         try:
+            mat = sanitize_string(material, max_length=100, allow_empty=False)
             conn = self.db.get_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT value FROM cable_technical_data WHERE category='resistivity' AND key_name=?", (material,)
+                "SELECT value FROM cable_technical_data WHERE category='resistivity' AND key_name=?", (mat,)
             )
             row = cursor.fetchone()
             conn.close()
@@ -36,44 +42,38 @@ class ElectricalLogic:
             return 0.0282
 
     def calculate_voltage_drop(self, power_kw, distance_m, voltage_v, material, section_mm2, cos_phi=0.92, phases=3):
-        """Calculates the percentage voltage drop.
+        """Calcula a queda de tensão percentual conforme NBR 5410.
 
         Args:
-            power_kw: Power in kilowatts (must be > 0)
-            distance_m: Distance in meters (must be > 0)
-            voltage_v: Voltage in volts (must be > 0)
-            material: Material type (e.g., 'aluminum', 'copper')
-            section_mm2: Cross-sectional area in mm² (must be > 0)
-            cos_phi: Power factor (default 0.92, must be between 0 and 1)
-            phases: Number of phases (1 or 3)
+            power_kw: Potência em quilowatts (deve ser > 0)
+            distance_m: Distância em metros (deve ser > 0)
+            voltage_v: Tensão em volts (deve ser > 0)
+            material: Material do condutor (ex: 'Alumínio', 'Cobre')
+            section_mm2: Seção transversal em mm² (deve ser > 0)
+            cos_phi: Fator de potência (padrão 0,92; entre 0 e 1)
+            phases: Número de fases (1 ou 3)
 
         Returns:
-            dict: Voltage drop calculation results or None on error
+            dict: Resultados do cálculo de queda de tensão ou None em caso de erro
         """
         try:
-            # Input validation
-            p = float(power_kw) * 1000
-            distance = float(distance_m)
-            v = float(voltage_v)
-            s = float(section_mm2)
-
-            if p <= 0 or distance <= 0 or v <= 0 or s <= 0:
-                raise ValueError("Power, distance, voltage, and section must be positive")
-            if not 0 < cos_phi <= 1:
-                raise ValueError("Power factor must be between 0 and 1")
-            if phases not in (1, 3):
-                raise ValueError("Phases must be 1 or 3")
+            p = sanitize_positive(power_kw) * 1000
+            distance = sanitize_positive(distance_m)
+            v = sanitize_positive(voltage_v)
+            s = sanitize_positive(section_mm2)
+            phi = sanitize_power_factor(cos_phi)
+            n_phases = sanitize_phases(phases)
 
             rho = self.get_resistivity(material)
 
-            if phases == 3:
-                current = p / (math.sqrt(3) * v * cos_phi)
+            if n_phases == 3:
+                current = p / (math.sqrt(3) * v * phi)
                 resistance = rho * distance / s
-                delta_v = math.sqrt(3) * current * resistance * cos_phi
+                delta_v = math.sqrt(3) * current * resistance * phi
             else:
-                current = p / (v * cos_phi)
+                current = p / (v * phi)
                 resistance = rho * distance / s
-                delta_v = 2 * current * resistance * cos_phi
+                delta_v = 2 * current * resistance * phi
 
             percentage_drop = (delta_v / v) * 100
 
@@ -83,5 +83,6 @@ class ElectricalLogic:
                 "percentage_drop": percentage_drop,
                 "allowed": percentage_drop <= 5.0,
             }
-        except (ValueError, ZeroDivisionError):
+        except (ValueError, ZeroDivisionError) as exc:
+            logger.debug("Erro no cálculo de queda de tensão: %s", exc)
             return None
