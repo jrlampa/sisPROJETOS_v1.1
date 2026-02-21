@@ -255,6 +255,20 @@ class DatabaseManager:
         conn.close()
         return rows
 
+    def get_all_concessionaires(self):
+        """Retorna todas as concessionárias com nome e método de cálculo.
+
+        Returns:
+            list[tuple]: Lista de (name, method) ordenada por nome.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, method FROM concessionaires ORDER BY name")
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
     def get_setting(self, key, default=None):
         conn = self.get_connection()
         cursor = conn.cursor()

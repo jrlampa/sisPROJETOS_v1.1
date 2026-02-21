@@ -285,3 +285,95 @@ class TestCatenaryEndpointDefensiveBranches:
         resp = client.post(self._URL, json=payload)
         assert resp.status_code == 422
         assert resp.json()["detail"] == "Peso linear zero ou dados inválidos para o cálculo."
+
+
+# ── Dados Mestres ─────────────────────────────────────────────────────────────
+
+
+class TestDataEndpoints:
+    """Testa os endpoints de consulta de dados mestres (BIM integration)."""
+
+    def test_list_conductors_retorna_200(self, client):
+        resp = client.get("/api/v1/data/conductors")
+        assert resp.status_code == 200
+
+    def test_list_conductors_tem_campos_obrigatorios(self, client):
+        data = client.get("/api/v1/data/conductors").json()
+        assert len(data) > 0
+        for item in data:
+            assert "name" in item
+            assert "weight_kg_m" in item
+            assert isinstance(item["weight_kg_m"], float)
+
+    def test_list_conductors_dados_reais_db(self, client):
+        """Verifica que os condutores vêm do DB real (não mockados)."""
+        data = client.get("/api/v1/data/conductors").json()
+        names = [c["name"] for c in data]
+        assert "556MCM-CA, Nu" in names  # Condutor Light pré-populado no DB
+
+    def test_list_poles_retorna_200(self, client):
+        resp = client.get("/api/v1/data/poles")
+        assert resp.status_code == 200
+
+    def test_list_poles_tem_campos_obrigatorios(self, client):
+        data = client.get("/api/v1/data/poles").json()
+        assert len(data) > 0
+        for item in data:
+            assert "material" in item
+            assert "format" in item
+            assert "description" in item
+            assert "nominal_load_daN" in item
+            assert isinstance(item["nominal_load_daN"], float)
+
+    def test_list_poles_dados_reais_db(self, client):
+        """Verifica que os postes vêm do DB real e têm material Concreto."""
+        data = client.get("/api/v1/data/poles").json()
+        materials = {p["material"] for p in data}
+        assert "Concreto" in materials
+
+    def test_list_concessionaires_retorna_200(self, client):
+        resp = client.get("/api/v1/data/concessionaires")
+        assert resp.status_code == 200
+
+    def test_list_concessionaires_tem_campos_obrigatorios(self, client):
+        data = client.get("/api/v1/data/concessionaires").json()
+        assert len(data) > 0
+        for item in data:
+            assert "name" in item
+            assert "method" in item
+
+    def test_list_concessionaires_dados_reais_db(self, client):
+        """Verifica que Light e Enel estão no DB com métodos corretos."""
+        data = client.get("/api/v1/data/concessionaires").json()
+        by_name = {c["name"]: c["method"] for c in data}
+        assert "Light" in by_name
+        assert "Enel" in by_name
+        assert by_name["Light"] == "flecha"
+        assert by_name["Enel"] == "tabela"
+
+    def test_conductors_db_error_retorna_500(self, client, mocker):
+        """Cobre branch de exceção do DB → HTTP 500."""
+        mocker.patch(
+            "api.routes.data._db.get_all_conductors",
+            side_effect=Exception("DB falhou"),
+        )
+        resp = client.get("/api/v1/data/conductors")
+        assert resp.status_code == 500
+
+    def test_poles_db_error_retorna_500(self, client, mocker):
+        """Cobre branch de exceção do DB → HTTP 500."""
+        mocker.patch(
+            "api.routes.data._db.get_all_poles",
+            side_effect=Exception("DB falhou"),
+        )
+        resp = client.get("/api/v1/data/poles")
+        assert resp.status_code == 500
+
+    def test_concessionaires_db_error_retorna_500(self, client, mocker):
+        """Cobre branch de exceção do DB → HTTP 500."""
+        mocker.patch(
+            "api.routes.data._db.get_all_concessionaires",
+            side_effect=Exception("DB falhou"),
+        )
+        resp = client.get("/api/v1/data/concessionaires")
+        assert resp.status_code == 500

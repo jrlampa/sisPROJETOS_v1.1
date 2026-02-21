@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — dark mode persistido em DB, 418 testes, 100% cobertura, API REST, black+isort formatação limpa, sanitizer + logger em todos os módulos logic)
+**Maturidade:** Produção (v2.1.0 — 430 testes, 100% cobertura, API REST com 7 endpoints + 3 de dados mestres BIM, black+isort limpo)
 
 ---
 
@@ -70,6 +70,7 @@ Main (Controller) → orquestra → GUIs
 | `routes/cqt.py` | POST `/api/v1/cqt/calculate` |
 | `routes/catenary.py` | POST `/api/v1/catenary/calculate` |
 | `routes/pole_load.py` | POST `/api/v1/pole-load/resultant` |
+| `routes/data.py` | GET `/api/v1/data/conductors`, `/data/poles`, `/data/concessionaires` |
 
 ### Utilitários (src/utils/)
 
@@ -95,7 +96,7 @@ Main (Controller) → orquestra → GUIs
 
 ### Pendências de Segurança
 
-- **DXF Manager filepath validation**: `create_catenary_dxf()` e `create_points_dxf()` aceitam filepath sem validação explícita de traversal
+- ✅ **DXF Manager filepath validation**: `_validate_output_path()` implementada em `dxf_manager.py` — rejeita null bytes e resolve o caminho real. Ambos `create_catenary_dxf()` e `create_points_dxf()` chamam esta função.
 
 ---
 
@@ -158,7 +159,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 418 (todos passando, 100% cobertura)  
+**Total de testes:** 430 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -181,7 +182,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
 | `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
-| `test_api.py` | `api/` (todos os endpoints REST) | ✅ |
+| `test_api.py` | `api/` (todos os endpoints REST, incluindo dados mestres) | ✅ |
 
 ### Executar Testes
 
@@ -344,6 +345,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Importações incorretas em ~25 arquivos src/ (isort) | ✅ Corrigido | `isort src/ --profile black` aplicado |
 | 🟡 Média | Cobertura real 99% (linhas 64-65 ai_assistant e 39-40 catenary route não cobertas) | ✅ Corrigido | 3 novos testes; `pragma: no cover` em sys.path guard |
 | 🟡 Média | Sem `pyproject.toml` (black/isort sem config) | ✅ Corrigido | `pyproject.toml` criado com config black+isort |
+| 🟡 Média | API REST incompleta para BIM (sem endpoints de dados mestres) | ✅ Corrigido | `src/api/routes/data.py` criado com 3 endpoints GET |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -402,6 +404,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | Sanitizer integrado em todos os módulos logic (catenaria, pole_load, cqt, project_creator); versão corrigida em `__version__.py`; comentários excessivos removidos de catenaria/logic.py; 15 novos testes de sanitização (total 410) |
 | 2026-02-21 | 2.1.0 | Logger + sanitizer adicionados em converter/logic.py e ai_assistant/logic.py; removido sys.path.append anti-pattern de ai_assistant/logic.py; test_converter.py modularizado (765→390 linhas) → test_converter_edge_cases.py criado; Dockerfile LABEL versão corrigido (2.0.0→2.1.0); 5 novos testes sanitizer para converter; total 415 testes |
 | 2026-02-21 | 2.1.0 | pyproject.toml criado (black+isort config); black aplicado a 16 arquivos src/; isort aplicado a 25 arquivos src/; 3 novos testes (ai_assistant empty msg + catenary None-result via mock); api/app.py pragma:no cover em sys.path guard; cobertura real 100%; total 418 testes |
+| 2026-02-21 | 2.1.0 | Adicionados 3 endpoints GET de dados mestres para integração BIM: GET /api/v1/data/conductors, /data/poles, /data/concessionaires; src/api/routes/data.py criado; 3 novos schemas Pydantic (ConductorOut, PoleOut, ConcessionaireOut); 12 novos testes (total 430, 100% cobertura) |
 
 ---
 

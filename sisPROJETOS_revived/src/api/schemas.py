@@ -186,3 +186,29 @@ class PoleLoadResponse(BaseModel):
     total_y: float = Field(..., description="Componente Y total em daN")
     vectors: List[Dict[str, Any]] = Field(..., description="Detalhes de cada condutor")
     suggested_poles: List[Dict[str, Any]] = Field(default_factory=list, description="Postes sugeridos")
+
+
+# ── Dados Mestres (BIM) ───────────────────────────────────────────────────────
+
+
+class ConductorOut(BaseModel):
+    """Dados de um condutor elétrico."""
+
+    name: str = Field(..., description="Nome/código do condutor")
+    weight_kg_m: float = Field(..., description="Peso linear em kg/m")
+
+
+class PoleOut(BaseModel):
+    """Dados de um poste de distribuição."""
+
+    material: str = Field(..., description="Material (Concreto, Madeira, Aço)")
+    format: str = Field(..., description="Formato (C, D, E, etc.)")
+    description: str = Field(..., description="Descrição técnica (altura/carga)")
+    nominal_load_daN: float = Field(..., description="Carga nominal em daN")
+
+
+class ConcessionaireOut(BaseModel):
+    """Dados de uma concessionária de energia."""
+
+    name: str = Field(..., description="Nome da concessionária")
+    method: str = Field(..., description="Método de cálculo (flecha, tabela)")
