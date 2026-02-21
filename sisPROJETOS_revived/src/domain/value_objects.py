@@ -10,12 +10,16 @@ Referências normativas:
     - NBR 5410: Queda de tensão em instalações elétricas
     - NBR 13133: Coordenadas UTM e convenção 2.5D (Z = elevação)
     - ABNT NBR ISO 6709: Representação de posição geográfica
+    - ANEEL PRODIST Módulo 8: Qualidade da Energia Elétrica (BT: 8%, MT: 7%)
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from domain.standards import VoltageStandard
 
 
 @dataclass(frozen=True)
@@ -131,6 +135,28 @@ class VoltageDropResult:
             True se a queda de tensão for ≤ 5% (conforme NBR 5410).
         """
         return self.drop_percent <= self.LIMIT_PERCENT
+
+    def is_within_standard(self, standard: "VoltageStandard") -> bool:
+        """Verifica conformidade com o limite de um padrão regulatório.
+
+        Permite verificar conformidade com ABNT NBR 5410, ANEEL/PRODIST
+        Módulo 8 (BT/MT) ou normas de concessionárias (Light, Enel).
+
+        Args:
+            standard: Padrão regulatório a aplicar (``VoltageStandard``).
+
+        Returns:
+            True se drop_percent ≤ standard.max_drop_percent.
+
+        Example:
+            >>> from domain.standards import PRODIST_MODULE8_BT
+            >>> r = VoltageDropResult(drop_v=14.0, drop_percent=6.4, material="Al")
+            >>> r.is_within_limit         # NBR 5410 — 5%: False
+            False
+            >>> r.is_within_standard(PRODIST_MODULE8_BT)  # PRODIST — 8%: True
+            True
+        """
+        return standard.check(self.drop_percent)
 
 
 @dataclass(frozen=True)

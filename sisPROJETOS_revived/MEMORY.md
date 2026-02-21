@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 639 testes, 100% cobertura, API REST com 14 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura**)
+**Maturidade:** Produção (v2.1.0 — 685 testes, 100% cobertura, API REST com 14 endpoints, black+isort limpo, type hints completos em todos os módulos, DXF 2.5D, testes DXF headless com coordenadas reais, **camada de domínio DDD completa: 4 value objects + 3 entidades + 3 interfaces de repositório (ports) + 2 serviços de domínio + 3 adaptadores SQLite de infraestrutura + módulo de padrões regulatórios ANEEL/PRODIST com mecanismo de toast**)
 
 ---
 
@@ -66,6 +66,19 @@ Main (Controller) → orquestra → GUIs
 |---------|-----------------|
 | `__init__.py` | Exporta adaptadores SQLite |
 | `repositories.py` | `SQLiteConductorRepository`, `SQLitePoleRepository`, `SQLiteConcessionaireRepository` — implementações concretas dos Protocols de domínio |
+
+### Padrões Regulatórios DDD (src/domain/standards.py)
+
+| Constante | Fonte | Limite | Sobrepõe ABNT? | Toast |
+|-----------|-------|--------|----------------|-------|
+| `NBR_5410` | ABNT | 5% | Não | — |
+| `PRODIST_MODULE8_BT` | ANEEL/PRODIST | 8% | Sim | ⚠️ ANEEL/PRODIST Módulo 8 aplicado (BT)... |
+| `PRODIST_MODULE8_MT` | ANEEL/PRODIST | 7% | Sim | ⚠️ ANEEL/PRODIST Módulo 8 aplicado (MT)... |
+| `LIGHT_BT` | CONCESSIONAIRE | 8% | Sim | ⚠️ Norma da concessionária Light (BT)... |
+| `ENEL_BT` | CONCESSIONAIRE | 8% | Sim | ⚠️ Norma da concessionária Enel (BT)... |
+
+**Regra:** Quando `standard.overrides_abnt=True`, exibir `standard.override_toast_pt_br` como toast na interface (ABNT ignorada).  
+**Hierarquia:** CONCESSIONAIRE > ANEEL/PRODIST > ABNT
 
 
 | Arquivo | Responsabilidade |
@@ -186,7 +199,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 588 (todos passando, 100% cobertura)  
+**Total de testes:** 685 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -213,7 +226,9 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health; + GET /electrical/materials + GET /pole-load/suggest) | ✅ |
 | `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM) | ✅ |
 | `test_domain.py` | `domain/value_objects.py`, `domain/entities.py` (DDD: UTMCoordinate, CatenaryResult, VoltageDropResult, SpanResult, Conductor, Pole, Concessionaire) | ✅ |
-| `test_infrastructure.py` | `infrastructure/repositories.py` (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository: Protocol isinstance checks, entity mapping, ABNT data validation, invalid-row filtering, DDD end-to-end: repository→entity→domain service) | ✅ |
+| `test_domain_services.py` | `domain/services.py` (CatenaryDomainService, VoltageDropDomainService) e `domain/repositories.py` (Protocol stubs) | ✅ |
+| `test_infrastructure.py` | `infrastructure/repositories.py` (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository: Protocol isinstance checks, entity mapping, DDD E2E) | ✅ |
+| `test_standards.py` | `domain/standards.py` (VoltageStandard, padrões ANEEL/PRODIST, toast, hierarquia normativa) | ✅ |
 | `test_dxf_content.py` | Validação estrutural headless de DXF (22 testes): coordenadas reais UTM, layers, entidades, 2.5D, vãos 100m/500m/1km | ✅ |
 
 ### Executar Testes
@@ -396,6 +411,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🔄 Planejado | DDD Repository Interfaces (ports) | ✅ Implementado | `src/domain/repositories.py` — 3 Protocol classes: ConductorRepository, PoleRepository, ConcessionaireRepository; `# pragma: no cover` nos stubs Ellipsis |
 | 🔄 Planejado | DDD Domain Services | ✅ Implementado | `src/domain/services.py` — CatenaryDomainService (fórmula hiperbólica NBR 5422; is_within_clearance); VoltageDropDomainService (fórmulas mono/trifásica NBR 5410); 59 testes em `tests/test_domain_services.py` |
 
+| 🔢 Planejado | Aplicar regras ANEEL/PRODIST; toast quando concessionária sobrepõe ABNT | ✅ Implementado | `src/domain/standards.py` — VoltageStandard + 5 padrões pré-definidos; `VoltageDropResult.is_within_standard()`; `VoltageDropDomainService.calculate(standard=...)`; 46 testes |
+
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -461,6 +478,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | Camada de domínio DDD implementada: `src/domain/value_objects.py` (UTMCoordinate, CatenaryResult, VoltageDropResult, SpanResult — frozen dataclasses com invariantes de negócio); `src/domain/entities.py` (Conductor, Pole, Concessionaire — com regras de domínio); `src/domain/__init__.py`; 47 testes em `tests/test_domain.py` (imutabilidade, validações, propriedades calculadas); ARCHITECTURE.md reescrito com diagrama de camadas DDD+MVC, tabela de endpoints, convenção DXF 2.5D; total 529 testes, 100% cobertura |
 | 2026-02-21 | 2.1.0 | DDD completado com ports + services: `src/domain/repositories.py` — 3 Protocol interfaces (ConductorRepository, PoleRepository, ConcessionaireRepository) com `# pragma: no cover` nos stubs; `src/domain/services.py` — CatenaryDomainService (fórmula hiperbólica cosh, NBR 5422, is_within_clearance) + VoltageDropDomainService (mono/trifásico, NBR 5410, is_within_limit); 59 testes em `tests/test_domain_services.py` (incluindo testes com vãos 100m/500m/1km e coords reais); `src/domain/__init__.py` atualizado para exportar novos símbolos; total 588 testes, 100% cobertura |
 | 2026-02-21 | 2.1.0 | DDD Infrastructure Layer completada: `src/infrastructure/repositories.py` — 3 adaptadores SQLite (SQLiteConductorRepository, SQLitePoleRepository, SQLiteConcessionaireRepository) implementando os Protocols de domínio; `src/utils.py` removido (código morto — sombreado pelo pacote `src/utils/`, continha função insegura); corrigidos 2 bugs em `db_manager.py` — (a) condutores pré-populados tinham breaking_load_daN=0 → corrigido com valores reais ABNT NBR 7271 (556MCM=7080, 397MCM=5050, 1/0AWG=5430, 4AWG=2655 daN); (b) descriptions de postes não-únicas causavam INSERT OR IGNORE silencioso — corrigido com prefixo de material nas descriptions; 51 testes em `tests/test_infrastructure.py`; CodeQL: 0 alertas; total 639 testes, 100% cobertura |
+| 2026-02-21 | 2.1.0 | ANEEL/PRODIST integrado no domínio DDD: `src/domain/standards.py` criado com `VoltageStandard` (frozen dataclass imutável, source∈{ABNT/ANEEL/PRODIST/CONCESSIONAIRE}, `check(drop_percent)`, `override_toast_pt_br` para toast pt-BR); 5 padrões pré-definidos: NBR_5410 (5%), PRODIST_MODULE8_BT (8%, Res. Norm. 956/2021), PRODIST_MODULE8_MT (7%), LIGHT_BT (8%, concessionária), ENEL_BT (8%, concessionária); `ALL_STANDARDS` frozenset + `get_standard_by_name()`; `VoltageDropResult.is_within_standard(standard)` adicionado; `VoltageDropDomainService.calculate(standard=...)` aceita padrão opcional sem alterar o cálculo; `domain/__init__.py` exporta todos os novos símbolos; 46 testes em `tests/test_standards.py`; CodeQL: 0 alertas; total 685 testes, 100% cobertura |
 
 ---
 

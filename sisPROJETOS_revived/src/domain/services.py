@@ -8,14 +8,19 @@ São stateless e trabalham exclusivamente com entidades e value objects do domí
 Referências normativas:
     - NBR 5422: Cálculo de catenária e flecha de condutores (§3.2 — conversão kgf→daN)
     - NBR 5410: Queda de tensão em instalações elétricas de baixa tensão (limite 5%)
+    - ANEEL PRODIST Módulo 8: Qualidade da Energia Elétrica (BT: 8%, MT: 7%)
 """
 
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING, Optional
 
 from domain.entities import Conductor
 from domain.value_objects import CatenaryResult, VoltageDropResult
+
+if TYPE_CHECKING:
+    from domain.standards import VoltageStandard
 
 # Fator de conversão: 1 kgf = 9.80665 N = 0.980665 daN  (NBR 5422 §3.2)
 _KG_TO_DAN: float = 0.980665
@@ -111,7 +116,7 @@ class CatenaryDomainService:
 
 
 class VoltageDropDomainService:
-    """Serviço de domínio para cálculo de queda de tensão (NBR 5410).
+    """Serviço de domínio para cálculo de queda de tensão (NBR 5410 / PRODIST).
 
     Encapsula a fórmula de queda de tensão e produz um ``VoltageDropResult``
     imutável. Segue a mesma fórmula de ``ElectricalLogic.calculate_voltage_drop()``
@@ -128,6 +133,15 @@ class VoltageDropDomainService:
         ΔV = √3 · I · R · cos φ
 
     onde ``R = ρ · L / A`` (Ω).
+
+    O parâmetro ``standard`` determina o padrão normativo de referência:
+    - Padrão: ``NBR_5410`` (5%). Para verificar conformidade, use
+      ``result.is_within_limit``.
+    - ANEEL/PRODIST BT (8%) ou MT (7%): use ``PRODIST_MODULE8_BT`` /
+      ``PRODIST_MODULE8_MT``. Verificar com ``result.is_within_standard(std)``.
+    - Norma de concessionária (Light/Enel): use ``LIGHT_BT`` ou ``ENEL_BT``.
+      Quando ``standard.overrides_abnt=True``, exibir ``standard.override_toast_pt_br``
+      como toast na interface.
 
     Example:
         >>> svc = VoltageDropDomainService()
@@ -146,6 +160,7 @@ class VoltageDropDomainService:
         voltage_v: float,
         phases: int = 3,
         cos_phi: float = 0.92,
+        standard: Optional[VoltageStandard] = None,
     ) -> VoltageDropResult:
         """Calcula a queda de tensão para um trecho de circuito.
 
@@ -158,10 +173,17 @@ class VoltageDropDomainService:
             voltage_v: Tensão do sistema em Volts (deve ser > 0).
             phases: Número de fases — 1 (monofásico) ou 3 (trifásico).
             cos_phi: Fator de potência (padrão 0.92; deve estar em (0, 1]).
+            standard: Padrão normativo de referência (opcional). Se fornecido
+                e ``standard.overrides_abnt=True``, o chamador deve exibir
+                ``standard.override_toast_pt_br`` como toast ao usuário. O
+                argumento não altera o cálculo — apenas facilita a verificação
+                de conformidade via ``result.is_within_standard(standard)``.
 
         Returns:
             ``VoltageDropResult`` com ``drop_v`` (V), ``drop_percent`` (%)
-            e ``material``.
+            e ``material``. Use ``result.is_within_standard(standard)`` para
+            verificar conformidade com o padrão fornecido, ou
+            ``result.is_within_limit`` para NBR 5410 (5%).
 
         Raises:
             ValueError: Se qualquer parâmetro estiver fora dos limites definidos.
