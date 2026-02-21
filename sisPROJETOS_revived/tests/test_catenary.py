@@ -1,12 +1,14 @@
-import pytest
 import numpy as np
+import pytest
+
 from src.modules.catenaria.logic import CatenaryLogic
+
 
 def test_catenary_calculation_level_span():
     logic = CatenaryLogic()
     # span=100, ha=10, hb=10, tension=1000, weight=0.5
     res = logic.calculate_catenary(100, 10, 10, 1000, 0.5)
-    
+
     assert res is not None
     assert "sag" in res
     assert "x_vals" in res
@@ -18,10 +20,12 @@ def test_catenary_calculation_level_span():
     assert np.isclose(res["y_vals"][0], 10)
     assert np.isclose(res["y_vals"][-1], 10)
 
+
 def test_catenary_zero_weight():
     logic = CatenaryLogic()
     res = logic.calculate_catenary(100, 10, 20, 1000, 0)
     assert res is None
+
 
 def test_conductor_loading():
     logic = CatenaryLogic()
@@ -30,6 +34,7 @@ def test_conductor_loading():
     data = logic.get_conductor_by_name(names[0])
     assert "P_kg_m" in data
     assert "T0_daN" in data
+
 
 def test_catenary_inclined_span():
     logic = CatenaryLogic()
@@ -43,6 +48,7 @@ def test_catenary_inclined_span():
 # ============================================================
 # Testes adicionais para cobertura de branches
 # ============================================================
+
 
 def test_get_conductor_by_name_not_found():
     """Cobre linha 56: retorno None para condutor não encontrado."""
@@ -63,6 +69,7 @@ def test_load_conductors_db_failure(mocker):
 def test_export_dxf_creates_file(tmp_path):
     """Cobre linhas 166-168: export_dxf delega para DXFManager."""
     import os
+
     import numpy as np
 
     logic = CatenaryLogic()
@@ -79,6 +86,7 @@ def test_export_dxf_creates_file(tmp_path):
 # ============================================================
 # Testes de sanitização de entradas
 # ============================================================
+
 
 def test_catenary_invalid_span_returns_none():
     """Sanitizer: vão negativo deve retornar None."""

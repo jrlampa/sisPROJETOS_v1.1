@@ -13,8 +13,9 @@ Cobre:
 import os
 import sys
 import types
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 
 class TestResourceManagerDev:
@@ -114,8 +115,9 @@ class TestResourceManagerFrozen:
 
         with patch.object(sys, "frozen", True, create=True):
             with patch.object(sys, "_MEIPASS", fake_meipass, create=True):
-                from src.utils import resource_manager as rm_module
                 import importlib
+
+                from src.utils import resource_manager as rm_module
 
                 # Re-init a fresh instance to trigger frozen path
                 from src.utils.resource_manager import ResourceManager

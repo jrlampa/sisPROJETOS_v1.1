@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.0 — 443 testes, 100% cobertura, API REST com 12 endpoints (7 cálculo + 3 dados mestres BIM + 1 conversor geoespacial + 1 criador de projetos), black+isort limpo, type hints completos em todos os módulos)
+**Maturidade:** Produção (v2.1.0 — 454 testes, 100% cobertura, API REST com 14 endpoints (9 cálculo/escrita + 3 dados mestres BIM + 2 novos GET standalone), black+isort limpo, type hints completos em todos os módulos)
 
 ---
 
@@ -66,10 +66,10 @@ Main (Controller) → orquestra → GUIs
 |---------|-----------------|
 | `app.py` | Fábrica FastAPI + registro de rotas |
 | `schemas.py` | Modelos Pydantic (request/response) |
-| `routes/electrical.py` | POST `/api/v1/electrical/voltage-drop` |
+| `routes/electrical.py` | POST `/api/v1/electrical/voltage-drop`; GET `/api/v1/electrical/materials` |
 | `routes/cqt.py` | POST `/api/v1/cqt/calculate` |
 | `routes/catenary.py` | POST `/api/v1/catenary/calculate` |
-| `routes/pole_load.py` | POST `/api/v1/pole-load/resultant` |
+| `routes/pole_load.py` | POST `/api/v1/pole-load/resultant`; GET `/api/v1/pole-load/suggest?force_daN=...` |
 | `routes/data.py` | GET `/api/v1/data/conductors`, `/data/poles`, `/data/concessionaires` |
 | `routes/converter.py` | POST `/api/v1/converter/kml-to-utm` |
 | `routes/project_creator.py` | POST `/api/v1/projects/create` |
@@ -180,7 +180,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 443 (todos passando, 100% cobertura)  
+**Total de testes:** 454 (todos passando, 100% cobertura)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -188,7 +188,8 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | Arquivo de Teste | Módulo Testado | Status |
 |-----------------|---------------|--------|
 | `test_electrical.py` | `electrical/logic.py` | ✅ |
-| `test_cqt.py` | `cqt/logic.py` | ✅ |
+| `test_cqt.py` | `cqt/logic.py` (cálculo principal) | ✅ |
+| `test_cqt_sanitizer.py` | `cqt/logic.py` (sanitização de entradas: trafo_kva, social_class) | ✅ |
 | `test_converter.py` | `converter/logic.py` (principal) | ✅ |
 | `test_converter_edge_cases.py` | `converter/logic.py` (edge cases: load_file, UTM, CSV) | ✅ |
 | `test_converter_e2e.py` | Pipeline completo KMZ→DXF | ✅ |
@@ -203,7 +204,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
 | `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
-| `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health) | ✅ |
+| `test_api.py` | `api/` (endpoints de cálculo: electrical, cqt, catenary, pole-load, health; + GET /electrical/materials + GET /pole-load/suggest) | ✅ |
 | `test_api_bim.py` | `api/routes/data.py`, `api/routes/converter.py`, `api/routes/project_creator.py` (endpoints BIM) | ✅ |
 
 ### Executar Testes
@@ -374,6 +375,9 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🔄 Planejado | POST /api/v1/converter/kml-to-utm | ✅ Implementado (v2.1.0) | Aceita KML Base64, retorna UTM JSON; integração BIM geoespacial |
 | 🔄 Planejado | POST /api/v1/projects/create | ✅ Implementado (v2.1.0) | Cria estrutura de pastas de projeto; último módulo sem endpoint REST |
 | 🟡 Média | test_api.py acima de 500 linhas (516) | ✅ Corrigido | test_api_bim.py criado; test_api.py reduzido para 334 linhas |
+| 🔄 Planejado | GET /api/v1/electrical/materials | ✅ Implementado | Lista materiais e resistividades do catálogo DB para integração BIM |
+| 🔄 Planejado | GET /api/v1/pole-load/suggest | ✅ Implementado | Sugestão de postes por força sem cálculo completo (BIM standalone) |
+| 🟡 Média | test_cqt.py acima de 500 linhas (após black: 550) | ✅ Corrigido | test_cqt_sanitizer.py criado; test_cqt.py reduzido para 488 linhas |
 | 🟢 Baixa | Plugin architecture | Roadmap v2.1 | N/A |
 
 ---
@@ -434,7 +438,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.0 | pyproject.toml criado (black+isort config); black aplicado a 16 arquivos src/; isort aplicado a 25 arquivos src/; 3 novos testes (ai_assistant empty msg + catenary None-result via mock); api/app.py pragma:no cover em sys.path guard; cobertura real 100%; total 418 testes |
 | 2026-02-21 | 2.1.0 | Adicionados 3 endpoints GET de dados mestres para integração BIM: GET /api/v1/data/conductors, /data/poles, /data/concessionaires; src/api/routes/data.py criado; 3 novos schemas Pydantic (ConductorOut, PoleOut, ConcessionaireOut); 12 novos testes (total 430, 100% cobertura) |
 | 2026-02-21 | 2.1.0 | CHANGELOG.md atualizado com seção [2.1.0] completa; type hints adicionados em electrical/logic.py e catenaria/logic.py (Optional, Dict, List, NDArray); 22 docs de auditoria stale movidos para docs/archive/ |
-| 2026-02-21 | 2.1.0 | test_api.py modularizado (516 → 334 linhas): TestDataEndpoints + TestConverterKmlEndpoint movidos para test_api_bim.py; POST /api/v1/projects/create endpoint criado (src/api/routes/project_creator.py); schemas ProjectCreateRequest + ProjectCreateResponse adicionados; 6 novos testes no TestProjectCreatorEndpoint; total 443 testes, 100% cobertura |
+| 2026-02-21 | 2.1.0 | GET /api/v1/electrical/materials e GET /api/v1/pole-load/suggest adicionados; get_all_resistivities() em db_manager; get_materials() em ElectricalLogic; MaterialOut + PoleSuggestResponse schemas; 11 novos testes; test_cqt.py modularizado (550→488 linhas) → test_cqt_sanitizer.py criado; black aplicado a 15 test files; total 454 testes, 100% cobertura, 14 endpoints REST |
 
 ---
 

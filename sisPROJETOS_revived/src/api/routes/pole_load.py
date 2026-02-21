@@ -1,19 +1,42 @@
 """
 Rota de cálculo de esforços em postes — API REST sisPROJETOS.
 
-Endpoint: POST /api/v1/pole-load/resultant
-Calcula a resultante de forças em postes de distribuição.
+Endpoints:
+- POST /api/v1/pole-load/resultant  — Calcula resultante de esforços em poste
+- GET  /api/v1/pole-load/suggest    — Sugere postes por força resultante (sem cálculo)
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-from api.schemas import PoleLoadRequest, PoleLoadResponse
+from api.schemas import PoleLoadRequest, PoleLoadResponse, PoleSuggestResponse
 from modules.pole_load.logic import PoleLoadLogic
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/pole-load", tags=["Esforços em Postes"])
 _logic = PoleLoadLogic()
+
+
+@router.get(
+    "/suggest",
+    response_model=PoleSuggestResponse,
+    summary="Sugere postes adequados para uma carga",
+    description=(
+        "Consulta o catálogo de postes e retorna os de menor carga nominal que suportam "
+        "a força fornecida, um por material (Concreto, Fibra de Vidro, Madeira), "
+        "conforme NBR 8451/8452. Útil para integração BIM sem precisar calcular a resultante."
+    ),
+)
+def suggest_pole(
+    force_daN: float = Query(..., gt=0, description="Força resultante em daN"),
+) -> PoleSuggestResponse:
+    """Sugere o poste mais adequado para a carga informada."""
+    try:
+        suggested = _logic.suggest_pole(force_daN)
+    except Exception as exc:
+        logger.error("Erro ao sugerir postes para força %.2f daN: %s", force_daN, exc)
+        raise HTTPException(status_code=500, detail="Erro ao consultar catálogo de postes.") from exc
+    return PoleSuggestResponse(force_daN=force_daN, suggested_poles=suggested)
 
 
 @router.post(

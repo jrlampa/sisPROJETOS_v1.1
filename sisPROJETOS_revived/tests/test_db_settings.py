@@ -1,5 +1,7 @@
 import os
+
 import pytest
+
 from src.database.db_manager import DatabaseManager
 
 
@@ -187,26 +189,26 @@ class TestDatabaseManagerDefaultPath:
         import shutil as shutil_mod
 
         # Point APPDATA to tmp_path so app DB will be in tmp_path/sisPROJETOS/
-        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+        mocker.patch.dict("os.environ", {"APPDATA": str(tmp_path)})
 
         # Make resource_path return a real file that exists
         resource_db = tmp_path / "resource.db"
         resource_db.write_bytes(b"")
 
-        mocker.patch('src.database.db_manager.resource_path', return_value=str(resource_db))
+        mocker.patch("src.database.db_manager.resource_path", return_value=str(resource_db))
 
         db = DatabaseManager()
         assert os.path.exists(db.db_path)
 
     def test_db_manager_handles_copy_failure_gracefully(self, tmp_path, mocker):
         """Testa que falha na cópia do DB de recursos é tratada sem crash."""
-        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+        mocker.patch.dict("os.environ", {"APPDATA": str(tmp_path)})
 
         resource_db = tmp_path / "resource.db"
         resource_db.write_bytes(b"")
 
-        mocker.patch('src.database.db_manager.resource_path', return_value=str(resource_db))
-        mocker.patch('src.database.db_manager.shutil.copy2', side_effect=PermissionError("access denied"))
+        mocker.patch("src.database.db_manager.resource_path", return_value=str(resource_db))
+        mocker.patch("src.database.db_manager.shutil.copy2", side_effect=PermissionError("access denied"))
 
         # Should not raise — error is logged as warning
         db = DatabaseManager()
@@ -214,8 +216,8 @@ class TestDatabaseManagerDefaultPath:
 
     def test_db_manager_skips_copy_when_resource_missing(self, tmp_path, mocker):
         """Testa que cópia é ignorada quando DB de recursos não existe."""
-        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
-        mocker.patch('src.database.db_manager.resource_path', return_value=str(tmp_path / "nonexistent.db"))
+        mocker.patch.dict("os.environ", {"APPDATA": str(tmp_path)})
+        mocker.patch("src.database.db_manager.resource_path", return_value=str(tmp_path / "nonexistent.db"))
 
         db = DatabaseManager()
         assert os.path.exists(db.db_path)

@@ -20,6 +20,15 @@ class ElectricalLogic:
         """Inicializa a lógica de cálculos elétricos."""
         self.db = DatabaseManager()
 
+    def get_materials(self) -> list:
+        """Retorna lista de materiais condutores com resistividade do banco.
+
+        Returns:
+            Lista de dicionários com 'name', 'resistivity_ohm_mm2_m', 'description'.
+        """
+        rows = self.db.get_all_resistivities()
+        return [{"name": r[0], "resistivity_ohm_mm2_m": r[1], "description": r[2]} for r in rows]
+
     def get_resistivity(self, material: str) -> float:
         """Busca resistividade do material no banco de dados.
 

@@ -1,19 +1,42 @@
 """
 Rota de cálculo elétrico — API REST sisPROJETOS.
 
-Endpoint: POST /api/v1/electrical/voltage-drop
-Calcula queda de tensão conforme NBR 5410.
+Endpoints:
+- POST /api/v1/electrical/voltage-drop  — Cálculo de queda de tensão (NBR 5410)
+- GET  /api/v1/electrical/materials     — Lista materiais e resistividades do catálogo
 """
+
+from typing import List
 
 from fastapi import APIRouter, HTTPException
 
-from api.schemas import VoltageDropRequest, VoltageDropResponse
+from api.schemas import MaterialOut, VoltageDropRequest, VoltageDropResponse
 from modules.electrical.logic import ElectricalLogic
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/electrical", tags=["Elétrico"])
 _logic = ElectricalLogic()
+
+
+@router.get(
+    "/materials",
+    response_model=List[MaterialOut],
+    summary="Lista materiais condutores disponíveis",
+    description=(
+        "Retorna os materiais condutores cadastrados no banco de dados com suas "
+        "resistividades (Ω·mm²/m a 20°C), conforme NBR 5410. "
+        "Use para descobrir os valores válidos do campo 'material' antes de chamar /voltage-drop."
+    ),
+)
+def list_materials() -> List[MaterialOut]:
+    """Retorna todos os materiais com resistividade do catálogo técnico."""
+    try:
+        rows = _logic.get_materials()
+    except Exception as exc:
+        logger.error("Erro ao consultar materiais: %s", exc)
+        raise HTTPException(status_code=500, detail="Erro ao consultar catálogo de materiais.") from exc
+    return [MaterialOut(**r) for r in rows]
 
 
 @router.post(

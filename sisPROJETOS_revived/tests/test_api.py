@@ -307,6 +307,92 @@ class TestPoleLoadEndpoint:
         assert resp.status_code == 422
 
 
+# ── Materiais Elétricos ────────────────────────────────────────────────────────
+
+
+class TestElectricalMaterialsEndpoint:
+    """Testa o endpoint GET /api/v1/electrical/materials."""
+
+    _URL = "/api/v1/electrical/materials"
+
+    def test_retorna_200(self, client):
+        resp = client.get(self._URL)
+        assert resp.status_code == 200
+
+    def test_retorna_lista_com_campos_obrigatorios(self, client):
+        data = client.get(self._URL).json()
+        assert len(data) >= 2  # Alumínio e Cobre pré-populados
+        for item in data:
+            assert "name" in item
+            assert "resistivity_ohm_mm2_m" in item
+            assert "description" in item
+            assert isinstance(item["resistivity_ohm_mm2_m"], float)
+
+    def test_aluminio_presente(self, client):
+        data = client.get(self._URL).json()
+        names = [m["name"] for m in data]
+        assert "Alumínio" in names
+
+    def test_cobre_presente(self, client):
+        data = client.get(self._URL).json()
+        names = [m["name"] for m in data]
+        assert "Cobre" in names
+
+    def test_erro_db_retorna_500(self, client, mocker):
+        """Cobre branch de erro: exception na lógica → HTTP 500."""
+        mocker.patch(
+            "src.api.routes.electrical.ElectricalLogic.get_materials",
+            side_effect=RuntimeError("DB offline"),
+        )
+        resp = client.get(self._URL)
+        assert resp.status_code == 500
+
+
+# ── Sugestão de Postes ────────────────────────────────────────────────────────
+
+
+class TestPoleSuggestEndpoint:
+    """Testa o endpoint GET /api/v1/pole-load/suggest."""
+
+    _URL = "/api/v1/pole-load/suggest"
+
+    def test_retorna_200_com_force_valida(self, client):
+        resp = client.get(self._URL, params={"force_daN": 150.0})
+        assert resp.status_code == 200
+
+    def test_resposta_tem_campos_obrigatorios(self, client):
+        data = client.get(self._URL, params={"force_daN": 150.0}).json()
+        assert "force_daN" in data
+        assert "suggested_poles" in data
+        assert isinstance(data["suggested_poles"], list)
+        assert data["force_daN"] == 150.0
+
+    def test_force_zero_retorna_422(self, client):
+        """force_daN=0 deve falhar na validação Pydantic (gt=0)."""
+        resp = client.get(self._URL, params={"force_daN": 0.0})
+        assert resp.status_code == 422
+
+    def test_force_muito_alta_retorna_lista_vazia(self, client):
+        """Força maior que qualquer poste disponível retorna lista vazia."""
+        data = client.get(self._URL, params={"force_daN": 999999.0}).json()
+        assert data["suggested_poles"] == []
+
+    def test_concreto_sugerido_para_force_200(self, client):
+        """Para 200 daN, deve sugerir pelo menos o poste de Concreto 11m/200daN."""
+        data = client.get(self._URL, params={"force_daN": 200.0}).json()
+        materials = [p["material"] for p in data["suggested_poles"]]
+        assert "Concreto" in materials
+
+    def test_erro_db_retorna_500(self, client, mocker):
+        """Cobre branch de erro: exception na lógica → HTTP 500."""
+        mocker.patch(
+            "src.api.routes.pole_load.PoleLoadLogic.suggest_pole",
+            side_effect=RuntimeError("DB offline"),
+        )
+        resp = client.get(self._URL, params={"force_daN": 100.0})
+        assert resp.status_code == 500
+
+
 # ── Cobertura de branches defensivos ─────────────────────────────────────────
 
 

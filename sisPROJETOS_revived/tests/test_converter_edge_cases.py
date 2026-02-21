@@ -5,11 +5,12 @@ abaixo do limite de 500 linhas (regra de modularidade do projeto).
 Cobre: load_file (KMZ/KML), convert_to_utm (geometrias variadas) e save_to_csv.
 """
 
-import pytest
 import zipfile
-import pandas as pd
-from src.modules.converter.logic import ConverterLogic
 
+import pandas as pd
+import pytest
+
+from src.modules.converter.logic import ConverterLogic
 
 # ── Fixtures KML mínimas ─────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ _EMPTY_DOC_KML = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 
 # ── TestConverterLoadFileEdgeCases ───────────────────────────────────────────
+
 
 class TestConverterLoadFileEdgeCases:
     """Cobertura de edge cases do método load_file (KMZ, erros, vazio)."""
@@ -97,6 +99,7 @@ class TestConverterLoadFileEdgeCases:
 
 
 # ── TestConverterConvertToUTMEdgeCases ───────────────────────────────────────
+
 
 class TestConverterConvertToUTMEdgeCases:
     """Cobertura de edge cases do método convert_to_utm e _extract_placemarks."""
@@ -368,6 +371,7 @@ class TestConverterConvertToUTMEdgeCases:
 
 
 # ── TestConverterCSVExportEdgeCases ──────────────────────────────────────────
+
 
 class TestConverterCSVExportEdgeCases:
     """Cobertura de edge cases na exportação CSV."""

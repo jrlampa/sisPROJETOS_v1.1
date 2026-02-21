@@ -12,6 +12,14 @@ from pydantic import BaseModel, Field
 # ── Elétrico ─────────────────────────────────────────────────────────────────
 
 
+class MaterialOut(BaseModel):
+    """Dados de um material condutor com sua resistividade."""
+
+    name: str = Field(..., description="Nome do material (ex: Alumínio, Cobre)")
+    resistivity_ohm_mm2_m: float = Field(..., description="Resistividade em Ω·mm²/m a 20°C (NBR 5410)")
+    description: str = Field(default="", description="Descrição técnica do material")
+
+
 class VoltageDropRequest(BaseModel):
     """Dados de entrada para cálculo de queda de tensão (NBR 5410)."""
 
@@ -186,6 +194,13 @@ class PoleLoadResponse(BaseModel):
     total_y: float = Field(..., description="Componente Y total em daN")
     vectors: List[Dict[str, Any]] = Field(..., description="Detalhes de cada condutor")
     suggested_poles: List[Dict[str, Any]] = Field(default_factory=list, description="Postes sugeridos")
+
+
+class PoleSuggestResponse(BaseModel):
+    """Resultado da sugestão de postes por carga."""
+
+    force_daN: float = Field(..., description="Força de consulta em daN")
+    suggested_poles: List[Dict[str, Any]] = Field(..., description="Postes adequados ordenados por material")
 
 
 # ── Dados Mestres (BIM) ───────────────────────────────────────────────────────

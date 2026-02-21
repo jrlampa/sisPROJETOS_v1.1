@@ -8,16 +8,17 @@ Cobre:
 """
 
 import os
-import pytest
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import pytest
 
 from src.utils.dxf_manager import DXFManager, _validate_output_path
-
 
 # ---------------------------------------------------------------------------
 # Testes de _validate_output_path
 # ---------------------------------------------------------------------------
+
 
 class TestValidateOutputPath:
     def test_valid_path_returns_resolved(self, tmp_path):
@@ -54,6 +55,7 @@ class TestValidateOutputPath:
 # Testes de DXFManager.create_catenary_dxf
 # ---------------------------------------------------------------------------
 
+
 class TestCreateCatenaryDXF:
     def _make_catenary(self):
         """Gera dados de catenária simples para testes."""
@@ -81,6 +83,7 @@ class TestCreateCatenaryDXF:
 
     def test_file_is_valid_dxf(self, tmp_path):
         import ezdxf
+
         filepath = str(tmp_path / "catenary_valid.dxf")
         x_vals, y_vals, sag = self._make_catenary()
         DXFManager.create_catenary_dxf(filepath, x_vals, y_vals, sag)
@@ -98,6 +101,7 @@ class TestCreateCatenaryDXF:
         DXFManager.create_catenary_dxf(filepath, x_vals, y_vals, sag)
         # Check annotation layer exists in DXF
         import ezdxf
+
         doc = ezdxf.readfile(filepath)
         layer_names = [layer.dxf.name for layer in doc.layers]
         assert "ANNOTATIONS" in layer_names
@@ -109,14 +113,17 @@ class TestCreateCatenaryDXF:
 # Testes de DXFManager.create_points_dxf
 # ---------------------------------------------------------------------------
 
+
 class TestCreatePointsDXF:
     def _make_dataframe(self):
-        return pd.DataFrame({
-            "Easting": [691000.0, 691050.0, 691100.0],
-            "Northing": [7455000.0, 7455050.0, 7455100.0],
-            "Name": ["P1", "P2", "P3"],
-            "Elevation": [10.0, 11.0, 12.0],
-        })
+        return pd.DataFrame(
+            {
+                "Easting": [691000.0, 691050.0, 691100.0],
+                "Northing": [7455000.0, 7455050.0, 7455100.0],
+                "Name": ["P1", "P2", "P3"],
+                "Elevation": [10.0, 11.0, 12.0],
+            }
+        )
 
     def test_creates_dxf_file(self, tmp_path):
         filepath = str(tmp_path / "points.dxf")
@@ -135,6 +142,7 @@ class TestCreatePointsDXF:
 
     def test_file_is_valid_dxf(self, tmp_path):
         import ezdxf
+
         filepath = str(tmp_path / "points_valid.dxf")
         df = self._make_dataframe()
         DXFManager.create_points_dxf(filepath, df)
@@ -143,6 +151,7 @@ class TestCreatePointsDXF:
 
     def test_points_layer_exists(self, tmp_path):
         import ezdxf
+
         filepath = str(tmp_path / "points_layer.dxf")
         df = self._make_dataframe()
         DXFManager.create_points_dxf(filepath, df)
@@ -152,10 +161,12 @@ class TestCreatePointsDXF:
 
     def test_without_elevation_column(self, tmp_path):
         filepath = str(tmp_path / "points_no_elev.dxf")
-        df = pd.DataFrame({
-            "Easting": [691000.0, 691050.0],
-            "Northing": [7455000.0, 7455050.0],
-            "Name": ["A", "B"],
-        })
+        df = pd.DataFrame(
+            {
+                "Easting": [691000.0, 691050.0],
+                "Northing": [7455000.0, 7455050.0],
+                "Name": ["A", "B"],
+            }
+        )
         DXFManager.create_points_dxf(filepath, df)
         assert os.path.exists(filepath)

@@ -279,6 +279,23 @@ class DatabaseManager:
         conn.close()
         return rows
 
+    def get_all_resistivities(self) -> List[Tuple]:
+        """Retorna todos os materiais com resistividade cadastrados.
+
+        Returns:
+            Lista de tuplas (key_name, value, description) ordenada por nome.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT key_name, value, description FROM cable_technical_data"
+                " WHERE category='resistivity' ORDER BY key_name"
+            )
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
     def get_all_concessionaires(self) -> List[Tuple]:
         """Retorna todas as concessionárias com nome e método de cálculo.
 
