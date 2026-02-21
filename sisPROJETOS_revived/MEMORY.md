@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.3 — cobertura de testes 100%)
+**Maturidade:** Produção (v2.1.4 — cobertura de testes 100%)
 
 ---
 
@@ -66,6 +66,7 @@ Main (Controller) → orquestra → GUIs
 | `update_checker.py` | Verificação de updates via GitHub Releases API |
 | `dxf_manager.py` | Criação de arquivos DXF (catenária, pontos UTM) |
 | `resource_manager.py` | Gerenciamento de recursos (templates, assets) |
+| `sanitizer.py` | Sanitização e validação de dados de entrada (strings, numéricos, caminhos) |
 | `__init__.py` | `resource_path()` com proteção path traversal |
 
 ---
@@ -164,6 +165,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_db_settings.py` | `database/db_manager.py` | ✅ |
 | `test_dxf_manager.py` | `utils/dxf_manager.py` | ✅ |
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
+| `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
 
 ### Executar Testes
@@ -330,6 +332,8 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 - [x] Cobertura de testes ≥ 90% (244 testes)
 - [x] Cobertura de testes ≥ 97% (273 testes) — converter/catenaria/project_creator a 100%
 - [x] Cobertura de testes **100%** (289 testes) — DB poles+resistivity, todos os módulos a 100%
+- [x] Módulo `utils/sanitizer.py` — sanitização centralizada de dados de entrada (v2.1.4)
+- [x] 64 novos testes unitários para sanitizer (353 testes total)
 
 ### v2.2.0 (Q3 2026)
 - [ ] Plugin architecture
@@ -365,6 +369,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.1 | Aumentar cobertura de 82% → 90% (244 testes); criar `test_resource_manager.py` (coverage 73% → 100%); expandir `test_update_checker.py` (65% → 100%); expandir `test_ai_assistant.py` (57% → 98%); expandir `test_db_settings.py` (73% → 94%); cobrir: history/context da IA, beta channel, URLError, custom endpoint, add_conductor, get_all_conductors/poles, ResourceManager frozen mode, singleton |
 | 2026-02-21 | 2.1.2 | Aumentar cobertura de 90% → 97% (273 testes, +29); converter/logic.py: 72% → 100%; catenaria/logic.py: 85% → 100%; project_creator/logic.py: 86% → 100%; novos testes: KMZ loading, geo_interface (Point/LineString/Polygon), path traversal em CSV, falhas de DB, export_dxf, templates_dir ausente, cópia de template com erro, PermissionError/OSError |
 | 2026-02-21 | 2.1.3 | Cobertura de testes 97% → **100%** (289 testes, +16); populado tabela `poles` (13 postes NBR) e `resistivity` no DB; adicionados testes para: cos_phi inválido, fases inválidas, fallback DB em electrical; get_concessionaires exception, get_concessionaire_method DB error, load_poles exception, load_poles loop, ciclo CQT, fallback cables; Groq init com API key; db_manager default path (cópia de recurso, falha de permissão, recurso ausente); pragma no cover em linhas de plataforma Windows e ramos de segurança simbólica |
+| 2026-02-21 | 2.1.4 | Criar `utils/sanitizer.py` (sanitização centralizada: sanitize_string, sanitize_numeric, sanitize_positive, sanitize_power_factor, sanitize_phases, sanitize_filepath, sanitize_code); criar `tests/test_sanitizer.py` (64 testes); 353 testes total; corrigir TODO desatualizado em ARCHITECTURE.md; atualizar docstring de utils/__init__.py; bump versão 2.1.3 → 2.1.4 |
 
 ---
 

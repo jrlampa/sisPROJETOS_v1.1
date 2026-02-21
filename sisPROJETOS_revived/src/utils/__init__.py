@@ -3,9 +3,10 @@ Pacote de utilitários do sisPROJETOS.
 
 Contém módulos reutilizáveis:
 - logger: Sistema de logging centralizado
+- sanitizer: Sanitização e validação de dados de entrada
 - utils: Funções auxiliares gerais
 - dxf_manager: Manipulação de arquivos DXF
-- model_generator: Geração de modelos
+- resource_manager: Gerenciamento de recursos empacotados
 """
 
 import os

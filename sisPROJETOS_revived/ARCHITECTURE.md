@@ -372,7 +372,9 @@ cursor.execute("SELECT * FROM projects WHERE id=?", (project_id,))
 ```
 
 ### Path Traversal
-⚠️ **TODO:** Validar `resource_path()` para prevenir ataques
+✅ **IMPLEMENTADO:** `resource_path()` validada contra path traversal (src/utils/__init__.py)
+✅ **IMPLEMENTADO:** `_validate_output_path()` em dxf_manager.py rejeita null bytes e caminhos suspeitos
+✅ **IMPLEMENTADO:** `sanitize_filepath()` em utils/sanitizer.py para validação de entrada do usuário
 
 ---
 
