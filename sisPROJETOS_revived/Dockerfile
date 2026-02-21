@@ -51,5 +51,10 @@ RUN mkdir -p /home/appuser/.local/share/sisPROJETOS/logs
 # Expõe porta da API REST (Half-way BIM)
 EXPOSE 8000
 
+# Docker HEALTHCHECK — verifica se a API REST responde (usado por Docker Swarm, Kubernetes, ECS)
+# Apenas relevante quando a API é iniciada (não no CMD padrão de testes).
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request, sys; urllib.request.urlopen('http://localhost:8000/health', timeout=8).read()" || exit 1
+
 # Ponto de entrada padrão: executar testes
 CMD ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]

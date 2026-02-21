@@ -4,6 +4,7 @@ Testes da API de catenária — sisPROJETOS.
 Cobre os endpoints específicos de catenária:
 - POST /api/v1/catenary/calculate  (include_curve, NBR 5422 clearance)
 - POST /api/v1/catenary/dxf        (geração de DXF Base64 via API — BIM)
+- POST /api/v1/catenary/calculate  (verificação de folga ao solo NBR 5422 min_clearance_m)
 """
 
 import base64
@@ -198,3 +199,64 @@ class TestCatenaryDxfEndpoint:
         resp = client.post(_DXF_URL, json=_BASE_PAYLOAD)
         assert resp.status_code == 422
         assert "inválidos" in resp.json()["detail"].lower()
+
+
+# ── Catenária: verificação de folga ao solo (NBR 5422) ────────────────────────
+
+
+class TestCatenaryNBR5422Clearance:
+    """Testa o campo opcional min_clearance_m para verificação de folga ao solo (NBR 5422)."""
+
+    _URL = "/api/v1/catenary/calculate"
+
+    def _payload(self, **extra):
+        base = {
+            "span": 80.0,
+            "ha": 9.0,
+            "hb": 9.0,
+            "tension_daN": 500.0,
+            "weight_kg_m": 0.779,
+        }
+        base.update(extra)
+        return base
+
+    def test_without_clearance_within_clearance_is_none(self, client):
+        """Sem min_clearance_m → within_clearance ausente da resposta (ou None)."""
+        resp = client.post(self._URL, json=self._payload())
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data.get("within_clearance") is None
+
+    def test_clearance_ok_when_sag_below_limit(self, client):
+        """Flecha < min_clearance_m → within_clearance=True; verifica margem positiva."""
+        # 80 m span, 500 daN, 0.779 kg/m → sag ≈ 1.22 m (well below 6.0 m)
+        resp = client.post(self._URL, json=self._payload(min_clearance_m=6.0))
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["within_clearance"] is True
+        assert data["sag"] < 6.0
+        assert 6.0 - data["sag"] > 0  # positive clearance margin
+
+    def test_clearance_fail_when_sag_above_limit(self, client):
+        """Flecha > min_clearance_m → within_clearance=False."""
+        # Tiny clearance (0.5 m) → sag (≈1.22 m) exceeds limit
+        resp = client.post(self._URL, json=self._payload(min_clearance_m=0.5))
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["within_clearance"] is False
+        assert data["sag"] > 0.5
+
+    def test_clearance_boundary_exact(self, client):
+        """Flecha == min_clearance_m → within_clearance=True (sag ≤ limit)."""
+        # Get the actual sag first, then use it as the limit
+        resp_base = client.post(self._URL, json=self._payload())
+        sag = resp_base.json()["sag"]
+        resp = client.post(self._URL, json=self._payload(min_clearance_m=sag))
+        assert resp.status_code == 200
+        assert resp.json()["within_clearance"] is True
+
+    def test_clearance_returns_sag_unchanged(self, client):
+        """min_clearance_m não altera o valor de sag calculado."""
+        resp_base = client.post(self._URL, json=self._payload())
+        resp_limit = client.post(self._URL, json=self._payload(min_clearance_m=6.0))
+        assert resp_base.json()["sag"] == pytest.approx(resp_limit.json()["sag"], rel=1e-9)

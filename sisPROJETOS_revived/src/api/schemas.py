@@ -9,6 +9,20 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+
+# ── Infraestrutura ────────────────────────────────────────────────────────────
+
+
+class HealthResponse(BaseModel):
+    """Resposta do endpoint de saúde da API."""
+
+    status: str = Field(..., description="Status geral: 'ok' ou 'degraded'")
+    version: str = Field(..., description="Versão da aplicação")
+    db_status: str = Field(..., description="Status do banco de dados: 'ok' ou 'error'")
+    environment: str = Field(..., description="Ambiente de execução: 'development' ou 'production'")
+    timestamp: str = Field(..., description="Timestamp UTC da verificação em formato ISO 8601")
+
+
 # ── Elétrico ─────────────────────────────────────────────────────────────────
 
 

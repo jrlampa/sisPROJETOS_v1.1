@@ -2,15 +2,17 @@
 Testes unitários e de integração para a API REST do sisPROJETOS.
 
 Cobre os endpoints de cálculo:
+- GET  /health                        (estado de saúde rico — DB status, environment, timestamp)
 - POST /api/v1/electrical/voltage-drop
 - POST /api/v1/cqt/calculate
-- POST /api/v1/catenary/calculate  (inclui verificação de folga NBR 5422)
+- POST /api/v1/catenary/calculate
 - POST /api/v1/pole-load/resultant
 - GET  /api/v1/electrical/materials
 - GET  /api/v1/pole-load/suggest
-- GET  /health
 
+Testes específicos de catenária (include_curve, DXF, folga NBR 5422): ver test_api_catenary.py
 Padrões normativos (ABNT/ANEEL/PRODIST): ver test_api_standards.py
+BIM endpoints (dados mestres, conversor, projetos): ver test_api_bim.py
 """
 
 import pytest
@@ -36,6 +38,40 @@ class TestHealth:
         data = resp.json()
         assert data["status"] == "ok"
         assert "version" in data
+
+    def test_health_has_db_status_ok(self, client):
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        assert resp.json()["db_status"] == "ok"
+
+    def test_health_has_environment_field(self, client):
+        resp = client.get("/health")
+        assert resp.json()["environment"] in ("development", "production")
+
+    def test_health_has_iso_timestamp(self, client):
+        from datetime import datetime
+
+        resp = client.get("/health")
+        ts = resp.json()["timestamp"]
+        # Should parse as a valid ISO 8601 datetime (raises ValueError if not)
+        datetime.fromisoformat(ts)
+
+    def test_health_version_matches_package(self, client):
+        from src.__version__ import __version__
+
+        resp = client.get("/health")
+        assert resp.json()["version"] == __version__
+
+    def test_health_degraded_when_db_fails(self, client, mocker):
+        mocker.patch(
+            "api.routes.health._db.get_all_conductors",
+            side_effect=Exception("DB inacessível"),
+        )
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "degraded"
+        assert data["db_status"] == "error"
 
     def test_docs_accessible(self, client):
         resp = client.get("/docs")
@@ -422,64 +458,3 @@ class TestCatenaryEndpointDefensiveBranches:
         resp = client.post(self._URL, json=payload)
         assert resp.status_code == 422
         assert resp.json()["detail"] == "Peso linear zero ou dados inválidos para o cálculo."
-
-
-# ── Catenária: verificação de folga ao solo (NBR 5422) ────────────────────────
-
-
-class TestCatenaryNBR5422Clearance:
-    """Testa o campo opcional min_clearance_m para verificação de folga ao solo (NBR 5422)."""
-
-    _URL = "/api/v1/catenary/calculate"
-
-    def _payload(self, **extra):
-        base = {
-            "span": 80.0,
-            "ha": 9.0,
-            "hb": 9.0,
-            "tension_daN": 500.0,
-            "weight_kg_m": 0.779,
-        }
-        base.update(extra)
-        return base
-
-    def test_without_clearance_within_clearance_is_none(self, client):
-        """Sem min_clearance_m → within_clearance ausente da resposta (ou None)."""
-        resp = client.post(self._URL, json=self._payload())
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data.get("within_clearance") is None
-
-    def test_clearance_ok_when_sag_below_limit(self, client):
-        """Flecha < min_clearance_m → within_clearance=True; verifica margem positiva."""
-        # 80 m span, 500 daN, 0.779 kg/m → sag ≈ 1.22 m (well below 6.0 m)
-        resp = client.post(self._URL, json=self._payload(min_clearance_m=6.0))
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["within_clearance"] is True
-        assert data["sag"] < 6.0
-        assert 6.0 - data["sag"] > 0  # positive clearance margin
-
-    def test_clearance_fail_when_sag_above_limit(self, client):
-        """Flecha > min_clearance_m → within_clearance=False."""
-        # Tiny clearance (0.5 m) → sag (≈1.22 m) exceeds limit
-        resp = client.post(self._URL, json=self._payload(min_clearance_m=0.5))
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["within_clearance"] is False
-        assert data["sag"] > 0.5
-
-    def test_clearance_boundary_exact(self, client):
-        """Flecha == min_clearance_m → within_clearance=True (sag ≤ limit)."""
-        # Get the actual sag first, then use it as the limit
-        resp_base = client.post(self._URL, json=self._payload())
-        sag = resp_base.json()["sag"]
-        resp = client.post(self._URL, json=self._payload(min_clearance_m=sag))
-        assert resp.status_code == 200
-        assert resp.json()["within_clearance"] is True
-
-    def test_clearance_returns_sag_unchanged(self, client):
-        """min_clearance_m não altera o valor de sag calculado."""
-        resp_base = client.post(self._URL, json=self._payload())
-        resp_limit = client.post(self._URL, json=self._payload(min_clearance_m=6.0))
-        assert resp_base.json()["sag"] == pytest.approx(resp_limit.json()["sag"], rel=1e-9)

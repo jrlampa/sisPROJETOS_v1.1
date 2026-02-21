@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from __version__ import __version__  # noqa: E402
-from api.routes import catenary, converter, cqt, data, electrical, pole_load, project_creator
+from api.routes import catenary, converter, cqt, data, electrical, health, pole_load, project_creator
 
 
 def create_app() -> FastAPI:
@@ -71,6 +71,7 @@ def create_app() -> FastAPI:
 
     # Registro de rotas versionadas
     PREFIX = "/api/v1"
+    app.include_router(health.router)  # GET /health (sem prefix — padrão Docker/k8s)
     app.include_router(electrical.router, prefix=PREFIX)
     app.include_router(cqt.router, prefix=PREFIX)
     app.include_router(catenary.router, prefix=PREFIX)
@@ -78,11 +79,6 @@ def create_app() -> FastAPI:
     app.include_router(data.router, prefix=PREFIX)
     app.include_router(converter.router, prefix=PREFIX)
     app.include_router(project_creator.router, prefix=PREFIX)
-
-    @app.get("/health", tags=["Infra"], summary="Verificação de saúde da API")
-    def health_check():
-        """Retorna status da API e versão da aplicação."""
-        return {"status": "ok", "version": __version__}
 
     return app
 
