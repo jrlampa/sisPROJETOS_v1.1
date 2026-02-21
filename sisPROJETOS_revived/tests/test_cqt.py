@@ -22,6 +22,7 @@ class TestCQTLogic:
         assert hasattr(cqt, "TABELA_DEMANDA")
         assert hasattr(cqt, "CABOS_COEFS")
         assert cqt.UNIT_DIVISOR == 100.0
+        assert cqt.CQT_LIMIT_PERCENT == pytest.approx(5.0)
 
     def test_tabela_demanda_structure(self, cqt):
         """Testa estrutura da tabela de demanda."""

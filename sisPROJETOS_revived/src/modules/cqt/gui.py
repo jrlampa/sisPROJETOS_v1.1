@@ -207,7 +207,7 @@ class CQTGUI(ctk.CTkFrame):
                 p = r["ponto"].get().upper()
                 if p in res["results"]:
                     cqt = res["results"][p]["cqt_accumulated"]
-                    color = "red" if cqt > 5.0 else "white"  # ENEL uses 5 or 6 depending on case
+                    color = "red" if cqt > self.logic.CQT_LIMIT_PERCENT else "white"
                     r["ponto"].configure(text_color=color)
 
             # Share context for AI

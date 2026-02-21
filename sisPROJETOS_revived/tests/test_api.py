@@ -198,6 +198,26 @@ class TestCQTEndpoint:
         assert "fd" in data["summary"]
         assert "max_cqt" in data["summary"]
 
+    def test_summary_has_enel_compliance_fields(self, client):
+        """Resumo deve conter within_enel_limit, cqt_limit_percent (CNS-OMBR-MAT-19-0285)."""
+        payload = {"segments": self._VALID_SEGMENTS, "trafo_kva": 112.5, "social_class": "B"}
+        resp = client.post(self._URL, json=payload)
+        assert resp.status_code == 200
+        summary = resp.json()["summary"]
+        assert "within_enel_limit" in summary
+        assert "cqt_limit_percent" in summary
+        assert summary["cqt_limit_percent"] == pytest.approx(5.0)
+        assert isinstance(summary["within_enel_limit"], bool)
+
+    def test_response_has_segments_over_limit_field(self, client):
+        """Resposta deve conter segments_over_limit como lista (vazia ou preenchida)."""
+        payload = {"segments": self._VALID_SEGMENTS, "trafo_kva": 112.5, "social_class": "B"}
+        resp = client.post(self._URL, json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "segments_over_limit" in data
+        assert isinstance(data["segments_over_limit"], list)
+
     def test_sem_trafo_retorna_erro(self, client):
         segments = [
             {

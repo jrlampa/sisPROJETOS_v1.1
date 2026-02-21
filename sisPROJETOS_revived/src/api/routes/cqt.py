@@ -30,4 +30,6 @@ def calculate_cqt(request: CQTRequest) -> CQTResponse:
     """Calcula CQT por ordenação topológica dos trechos de rede."""
     segments = [seg.model_dump() for seg in request.segments]
     result = _logic.calculate(segments, request.trafo_kva, request.social_class)
-    return CQTResponse(**result)
+    # Promote segments_over_limit from summary to top-level for direct API access
+    segments_over_limit = result.get("summary", {}).get("segments_over_limit") if result.get("success") else None
+    return CQTResponse(**result, segments_over_limit=segments_over_limit)

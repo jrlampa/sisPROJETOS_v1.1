@@ -15,6 +15,11 @@ class CQTLogic:
     momento elétrico, fator de demanda, e dimensionamento de redes de distribuição.
     """
 
+    # Limite máximo de CQT acumulado por trecho — metodologia Enel CNS-OMBR-MAT-19-0285.
+    # Critério de projeto (design threshold), mais conservador que o limite de conformidade
+    # PRODIST Módulo 8 (8%), garantindo margem operacional adequada em BT residencial.
+    CQT_LIMIT_PERCENT: float = 5.0
+
     def __init__(self) -> None:
         """Inicializa a lógica de CQT e carrega coeficientes do banco."""
         self.db = DatabaseManager()
@@ -210,13 +215,19 @@ class CQTLogic:
             results[p]["cqt_accumulated"] = cqt_accum.get(pai, 0.0) + q_trecho
             cqt_accum[p] = results[p]["cqt_accumulated"]
 
+        max_cqt = max(r["cqt_accumulated"] for r in results.values())
+        segments_over_limit = [p for p, r in results.items() if r["cqt_accumulated"] > self.CQT_LIMIT_PERCENT]
+
         return {
             "success": True,
             "results": results,
             "summary": {
                 "fd": fd,
                 "total_clients": total_clients,
-                "max_cqt": max(r["cqt_accumulated"] for r in results.values()),
+                "max_cqt": max_cqt,
                 "total_kva": results["TRAFO"]["accumulated"],
+                "cqt_limit_percent": self.CQT_LIMIT_PERCENT,
+                "within_enel_limit": max_cqt <= self.CQT_LIMIT_PERCENT,
+                "segments_over_limit": segments_over_limit,
             },
         }

@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-
 # ── Infraestrutura ────────────────────────────────────────────────────────────
 
 
@@ -168,6 +167,13 @@ class CQTResponse(BaseModel):
     results: Optional[Dict[str, Any]] = None
     summary: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    segments_over_limit: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Identificadores dos trechos com CQT acumulado acima do limite de projeto "
+            "(CNS-OMBR-MAT-19-0285). Lista vazia indica rede dentro do critério Enel."
+        ),
+    )
 
 
 # ── Catenária ─────────────────────────────────────────────────────────────────
