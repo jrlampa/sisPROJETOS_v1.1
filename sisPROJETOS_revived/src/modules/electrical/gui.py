@@ -2,9 +2,19 @@ from tkinter import messagebox
 
 import customtkinter as ctk
 
+from domain.standards import get_standard_by_name
 from styles import DesignSystem
 
 from .logic import ElectricalLogic
+
+# Mapeamento: texto exibido no ComboBox → nome interno do padrão normativo
+_STANDARD_DISPLAY_MAP: dict[str, str] = {
+    "NBR 5410 (5%)": "NBR 5410",
+    "PRODIST BT — 8% (ANEEL)": "PRODIST Módulo 8 — BT",
+    "PRODIST MT — 7% (ANEEL)": "PRODIST Módulo 8 — MT",
+    "Light BT — 8% (Concessionária)": "Light — BT (PRODIST Módulo 8)",
+    "Enel BT — 8% (Concessionária)": "Enel — BT (PRODIST Módulo 8)",
+}
 
 
 class ElectricalGUI(ctk.CTkFrame):
@@ -46,6 +56,12 @@ class ElectricalGUI(ctk.CTkFrame):
         self.cmb_phases = self.create_combo(
             self.right_col, "Fases:", ["3 (Trifásico)", "1 (Monofásico)"], "3 (Trifásico)"
         )
+        self.cmb_standard = self.create_combo(
+            self.right_col,
+            "Norma Regulatória:",
+            list(_STANDARD_DISPLAY_MAP.keys()),
+            "NBR 5410 (5%)",
+        )
 
         # Buttons
         self.btn_calc = ctk.CTkButton(
@@ -66,6 +82,16 @@ class ElectricalGUI(ctk.CTkFrame):
             text_color=DesignSystem.TEXT_DIM,
         )
         self.lbl_res.pack(pady=20)
+
+        # Toast para aviso de norma que sobrepõe ABNT (PRODIST / Concessionária)
+        self.lbl_toast = ctk.CTkLabel(
+            self.res_frame,
+            text="",
+            font=DesignSystem.FONT_BODY,
+            text_color=DesignSystem.ACCENT_WARNING,
+            wraplength=500,
+        )
+        self.lbl_toast.pack(pady=(0, 10))
 
         self.btn_back = ctk.CTkButton(
             self,
@@ -103,19 +129,39 @@ class ElectricalGUI(ctk.CTkFrame):
             sec = self.cmb_sec.get()
             phases = 3 if "3" in self.cmb_phases.get() else 1
 
+            # Resolve norma regulatória selecionada
+            display_choice = self.cmb_standard.get()
+            standard_name = _STANDARD_DISPLAY_MAP.get(display_choice, "NBR 5410")
+            standard = get_standard_by_name(standard_name)
+            if standard is None:
+                from domain.standards import NBR_5410
+
+                standard = NBR_5410
+
             res = self.logic.calculate_voltage_drop(power, dist, volt, mat, sec, phases=phases)
 
             if res:
-                color = DesignSystem.ACCENT_SUCCESS if res["allowed"] else DesignSystem.ACCENT_ERROR
-                status = "✅ DENTRO DO LIMITE (5%)" if res["allowed"] else "❌ FORA DO LIMITE (>5%)"
+                pct = res["percentage_drop"]
+                allowed = standard.check(pct)
+                limit = standard.max_drop_percent
+
+                color = DesignSystem.ACCENT_SUCCESS if allowed else DesignSystem.ACCENT_ERROR
+                status = f"✅ DENTRO DO LIMITE ({limit:.0f}%)" if allowed else f"❌ FORA DO LIMITE (>{limit:.0f}%)"
 
                 txt = (
                     f"Corrente: {res['current']:.2f} A\n"
                     f"Queda de Tensão: {res['delta_v_volts']:.2f} V\n"
-                    f"Percentual: {res['percentage_drop']:.2f}%\n\n"
+                    f"Percentual: {pct:.2f}%\n\n"
                     f"{status}"
                 )
                 self.lbl_res.configure(text=txt, text_color=color)
+
+                # Toast explícito quando norma de concessionária / PRODIST sobrepõe ABNT
+                if standard.overrides_abnt and standard.override_toast_pt_br:
+                    self.lbl_toast.configure(text=standard.override_toast_pt_br)
+                else:
+                    self.lbl_toast.configure(text="")
+
                 # Share context with AI
                 self.controller.project_context["electrical"] = res
             else:

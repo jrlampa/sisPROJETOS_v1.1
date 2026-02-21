@@ -81,6 +81,20 @@ class CatenaryGUI(ctk.CTkFrame):
         self.inputs["hb"].insert(0, "10")
         self.inputs["tension"].insert(0, "1000")
 
+        # Distância mínima ao solo — NBR 5422 (opcional)
+        ctk.CTkLabel(
+            self.controls_frame,
+            text="Dist. mínima ao solo (m) [NBR 5422]:",
+            font=DesignSystem.FONT_BODY,
+            text_color=DesignSystem.TEXT_DIM,
+        ).pack(anchor="w", padx=15)
+        self.ent_clearance = ctk.CTkEntry(
+            self.controls_frame,
+            placeholder_text="Ex: 6.0 (BT urbana), 5.5 (BT rural)…",
+            **DesignSystem.get_entry_style(),
+        )
+        self.ent_clearance.pack(fill="x", padx=15, pady=5)
+
         # Action Buttons
         self.btn_calc = ctk.CTkButton(
             self.controls_frame, text="Calcular", command=self.calculate, **DesignSystem.get_button_style("primary")
@@ -156,7 +170,26 @@ class CatenaryGUI(ctk.CTkFrame):
 
             if result:
                 self.curve_data = result
-                self.lbl_result.configure(text=f"Flecha: {result['sag']:.2f} m")
+                sag = result["sag"]
+                result_text = f"Flecha: {sag:.2f} m"
+
+                # Verificação de folga ao solo (NBR 5422) — opcional
+                clearance_raw = self.ent_clearance.get().strip()
+                if clearance_raw:
+                    try:
+                        min_clearance = float(clearance_raw)
+                        if min_clearance > 0:
+                            # Altura mínima do condutor = menor suporte − flecha (NBR 5422)
+                            h_min = min(ha, hb) - sag
+                            within = h_min >= min_clearance
+                            if within:
+                                result_text += f"\n✅ Folga OK (h_min={h_min:.2f} m ≥ {min_clearance:.1f} m)"
+                            else:
+                                result_text += f"\n❌ Folga insuficiente (h_min={h_min:.2f} m < {min_clearance:.1f} m)"
+                    except ValueError:
+                        pass  # Campo inválido → ignora verificação de folga
+
+                self.lbl_result.configure(text=result_text)
                 self.plot(result)
                 # Share context with AI
                 self.controller.project_context["catenary"] = result
