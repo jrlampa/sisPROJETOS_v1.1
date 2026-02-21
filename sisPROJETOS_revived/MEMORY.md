@@ -12,7 +12,7 @@
 **Tipo:** Aplicação Desktop Python (Windows 10/11)  
 **Domínio:** Engenharia Elétrica — Projetos de Redes de Distribuição  
 **Idioma da Interface:** Português Brasileiro (pt-BR)  
-**Maturidade:** Produção (v2.1.4 — cobertura de testes 100%)
+**Maturidade:** Produção (v2.2.0 — cobertura de testes 100%, API REST Half-way BIM)
 
 ---
 
@@ -40,6 +40,8 @@ Main (Controller) → orquestra → GUIs
 | KML/KMZ | fastkml | <1.0 |
 | IA | Groq (LLaMA 3.3) | 0.13+ |
 | Env | python-dotenv | 1.0+ |
+| **API REST** | **FastAPI + uvicorn** | **0.129+** |
+| **API Schemas** | **Pydantic** | **2.x** |
 
 ---
 
@@ -57,6 +59,17 @@ Main (Controller) → orquestra → GUIs
 | `converter` | `logic.py` | `gui.py` | KMZ→UTM→DXF (Google Earth) |
 | `ai_assistant` | `logic.py` | `gui.py` | Assistente IA via Groq API |
 | `settings` | — | `gui.py` | Configurações e cadastros |
+
+### API REST (src/api/) — Half-way BIM
+
+| Arquivo | Responsabilidade |
+|---------|-----------------|
+| `app.py` | Fábrica FastAPI + registro de rotas |
+| `schemas.py` | Modelos Pydantic (request/response) |
+| `routes/electrical.py` | POST `/api/v1/electrical/voltage-drop` |
+| `routes/cqt.py` | POST `/api/v1/cqt/calculate` |
+| `routes/catenary.py` | POST `/api/v1/catenary/calculate` |
+| `routes/pole_load.py` | POST `/api/v1/pole-load/resultant` |
 
 ### Utilitários (src/utils/)
 
@@ -145,7 +158,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 ## 🧪 Estratégia de Testes
 
 **Framework:** pytest + pytest-mock + pytest-cov  
-**Total de testes:** 289 (todos passando)  
+**Total de testes:** 388 (todos passando)  
 **Cobertura estimada:** **100%** (excluindo GUI/main.py via .coveragerc)
 
 ### Mapeamento de Testes
@@ -167,6 +180,7 @@ app_settings      -- Configurações persistentes (updates, tema, etc.)
 | `test_version_styles.py` | `__version__.py`, `styles.py`, `utils/__init__.py` | ✅ |
 | `test_sanitizer.py` | `utils/sanitizer.py` | ✅ |
 | `test_resource_manager.py` | `utils/resource_manager.py` | ✅ |
+| `test_api.py` | `api/` (todos os endpoints REST) | ✅ |
 
 ### Executar Testes
 
@@ -316,8 +330,10 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 🟡 Média | Tabela `poles` vazia no banco de dados | ✅ Corrigido | `src/database/db_manager.py` |
 | 🟡 Média | `resistivity` ausente em `cable_technical_data` | ✅ Corrigido | `src/database/db_manager.py` |
 | 🟡 Média | Resistividade do Al hardcoded como fallback | ✅ Corrigido | `electrical/logic.py` (agora do DB) |
-| 🟢 Baixa | Dark mode não implementado | Roadmap v2.2 | `src/styles.py` |
-| 🟢 Baixa | Plugin architecture | Roadmap v2.2 | N/A |
+| 🟡 Média | Logger ausente em `cqt/logic.py` | ✅ Corrigido | `src/modules/cqt/logic.py` |
+| 🟡 Média | Sanitizer não integrado em logic modules | ✅ Corrigido | `electrical/logic.py` usa sanitizer |
+| 🟢 Baixa | Dark mode não implementado | ✅ Implementado v2.2.0 | `src/styles.py` |
+| 🟢 Baixa | Plugin architecture | Roadmap v2.3 | N/A |
 
 ---
 
@@ -335,11 +351,27 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 - [x] Módulo `utils/sanitizer.py` — sanitização centralizada de dados de entrada (v2.1.4)
 - [x] 64 novos testes unitários para sanitizer (353 testes total)
 
-### v2.2.0 (Q3 2026)
+### v2.2.0 (Q1 2026 — Atual)
+- [x] API REST FastAPI para integração Half-way BIM (`src/api/`)
+  - [x] POST `/api/v1/electrical/voltage-drop` — Queda de tensão (NBR 5410)
+  - [x] POST `/api/v1/cqt/calculate` — CQT/BDI (Metodologia Enel)
+  - [x] POST `/api/v1/catenary/calculate` — Catenária (NBR 5422)
+  - [x] POST `/api/v1/pole-load/resultant` — Esforços em postes + sugestão
+  - [x] GET `/health` — Health check
+  - [x] Documentação OpenAPI automática (Swagger UI + ReDoc)
+  - [x] CORS configurado para integração BIM
+- [x] Dark mode — `src/styles.py` com `set_dark_mode()` / `is_dark_mode()`
+- [x] Logger integrado em `cqt/logic.py` (padronização com outros módulos)
+- [x] Sanitizer integrado em `electrical/logic.py` (get_resistivity + calculate_voltage_drop)
+- [x] FastAPI + uvicorn + httpx adicionados ao requirements.txt
+- [x] `run_api.py` — script de entrada para API REST
+- [x] Docker: EXPOSE 8000, variáveis API_HOST/API_PORT, serviço `api` no compose
+- [x] 388 testes total (35 novos: 27 API + 8 dark mode)
+
+### v2.3.0 (Q3 2026)
 - [ ] Plugin architecture
-- [ ] RESTful API (FastAPI) — para integração BIM
-- [ ] Dark mode
 - [ ] Multi-language support (i18n)
+- [ ] Dark mode persistido em app_settings (DB)
 
 ### v3.0.0 (2027)
 - [ ] Web version (React + FastAPI)
@@ -370,6 +402,7 @@ Ao criar um novo módulo em `src/modules/novo_modulo/`:
 | 2026-02-21 | 2.1.2 | Aumentar cobertura de 90% → 97% (273 testes, +29); converter/logic.py: 72% → 100%; catenaria/logic.py: 85% → 100%; project_creator/logic.py: 86% → 100%; novos testes: KMZ loading, geo_interface (Point/LineString/Polygon), path traversal em CSV, falhas de DB, export_dxf, templates_dir ausente, cópia de template com erro, PermissionError/OSError |
 | 2026-02-21 | 2.1.3 | Cobertura de testes 97% → **100%** (289 testes, +16); populado tabela `poles` (13 postes NBR) e `resistivity` no DB; adicionados testes para: cos_phi inválido, fases inválidas, fallback DB em electrical; get_concessionaires exception, get_concessionaire_method DB error, load_poles exception, load_poles loop, ciclo CQT, fallback cables; Groq init com API key; db_manager default path (cópia de recurso, falha de permissão, recurso ausente); pragma no cover em linhas de plataforma Windows e ramos de segurança simbólica |
 | 2026-02-21 | 2.1.4 | Criar `utils/sanitizer.py` (sanitização centralizada: sanitize_string, sanitize_numeric, sanitize_positive, sanitize_power_factor, sanitize_phases, sanitize_filepath, sanitize_code); criar `tests/test_sanitizer.py` (64 testes); 353 testes total; corrigir TODO desatualizado em ARCHITECTURE.md; atualizar docstring de utils/__init__.py; bump versão 2.1.3 → 2.1.4 |
+| 2026-02-21 | 2.2.0 | API REST FastAPI (`src/api/`) com 4 endpoints de cálculo + health check; dark mode em `src/styles.py`; logger integrado em `cqt/logic.py`; sanitizer integrado em `electrical/logic.py`; FastAPI/uvicorn/httpx em requirements.txt; `run_api.py`; Docker EXPOSE 8000 + serviço `api`; 388 testes total (+35: 27 API + 8 dark mode); bump versão 2.1.4 → 2.2.0 |
 
 ---
 

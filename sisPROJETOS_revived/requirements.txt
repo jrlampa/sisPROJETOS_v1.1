@@ -11,6 +11,10 @@ setuptools  # Required by fastkml for pkg_resources
 # Future AI Module
 groq
 python-dotenv
+# REST API — Integração Half-way BIM
+fastapi
+uvicorn[standard]
+httpx  # HTTP client para testes da API
 # Testing
 pytest
 pytest-cov

@@ -10,7 +10,7 @@ FROM python:3.12-slim
 
 LABEL maintainer="João Rodrigo Lampa <contato@exemplo.com.br>"
 LABEL description="sisPROJETOS - Sistema Integrado de Projetos Elétricos"
-LABEL version="2.1.0"
+LABEL version="2.2.0"
 
 # Variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
@@ -18,7 +18,9 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     LOG_LEVEL=INFO \
-    DEBUG=False
+    DEBUG=False \
+    API_HOST=0.0.0.0 \
+    API_PORT=8000
 
 # Instalar dependências do sistema necessárias para tkinter e matplotlib
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -45,6 +47,9 @@ USER appuser
 
 # Diretório de logs e dados
 RUN mkdir -p /home/appuser/.local/share/sisPROJETOS/logs
+
+# Expõe porta da API REST (Half-way BIM)
+EXPOSE 8000
 
 # Ponto de entrada padrão: executar testes
 CMD ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]

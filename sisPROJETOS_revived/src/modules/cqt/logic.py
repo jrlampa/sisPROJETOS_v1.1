@@ -1,5 +1,9 @@
 from collections import deque, defaultdict
 from database.db_manager import DatabaseManager
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class CQTLogic:

@@ -177,3 +177,74 @@ class TestSecureResourcePath:
         result = resource_path("src/resources/sisprojetos.db")
         assert isinstance(result, str)
         assert "sisprojetos.db" in result
+
+
+# ---------------------------------------------------------------------------
+# Testes de modo escuro — set_dark_mode / is_dark_mode
+# ---------------------------------------------------------------------------
+
+class TestDarkMode:
+    def setup_method(self):
+        """Garante que o modo escuro começa desativado antes de cada teste."""
+        import src.styles as styles_mod
+        styles_mod.set_dark_mode(False)
+
+    def teardown_method(self):
+        """Restaura modo claro ao finalizar cada teste."""
+        import src.styles as styles_mod
+        styles_mod.set_dark_mode(False)
+
+    def test_dark_mode_off_by_default(self):
+        import src.styles as styles_mod
+        assert styles_mod.is_dark_mode() is False
+
+    def test_set_dark_mode_on(self):
+        import src.styles as styles_mod
+        styles_mod.set_dark_mode(True)
+        assert styles_mod.is_dark_mode() is True
+
+    def test_set_dark_mode_off(self):
+        import src.styles as styles_mod
+        styles_mod.set_dark_mode(True)
+        styles_mod.set_dark_mode(False)
+        assert styles_mod.is_dark_mode() is False
+
+    def test_dark_bg_color_changes(self):
+        from src.styles import DesignSystem
+        import src.styles as styles_mod
+        light_bg = DesignSystem.get_bg_color()
+        styles_mod.set_dark_mode(True)
+        dark_bg = DesignSystem.get_bg_color()
+        assert light_bg != dark_bg
+
+    def test_dark_text_color_changes(self):
+        from src.styles import DesignSystem
+        import src.styles as styles_mod
+        light_text = DesignSystem.get_text_color()
+        styles_mod.set_dark_mode(True)
+        dark_text = DesignSystem.get_text_color()
+        assert light_text != dark_text
+
+    def test_dark_frame_style_changes(self):
+        from src.styles import DesignSystem
+        import src.styles as styles_mod
+        light_style = DesignSystem.get_frame_style()
+        styles_mod.set_dark_mode(True)
+        dark_style = DesignSystem.get_frame_style()
+        assert light_style["fg_color"] != dark_style["fg_color"]
+
+    def test_dark_entry_style_changes(self):
+        from src.styles import DesignSystem
+        import src.styles as styles_mod
+        light_style = DesignSystem.get_entry_style()
+        styles_mod.set_dark_mode(True)
+        dark_style = DesignSystem.get_entry_style()
+        assert light_style["text_color"] != dark_style["text_color"]
+
+    def test_dark_colors_are_valid_hex(self):
+        from src.styles import DesignSystem
+        hex_pattern = re.compile(r"^#[0-9A-Fa-f]{6}$")
+        dark_attrs = ["DARK_BG_WINDOW", "DARK_FRAME_BG", "DARK_FRAME_BORDER", "DARK_TEXT_MAIN", "DARK_TEXT_DIM"]
+        for attr in dark_attrs:
+            value = getattr(DesignSystem, attr)
+            assert hex_pattern.match(value), f"{attr}='{value}' não é uma cor hex válida"
