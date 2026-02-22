@@ -15,6 +15,11 @@ from modules.project_creator.logic import ProjectCreatorLogic
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Diretório raiz seguro onde os projetos devem estar localizados.
+# Ajuste este caminho conforme a configuração real do ambiente.
+PROJECTS_ROOT = Path("/srv/projects").resolve()
+
 router = APIRouter(prefix="/projects", tags=["Projetos"])
 _logic = ProjectCreatorLogic()
 
@@ -54,11 +59,23 @@ def list_projects(
     """Lista subdiretórios de projetos criados em base_path."""
     logger.debug("API: listando projetos em '%s'", base_path)
 
-    # Path traversal protection: reject null bytes and non-absolute paths
+    # Path traversal protection: reject null bytes
     if "\x00" in base_path:
         raise HTTPException(status_code=422, detail="Caminho inválido: contém caracteres nulos.")
 
+    # Normaliza e valida o caminho informado para garantir que está dentro de PROJECTS_ROOT
     resolved = Path(base_path).resolve()
+    try:
+        projects_root = PROJECTS_ROOT
+    except Exception:
+        projects_root = PROJECTS_ROOT  # fallback trivial, mantido por clareza
+
+    if projects_root not in (resolved, *resolved.parents):
+        raise HTTPException(
+            status_code=422,
+            detail="Caminho base inválido: fora do diretório raiz de projetos configurado.",
+        )
+
     if not resolved.is_dir():
         raise HTTPException(
             status_code=404,
