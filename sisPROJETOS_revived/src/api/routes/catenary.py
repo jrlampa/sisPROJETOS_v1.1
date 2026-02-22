@@ -11,7 +11,14 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 
-from api.schemas import CatenaryDxfRequest, CatenaryDxfResponse, CatenaryRequest, CatenaryResponse
+from api.schemas import (
+    CatenaryDxfRequest,
+    CatenaryDxfResponse,
+    CatenaryRequest,
+    CatenaryResponse,
+    ClearancesResponse,
+    ClearanceTypeOut,
+)
 from domain.services import CatenaryDomainService
 from domain.value_objects import CatenaryResult
 from modules.catenaria.logic import CatenaryLogic
@@ -22,6 +29,54 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/catenary", tags=["Catenária"])
 _logic = CatenaryLogic()
 _domain_service = CatenaryDomainService()
+
+# ── Tabela de folgas mínimas NBR 5422 / PRODIST Módulo 6 ─────────────────────
+# Valores de referência para o campo min_clearance_m do endpoint /calculate.
+# Hierarquia: norma da concessionária > ANEEL/PRODIST > ABNT.
+_CLEARANCES: List[ClearanceTypeOut] = [
+    ClearanceTypeOut(
+        network_type="BT_URBANA",
+        description="Baixa Tensão — Área Urbana (≤ 1 kV)",
+        min_clearance_m=6.0,
+        standard_ref="NBR 5422 Tabela 6 / PRODIST Módulo 6",
+    ),
+    ClearanceTypeOut(
+        network_type="BT_RURAL",
+        description="Baixa Tensão — Área Rural (≤ 1 kV)",
+        min_clearance_m=5.5,
+        standard_ref="NBR 5422 Tabela 6 / PRODIST Módulo 6",
+    ),
+    ClearanceTypeOut(
+        network_type="MT_URBANA",
+        description="Média Tensão — Área Urbana (1–36 kV)",
+        min_clearance_m=7.0,
+        standard_ref="NBR 5422 Tabela 6 / PRODIST Módulo 6 / Light e Enel",
+    ),
+    ClearanceTypeOut(
+        network_type="MT_RURAL",
+        description="Média Tensão — Área Rural (1–36 kV)",
+        min_clearance_m=7.0,
+        standard_ref="NBR 5422 Tabela 6 / PRODIST Módulo 6",
+    ),
+    ClearanceTypeOut(
+        network_type="AT_69KV",
+        description="Alta Tensão — 69 kV",
+        min_clearance_m=8.5,
+        standard_ref="NBR 5422 Tabela 6",
+    ),
+    ClearanceTypeOut(
+        network_type="AT_138KV",
+        description="Alta Tensão — 138 kV",
+        min_clearance_m=9.5,
+        standard_ref="NBR 5422 Tabela 6",
+    ),
+    ClearanceTypeOut(
+        network_type="AT_230KV",
+        description="Alta Tensão — 230 kV",
+        min_clearance_m=10.5,
+        standard_ref="NBR 5422 Tabela 6",
+    ),
+]
 
 
 @router.post(
@@ -115,4 +170,24 @@ def generate_catenary_dxf(request: CatenaryDxfRequest) -> CatenaryDxfResponse:
         filename=safe_filename,
         sag=float(result["sag"]),
         catenary_constant=float(result["catenary_constant"]),
+    )
+
+
+@router.get(
+    "/clearances",
+    response_model=ClearancesResponse,
+    summary="Tabela de folgas mínimas ao solo por tipo de rede (NBR 5422 / PRODIST Módulo 6)",
+    description=(
+        "Retorna a tabela de distâncias mínimas de segurança ao solo para cada tipo de rede elétrica "
+        "conforme NBR 5422 Tabela 6 e PRODIST Módulo 6. "
+        "Use o valor de 'min_clearance_m' do tipo de rede correspondente como parâmetro "
+        "'min_clearance_m' no endpoint POST /api/v1/catenary/calculate para verificar conformidade NBR 5422. "
+        "Quando a concessionária possuir norma própria, seu valor prevalece sobre a ABNT (exibir toast)."
+    ),
+)
+def get_clearances() -> ClearancesResponse:
+    """Retorna tabela de folgas mínimas ao solo por tipo de rede (NBR 5422 / PRODIST Módulo 6)."""
+    return ClearancesResponse(
+        clearances=_CLEARANCES,
+        count=len(_CLEARANCES),
     )

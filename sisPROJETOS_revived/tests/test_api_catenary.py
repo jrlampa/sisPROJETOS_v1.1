@@ -260,3 +260,50 @@ class TestCatenaryNBR5422Clearance:
         resp_base = client.post(self._URL, json=self._payload())
         resp_limit = client.post(self._URL, json=self._payload(min_clearance_m=6.0))
         assert resp_base.json()["sag"] == pytest.approx(resp_limit.json()["sag"], rel=1e-9)
+
+
+# ── Tabela de Folgas NBR 5422 / PRODIST Módulo 6 ─────────────────────────────
+
+
+class TestCatenaryNBR5422ClearancesTable:
+    """Testes para GET /api/v1/catenary/clearances (tabela de folgas mínimas)."""
+
+    _URL = "/api/v1/catenary/clearances"
+
+    def test_clearances_retorna_200(self, client):
+        """GET /clearances retorna HTTP 200."""
+        resp = client.get(self._URL)
+        assert resp.status_code == 200
+
+    def test_clearances_tem_campos_obrigatorios(self, client):
+        """Resposta contém clearances, count e note."""
+        data = client.get(self._URL).json()
+        assert "clearances" in data
+        assert "count" in data
+        assert "note" in data
+
+    def test_clearances_count_igual_len_lista(self, client):
+        """Campo count reflete o tamanho real da lista."""
+        data = client.get(self._URL).json()
+        assert data["count"] == len(data["clearances"])
+
+    def test_clearances_bt_urbana_tem_6m(self, client):
+        """BT_URBANA deve ter folga mínima de 6.0 m (NBR 5422 / PRODIST Módulo 6)."""
+        data = client.get(self._URL).json()
+        bt_urbana = next((c for c in data["clearances"] if c["network_type"] == "BT_URBANA"), None)
+        assert bt_urbana is not None
+        assert bt_urbana["min_clearance_m"] == pytest.approx(6.0)
+
+    def test_clearances_bt_rural_tem_5_5m(self, client):
+        """BT_RURAL deve ter folga mínima de 5.5 m."""
+        data = client.get(self._URL).json()
+        bt_rural = next((c for c in data["clearances"] if c["network_type"] == "BT_RURAL"), None)
+        assert bt_rural is not None
+        assert bt_rural["min_clearance_m"] == pytest.approx(5.5)
+
+    def test_clearances_mt_maior_que_bt(self, client):
+        """Folga MT deve ser maior que folga BT (hierarquia de segurança)."""
+        data = client.get(self._URL).json()
+        clearances = {c["network_type"]: c["min_clearance_m"] for c in data["clearances"]}
+        assert clearances["MT_URBANA"] > clearances["BT_URBANA"]
+        assert clearances["MT_RURAL"] > clearances["BT_RURAL"]

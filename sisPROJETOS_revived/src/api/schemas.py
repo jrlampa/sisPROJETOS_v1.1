@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field
 
 # Re-exporta schemas BIM para que os arquivos de rota não precisem mudar.
 from api.schemas_bim import (  # noqa: F401
+    ClearancesResponse,
+    ClearanceTypeOut,
     KmlConvertRequest,
     KmlConvertResponse,
     KmlPointOut,

@@ -5,6 +5,7 @@ Contém modelos de entrada/saída para:
 - Conversor KML/KMZ → UTM (geoespacial)
 - Conversor UTM → DXF (CAD 2.5D)
 - Criador de Projetos (estrutura de pastas)
+- Folgas mínimas NBR 5422 / PRODIST Módulo 6 (referência catenária)
 
 Importado e re-exportado por ``api.schemas`` para manter compatibilidade
 com todos os arquivos de rota existentes.
@@ -138,3 +139,33 @@ class ProjectListResponse(BaseModel):
     base_path: str = Field(..., description="Diretório base pesquisado")
     projects: List[str] = Field(..., description="Nomes dos diretórios de projeto encontrados")
     count: int = Field(..., description="Número de projetos encontrados")
+
+
+# ── Folgas Mínimas NBR 5422 / PRODIST (Catenária) ────────────────────────────
+
+
+class ClearanceTypeOut(BaseModel):
+    """Folga mínima ao solo por tipo de rede elétrica (NBR 5422 / PRODIST Módulo 6)."""
+
+    network_type: str = Field(..., description="Código do tipo de rede (ex: 'BT_URBANA')")
+    description: str = Field(..., description="Descrição legível do tipo de rede")
+    min_clearance_m: float = Field(..., description="Folga mínima ao solo em metros")
+    standard_ref: str = Field(..., description="Referência normativa aplicável")
+
+
+class ClearancesResponse(BaseModel):
+    """Tabela de folgas mínimas ao solo por tipo de rede (NBR 5422 / PRODIST Módulo 6).
+
+    Use ``min_clearance_m`` do item correspondente como valor para o campo
+    ``min_clearance_m`` no endpoint POST /api/v1/catenary/calculate.
+    """
+
+    clearances: List[ClearanceTypeOut] = Field(..., description="Lista de folgas por tipo de rede")
+    count: int = Field(..., description="Número de tipos de rede listados")
+    note: str = Field(
+        default=(
+            "Distâncias mínimas de segurança conforme NBR 5422 Tabela 6 e PRODIST Módulo 6. "
+            "Aplique a norma da concessionária quando disponível (prevalece sobre ABNT)."
+        ),
+        description="Nota sobre hierarquia normativa",
+    )
