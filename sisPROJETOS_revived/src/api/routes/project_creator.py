@@ -7,6 +7,7 @@ Endpoints:
 """
 
 from pathlib import Path
+import os
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -18,7 +19,12 @@ logger = get_logger(__name__)
 
 # Diretório raiz seguro onde os projetos devem estar localizados.
 # Ajuste este caminho conforme a configuração real do ambiente.
+# Diretório raiz seguro para listagem de projetos. Pode ser configurado via variável de ambiente.
+PROJECTS_ROOT = Path(
+    os.getenv("SISPROJETOS_PROJECTS_ROOT", "/srv/sisprojetos/projects")
+).resolve()
 PROJECTS_ROOT = Path("/srv/projects").resolve()
+
 
 router = APIRouter(prefix="/projects", tags=["Projetos"])
 _logic = ProjectCreatorLogic()
@@ -54,10 +60,34 @@ def create_project(request: ProjectCreateRequest) -> ProjectCreateResponse:
     ),
 )
 def list_projects(
-    base_path: str = Query(..., description="Caminho absoluto do diretório base a pesquisar"),
+    # Path traversal protection: rejeita bytes nulos
 ) -> ProjectListResponse:
     """Lista subdiretórios de projetos criados em base_path."""
     logger.debug("API: listando projetos em '%s'", base_path)
+
+    # Garante que o caminho solicitado esteja dentro do diretório raiz de projetos
+    try:
+        # Python 3.9+: is_relative_to está disponível
+        is_within_root = resolved.is_relative_to(PROJECTS_ROOT)
+    except AttributeError:
+        # Fallback para versões mais antigas do Python
+        try:
+            resolved.relative_to(PROJECTS_ROOT)
+            is_within_root = True
+        except ValueError:
+            is_within_root = False
+
+    if not is_within_root:
+        logger.warning(
+            "Tentativa de acesso a diretório fora da raiz de projetos: '%s' (root: '%s')",
+            resolved,
+            PROJECTS_ROOT,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Caminho fora da área permitida para projetos.",
+        )
+
 
     # Path traversal protection: reject null bytes
     if "\x00" in base_path:
