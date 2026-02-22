@@ -4,6 +4,8 @@ Rota de cálculo de catenária — API REST sisPROJETOS.
 Endpoints:
 - POST /api/v1/catenary/calculate   Calcula flecha e constante catenária (NBR 5422).
 - POST /api/v1/catenary/dxf         Gera arquivo DXF da curva catenária (retorna Base64).
+- POST /api/v1/catenary/batch       Calcula múltiplos vãos em lote (BIM efficiency).
+- GET  /api/v1/catenary/clearances  Tabela de folgas mínimas NBR 5422 / PRODIST Módulo 6.
 """
 
 import base64
@@ -12,6 +14,9 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 
 from api.schemas import (
+    CatenaryBatchRequest,
+    CatenaryBatchResponse,
+    CatenaryBatchResponseItem,
     CatenaryDxfRequest,
     CatenaryDxfResponse,
     CatenaryRequest,
@@ -190,4 +195,80 @@ def get_clearances() -> ClearancesResponse:
     return ClearancesResponse(
         clearances=_CLEARANCES,
         count=len(_CLEARANCES),
+    )
+
+
+@router.post(
+    "/batch",
+    response_model=CatenaryBatchResponse,
+    summary="Cálculo de catenária em lote (múltiplos vãos — BIM)",
+    description=(
+        "Calcula flecha, tensão e constante catenária para até 20 vãos em uma única chamada, "
+        "evitando N chamadas individuais ao endpoint /calculate. "
+        "Ideal para integração BIM com linhas de distribuição com múltiplos vãos. "
+        "Vãos com parâmetros inválidos retornam 'success=false' com descrição do erro, "
+        "sem abortar o processamento dos demais itens."
+    ),
+)
+def calculate_catenary_batch(request: CatenaryBatchRequest) -> CatenaryBatchResponse:
+    """Processa múltiplos vãos de catenária em lote; erros individuais não abortam o lote."""
+    response_items: List[CatenaryBatchResponseItem] = []
+
+    for idx, item in enumerate(request.items):
+        try:
+            result = _logic.calculate_catenary(
+                span=item.span,
+                ha=item.ha,
+                hb=item.hb,
+                tension_daN=item.tension_daN,
+                weight_kg_m=item.weight_kg_m,
+            )
+            if result is None:
+                response_items.append(
+                    CatenaryBatchResponseItem(
+                        index=idx,
+                        label=item.label,
+                        success=False,
+                        error="Peso linear zero ou dados inválidos para o cálculo.",
+                    )
+                )
+                continue
+
+            within_clearance: Optional[bool] = None
+            if item.min_clearance_m is not None:
+                domain_result = CatenaryResult(
+                    sag=float(result["sag"]),
+                    tension=float(result["tension"]),
+                    catenary_constant=float(result["catenary_constant"]),
+                )
+                within_clearance = _domain_service.is_within_clearance(domain_result, item.min_clearance_m)
+
+            response_items.append(
+                CatenaryBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=True,
+                    sag=float(result["sag"]),
+                    tension=float(result["tension"]),
+                    catenary_constant=float(result["catenary_constant"]),
+                    within_clearance=within_clearance,
+                )
+            )
+        except Exception as exc:
+            logger.warning("Erro no item %d do lote de catenária: %s", idx, exc)
+            response_items.append(
+                CatenaryBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=False,
+                    error=str(exc),
+                )
+            )
+
+    success_count = sum(1 for r in response_items if r.success)
+    return CatenaryBatchResponse(
+        count=len(response_items),
+        success_count=success_count,
+        error_count=len(response_items) - success_count,
+        items=response_items,
     )

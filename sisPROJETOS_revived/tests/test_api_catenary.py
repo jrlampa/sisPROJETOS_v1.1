@@ -307,3 +307,121 @@ class TestCatenaryNBR5422ClearancesTable:
         clearances = {c["network_type"]: c["min_clearance_m"] for c in data["clearances"]}
         assert clearances["MT_URBANA"] > clearances["BT_URBANA"]
         assert clearances["MT_RURAL"] > clearances["BT_RURAL"]
+
+
+# ── TestCatenaryBatchEndpoint ────────────────────────────────────────────────
+
+
+class TestCatenaryBatchEndpoint:
+    """Testes para POST /api/v1/catenary/batch — cálculo em lote (BIM multi-vão)."""
+
+    _URL = "/api/v1/catenary/batch"
+    _ITEM_100M = {"span": 100.0, "tension_daN": 2000.0, "ha": 10.0, "hb": 10.0, "weight_kg_m": 1.6}
+    _ITEM_500M = {"span": 500.0, "tension_daN": 2000.0, "ha": 10.0, "hb": 12.0, "weight_kg_m": 1.6}
+    _ITEM_1KM = {"span": 1000.0, "tension_daN": 2000.0, "ha": 12.0, "hb": 12.0, "weight_kg_m": 1.6}
+
+    def test_batch_single_item_success(self, client):
+        """Lote com um item válido retorna HTTP 200 com success=True."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_100M]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["success_count"] == 1
+        assert data["error_count"] == 0
+        assert data["items"][0]["success"] is True
+
+    def test_batch_three_spans_returns_three_items(self, client):
+        """Lote com 3 vãos retorna 3 itens."""
+        resp = client.post(
+            self._URL,
+            json={"items": [self._ITEM_100M, self._ITEM_500M, self._ITEM_1KM]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 3
+        assert data["success_count"] == 3
+        assert data["error_count"] == 0
+
+    def test_batch_sag_increases_with_span(self, client):
+        """Flecha deve aumentar com o vão (para mesma tensão e peso) — propriedade física."""
+        resp = client.post(
+            self._URL,
+            json={"items": [self._ITEM_100M, self._ITEM_500M, self._ITEM_1KM]},
+        )
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        sag_100 = items[0]["sag"]
+        sag_500 = items[1]["sag"]
+        sag_1000 = items[2]["sag"]
+        assert sag_100 < sag_500 < sag_1000
+
+    def test_batch_label_preserved_in_response(self, client):
+        """Label fornecido na entrada deve ser retornado na saída."""
+        item = {**self._ITEM_100M, "label": "Vão P1-P2"}
+        resp = client.post(self._URL, json={"items": [item]})
+        assert resp.status_code == 200
+        assert resp.json()["items"][0]["label"] == "Vão P1-P2"
+
+    def test_batch_index_matches_input_order(self, client):
+        """Campo 'index' deve corresponder à posição na lista de entrada."""
+        resp = client.post(
+            self._URL,
+            json={"items": [self._ITEM_100M, self._ITEM_500M]},
+        )
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        assert items[0]["index"] == 0
+        assert items[1]["index"] == 1
+
+    def test_batch_with_clearance_check(self, client):
+        """Vão com min_clearance_m deve retornar within_clearance na resposta."""
+        item = {**self._ITEM_100M, "min_clearance_m": 6.0}
+        resp = client.post(self._URL, json={"items": [item]})
+        assert resp.status_code == 200
+        result = resp.json()["items"][0]
+        assert result["within_clearance"] is not None
+        assert isinstance(result["within_clearance"], bool)
+
+    def test_batch_without_clearance_returns_none(self, client):
+        """Vão sem min_clearance_m deve retornar within_clearance=None."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_100M]})
+        assert resp.status_code == 200
+        assert resp.json()["items"][0]["within_clearance"] is None
+
+    def test_batch_invalid_item_does_not_abort_others(self, client):
+        """Item com weight_kg_m=0 falha mas os demais são calculados."""
+        invalid_item = {**self._ITEM_100M, "weight_kg_m": 0.0}
+        resp = client.post(
+            self._URL,
+            json={"items": [self._ITEM_100M, invalid_item, self._ITEM_500M]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 3
+        assert data["success_count"] == 2
+        assert data["error_count"] == 1
+        assert data["items"][1]["success"] is False
+        assert data["items"][1]["error"] is not None
+        assert data["items"][0]["success"] is True
+        assert data["items"][2]["success"] is True
+
+    def test_batch_empty_list_returns_422(self, client):
+        """Lista vazia deve retornar HTTP 422 (violação de min_length=1)."""
+        resp = client.post(self._URL, json={"items": []})
+        assert resp.status_code == 422
+
+    def test_batch_response_fields_present(self, client):
+        """Resposta deve conter todos os campos esperados do schema."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_100M]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "count" in data
+        assert "success_count" in data
+        assert "error_count" in data
+        assert "items" in data
+        item = data["items"][0]
+        assert "index" in item
+        assert "success" in item
+        assert "sag" in item
+        assert "tension" in item
+        assert "catenary_constant" in item

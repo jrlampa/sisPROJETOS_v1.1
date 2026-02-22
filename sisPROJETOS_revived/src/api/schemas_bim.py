@@ -6,6 +6,7 @@ Contém modelos de entrada/saída para:
 - Conversor UTM → DXF (CAD 2.5D)
 - Criador de Projetos (estrutura de pastas)
 - Folgas mínimas NBR 5422 / PRODIST Módulo 6 (referência catenária)
+- Cálculo em lote de catenárias (batch multi-vão)
 
 Importado e re-exportado por ``api.schemas`` para manter compatibilidade
 com todos os arquivos de rota existentes.
@@ -169,3 +170,122 @@ class ClearancesResponse(BaseModel):
         ),
         description="Nota sobre hierarquia normativa",
     )
+
+
+# ── Catenária em Lote (Batch) ─────────────────────────────────────────────────
+
+
+class CatenaryBatchItem(BaseModel):
+    """Parâmetros de um vão individual para cálculo de catenária em lote.
+
+    Todos os campos seguem as mesmas regras do endpoint POST /api/v1/catenary/calculate.
+    O campo ``label`` é opcional e serve apenas para identificação do item na resposta.
+    """
+
+    label: Optional[str] = Field(
+        default=None,
+        max_length=80,
+        description="Rótulo opcional para identificar o vão na resposta (ex: 'Vão P1-P2')",
+    )
+    span: float = Field(..., gt=0, description="Comprimento do vão em metros (> 0)")
+    tension_daN: float = Field(..., gt=0, description="Tensão mecânica horizontal do condutor em daN (> 0)")
+    ha: float = Field(..., description="Altura do ponto de fixação A em metros (suporte inicial)")
+    hb: float = Field(..., description="Altura do ponto de fixação B em metros (suporte final)")
+    weight_kg_m: float = Field(
+        ...,
+        ge=0,
+        description=(
+            "Peso linear do condutor em kg/m (≥ 0). "
+            "Valor 0 é aceito e resulta em success=False para o item sem abortar os demais vãos do lote."
+        ),
+    )
+    min_clearance_m: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Folga mínima ao solo para verificação NBR 5422 (opcional)",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "label": "Vão P1-P2",
+                "span": 100.0,
+                "tension_daN": 2000.0,
+                "ha": 10.0,
+                "hb": 10.0,
+                "weight_kg_m": 1.6,
+                "min_clearance_m": 6.0,
+            }
+        }
+    }
+
+
+class CatenaryBatchResponseItem(BaseModel):
+    """Resultado do cálculo de catenária para um vão individual."""
+
+    index: int = Field(..., description="Índice do item (base 0) na lista de entrada")
+    label: Optional[str] = Field(default=None, description="Rótulo fornecido na entrada")
+    success: bool = Field(..., description="True se o cálculo foi concluído com sucesso")
+    error: Optional[str] = Field(default=None, description="Mensagem de erro caso success=False")
+    sag: Optional[float] = Field(default=None, description="Flecha máxima em metros")
+    tension: Optional[float] = Field(default=None, description="Tensão mecânica em daN")
+    catenary_constant: Optional[float] = Field(default=None, description="Constante de catenária (a = T/w)")
+    within_clearance: Optional[bool] = Field(
+        default=None,
+        description="Resultado da verificação de folga mínima NBR 5422 (None se não solicitado)",
+    )
+
+
+class CatenaryBatchRequest(BaseModel):
+    """Dados de entrada para cálculo de catenária em lote (múltiplos vãos).
+
+    Permite calcular sag/tensão/constante para até 20 vãos em uma única chamada,
+    evitando N chamadas ao endpoint POST /api/v1/catenary/calculate.
+    Ideal para integração BIM com múltiplos vãos de uma linha de distribuição.
+    """
+
+    items: List[CatenaryBatchItem] = Field(..., min_length=1, max_length=20, description="Lista de vãos (1–20)")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "items": [
+                    {
+                        "label": "Vão P1-P2",
+                        "span": 100.0,
+                        "tension_daN": 2000.0,
+                        "ha": 10.0,
+                        "hb": 10.0,
+                        "weight_kg_m": 1.6,
+                        "min_clearance_m": 6.0,
+                    },
+                    {
+                        "label": "Vão P2-P3",
+                        "span": 500.0,
+                        "tension_daN": 2000.0,
+                        "ha": 10.0,
+                        "hb": 12.0,
+                        "weight_kg_m": 1.6,
+                    },
+                    {
+                        "label": "Vão P3-P4",
+                        "span": 1000.0,
+                        "tension_daN": 2000.0,
+                        "ha": 12.0,
+                        "hb": 12.0,
+                        "weight_kg_m": 1.6,
+                        "min_clearance_m": 5.5,
+                    },
+                ]
+            }
+        }
+    }
+
+
+class CatenaryBatchResponse(BaseModel):
+    """Resposta do cálculo de catenária em lote."""
+
+    count: int = Field(..., description="Número de vãos processados")
+    success_count: int = Field(..., description="Número de vãos calculados com sucesso")
+    error_count: int = Field(..., description="Número de vãos com erro de cálculo")
+    items: List[CatenaryBatchResponseItem] = Field(..., description="Resultados individuais por vão")

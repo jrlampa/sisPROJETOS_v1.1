@@ -278,6 +278,8 @@ class PoleLoadGUI(ctk.CTkFrame):
                 )
                 self.btn_report.configure(state="normal")
                 self.btn_suggest.configure(state="normal")
+                # Share context with AI assistant
+                self.controller.project_context["pole_load"] = res
 
         except ValueError:
             messagebox.showerror(
