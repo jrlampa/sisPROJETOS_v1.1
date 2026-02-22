@@ -20,9 +20,12 @@ from api.schemas_bim import (  # noqa: F401
     CatenaryBatchResponseItem,
     ClearancesResponse,
     ClearanceTypeOut,
+    ConcessionaireOut,
+    ConductorOut,
     KmlConvertRequest,
     KmlConvertResponse,
     KmlPointOut,
+    PoleOut,
     ProjectCreateRequest,
     ProjectCreateResponse,
     ProjectListResponse,
@@ -360,32 +363,6 @@ class PoleSuggestResponse(BaseModel):
     suggested_poles: List[Dict[str, Any]] = Field(..., description="Postes adequados ordenados por material")
 
 
-# ── Dados Mestres (BIM) ───────────────────────────────────────────────────────
-
-
-class ConductorOut(BaseModel):
-    """Dados de um condutor elétrico."""
-
-    name: str = Field(..., description="Nome/código do condutor")
-    weight_kg_m: float = Field(..., description="Peso linear em kg/m")
-
-
-class PoleOut(BaseModel):
-    """Dados de um poste de distribuição."""
-
-    material: str = Field(..., description="Material (Concreto, Madeira, Aço)")
-    format: str = Field(..., description="Formato (C, D, E, etc.)")
-    description: str = Field(..., description="Descrição técnica (altura/carga)")
-    nominal_load_daN: float = Field(..., description="Carga nominal em daN")
-
-
-class ConcessionaireOut(BaseModel):
-    """Dados de uma concessionária de energia."""
-
-    name: str = Field(..., description="Nome da concessionária")
-    method: str = Field(..., description="Método de cálculo (flecha, tabela)")
-
-
 # ── Relatório de Esforços em Postes (PDF) ─────────────────────────────────────
 
 
@@ -426,3 +403,93 @@ class PoleLoadReportResponse(BaseModel):
     pdf_base64: str = Field(..., description="Conteúdo do arquivo PDF codificado em Base64 (RFC 4648)")
     filename: str = Field(..., description="Nome sugerido para o arquivo PDF")
     resultant_force: float = Field(..., description="Força resultante calculada em daN")
+
+
+# ── Esforços em Postes em Lote (Batch) ───────────────────────────────────────
+
+
+class PoleLoadBatchItem(BaseModel):
+    """Parâmetros de um poste individual para cálculo de esforços em lote.
+
+    Todos os campos seguem as mesmas regras do endpoint POST /api/v1/pole-load/resultant.
+    O campo ``label`` é opcional e serve apenas para identificação do item na resposta.
+    """
+
+    label: Optional[str] = Field(
+        default=None,
+        max_length=80,
+        description="Rótulo opcional para identificar o poste na resposta (ex: 'Poste P1-P2')",
+    )
+    concessionaria: str = Field(..., description="Nome da concessionária (Light, Enel)")
+    condicao: str = Field(default="Normal", description="Condição de carga (Normal, Vento Forte, Gelo)")
+    cabos: List[CaboInput] = Field(..., min_length=1, description="Lista de condutores (mínimo 1)")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "label": "Poste P1-P2",
+                "concessionaria": "Light",
+                "condicao": "Normal",
+                "cabos": [{"condutor": "556MCM-CA, Nu", "vao": 80.0, "angulo": 30.0, "flecha": 1.5}],
+            }
+        }
+    }
+
+
+class PoleLoadBatchResponseItem(BaseModel):
+    """Resultado do cálculo de esforços para um poste individual."""
+
+    index: int = Field(..., description="Índice do item (base 0) na lista de entrada")
+    label: Optional[str] = Field(default=None, description="Rótulo fornecido na entrada")
+    success: bool = Field(..., description="True se o cálculo foi concluído com sucesso")
+    error: Optional[str] = Field(default=None, description="Mensagem de erro caso success=False")
+    resultant_force: Optional[float] = Field(default=None, description="Força resultante em daN")
+    resultant_angle: Optional[float] = Field(default=None, description="Ângulo da resultante em graus")
+    suggested_poles: Optional[List[Dict[str, Any]]] = Field(
+        default=None, description="Postes sugeridos para a carga calculada"
+    )
+
+
+class PoleLoadBatchRequest(BaseModel):
+    """Dados de entrada para cálculo de esforços em lote (múltiplos postes).
+
+    Permite calcular a resultante de esforços para até 20 postes em uma única chamada.
+    Falhas individuais (concessionária inválida, dados de cabo ausentes) retornam
+    ``success=False`` para o item sem abortar os demais postes do lote.
+    Ideal para integração BIM com múltiplos postes de uma rede de distribuição.
+    """
+
+    items: List[PoleLoadBatchItem] = Field(..., min_length=1, max_length=20, description="Lista de postes (1–20)")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "items": [
+                    {
+                        "label": "Poste P1",
+                        "concessionaria": "Light",
+                        "condicao": "Normal",
+                        "cabos": [{"condutor": "556MCM-CA, Nu", "vao": 80.0, "angulo": 30.0, "flecha": 1.5}],
+                    },
+                    {
+                        "label": "Poste P2",
+                        "concessionaria": "Enel",
+                        "condicao": "Normal",
+                        "cabos": [
+                            {"condutor": "397MCM-CA, Nu", "vao": 60.0, "angulo": 0.0, "flecha": 1.2},
+                            {"condutor": "397MCM-CA, Nu", "vao": 60.0, "angulo": 90.0, "flecha": 1.2},
+                        ],
+                    },
+                ]
+            }
+        }
+    }
+
+
+class PoleLoadBatchResponse(BaseModel):
+    """Resposta do cálculo de esforços em lote."""
+
+    count: int = Field(..., description="Número de postes processados")
+    success_count: int = Field(..., description="Número de postes calculados com sucesso")
+    error_count: int = Field(..., description="Número de postes com erro de cálculo")
+    items: List[PoleLoadBatchResponseItem] = Field(..., description="Resultados individuais por poste")

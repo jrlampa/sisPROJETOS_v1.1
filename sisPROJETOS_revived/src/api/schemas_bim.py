@@ -2,6 +2,7 @@
 Schemas Pydantic para endpoints BIM da API REST do sisPROJETOS.
 
 Contém modelos de entrada/saída para:
+- Dados Mestres (condutores, postes, concessionárias) — catálogo BIM
 - Conversor KML/KMZ → UTM (geoespacial)
 - Conversor UTM → DXF (CAD 2.5D)
 - Criador de Projetos (estrutura de pastas)
@@ -16,6 +17,32 @@ com todos os arquivos de rota existentes.
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
+# ── Dados Mestres (BIM) ───────────────────────────────────────────────────────
+
+
+class ConductorOut(BaseModel):
+    """Dados de um condutor elétrico."""
+
+    name: str = Field(..., description="Nome/código do condutor")
+    weight_kg_m: float = Field(..., description="Peso linear em kg/m")
+
+
+class PoleOut(BaseModel):
+    """Dados de um poste de distribuição."""
+
+    material: str = Field(..., description="Material (Concreto, Madeira, Aço)")
+    format: str = Field(..., description="Formato (C, D, E, etc.)")
+    description: str = Field(..., description="Descrição técnica (altura/carga)")
+    nominal_load_daN: float = Field(..., description="Carga nominal em daN")
+
+
+class ConcessionaireOut(BaseModel):
+    """Dados de uma concessionária de energia."""
+
+    name: str = Field(..., description="Nome da concessionária")
+    method: str = Field(..., description="Método de cálculo (flecha, tabela)")
+
 
 # ── Conversor KML/KMZ (BIM) ──────────────────────────────────────────────────
 

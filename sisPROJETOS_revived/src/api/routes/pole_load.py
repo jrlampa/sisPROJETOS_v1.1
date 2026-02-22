@@ -4,14 +4,19 @@ Rota de cálculo de esforços em postes — API REST sisPROJETOS.
 Endpoints:
 - POST /api/v1/pole-load/resultant  — Calcula resultante de esforços em poste
 - POST /api/v1/pole-load/report     — Gera relatório PDF em Base64 (NBR 8451/8452)
+- POST /api/v1/pole-load/batch      — Calcula esforços em lote (até 20 postes)
 - GET  /api/v1/pole-load/suggest    — Sugere postes por força resultante (sem cálculo)
 """
 
 import base64
+from typing import List
 
 from fastapi import APIRouter, HTTPException, Query
 
 from api.schemas import (
+    PoleLoadBatchRequest,
+    PoleLoadBatchResponse,
+    PoleLoadBatchResponseItem,
     PoleLoadReportRequest,
     PoleLoadReportResponse,
     PoleLoadRequest,
@@ -120,4 +125,67 @@ def generate_pole_load_report(request: PoleLoadReportRequest) -> PoleLoadReportR
         pdf_base64=pdf_b64,
         filename=filename,
         resultant_force=result["resultant_force"],
+    )
+
+
+@router.post(
+    "/batch",
+    response_model=PoleLoadBatchResponse,
+    summary="Calcula esforços em lote (múltiplos postes)",
+    description=(
+        "Processa até 20 postes em uma única chamada API, calculando a resultante de esforços "
+        "para cada um conforme metodologias Light (flecha) e Enel (tabela). "
+        "Falhas individuais (concessionária inválida, dados ausentes) retornam 'success=False' "
+        "para o item sem abortar os demais postes do lote. "
+        "Ideal para integração BIM com múltiplos postes de uma rede de distribuição."
+    ),
+)
+def calculate_pole_load_batch(request: PoleLoadBatchRequest) -> PoleLoadBatchResponse:
+    """Calcula resultante de esforços para múltiplos postes em lote (máximo 20)."""
+    response_items: List[PoleLoadBatchResponseItem] = []
+
+    for idx, item in enumerate(request.items):
+        try:
+            result = _logic.calculate_resultant(
+                concessionaria=item.concessionaria,
+                condicao=item.condicao,
+                cabos_input=[c.model_dump() for c in item.cabos],
+            )
+            suggested = _logic.suggest_pole(result["resultant_force"])
+            response_items.append(
+                PoleLoadBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=True,
+                    resultant_force=result["resultant_force"],
+                    resultant_angle=result["resultant_angle"],
+                    suggested_poles=suggested,
+                )
+            )
+        except KeyError as exc:
+            response_items.append(
+                PoleLoadBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=False,
+                    error=str(exc),
+                )
+            )
+        except Exception as exc:
+            logger.warning("Erro no item %d do lote de postes: %s", idx, exc)
+            response_items.append(
+                PoleLoadBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=False,
+                    error=str(exc),
+                )
+            )
+
+    success_count = sum(1 for r in response_items if r.success)
+    return PoleLoadBatchResponse(
+        count=len(response_items),
+        success_count=success_count,
+        error_count=len(response_items) - success_count,
+        items=response_items,
     )
