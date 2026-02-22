@@ -7,6 +7,7 @@ Contém modelos de entrada/saída para:
 - Criador de Projetos (estrutura de pastas)
 - Folgas mínimas NBR 5422 / PRODIST Módulo 6 (referência catenária)
 - Cálculo em lote de catenárias (batch multi-vão)
+- Cálculo em lote de queda de tensão (batch multi-circuito)
 
 Importado e re-exportado por ``api.schemas`` para manter compatibilidade
 com todos os arquivos de rota existentes.
@@ -289,3 +290,116 @@ class CatenaryBatchResponse(BaseModel):
     success_count: int = Field(..., description="Número de vãos calculados com sucesso")
     error_count: int = Field(..., description="Número de vãos com erro de cálculo")
     items: List[CatenaryBatchResponseItem] = Field(..., description="Resultados individuais por vão")
+
+
+# ── Queda de Tensão em Lote (Batch) ──────────────────────────────────────────
+
+
+class VoltageBatchItem(BaseModel):
+    """Parâmetros de um circuito individual para cálculo de queda de tensão em lote.
+
+    Todos os campos seguem as mesmas regras do endpoint POST /api/v1/electrical/voltage-drop.
+    O campo ``label`` é opcional e serve apenas para identificação do item na resposta.
+    O campo ``standard_name`` permite aplicar PRODIST/concessionária por circuito.
+    """
+
+    label: Optional[str] = Field(
+        default=None,
+        max_length=80,
+        description="Rótulo opcional para identificar o circuito na resposta (ex: 'Ramal R1')",
+    )
+    power_kw: float = Field(..., gt=0, description="Potência da carga em kW")
+    distance_m: float = Field(..., gt=0, description="Comprimento do circuito em metros")
+    voltage_v: float = Field(..., gt=0, description="Tensão nominal do sistema em volts")
+    material: str = Field(..., min_length=1, description="Material do condutor (ex: 'Alumínio', 'Cobre')")
+    section_mm2: float = Field(..., gt=0, description="Seção transversal do condutor em mm²")
+    cos_phi: float = Field(default=0.92, ge=0.0, le=1.0, description="Fator de potência")
+    phases: int = Field(default=3, ge=1, le=3, description="Número de fases (1=monofásico, 3=trifásico)")
+    standard_name: Optional[str] = Field(
+        default=None,
+        description=(
+            "Nome do padrão normativo (use GET /api/v1/electrical/standards para listar). "
+            "Padrão: 'NBR 5410' (5%). Opções: 'PRODIST Módulo 8 — BT' (8%), 'PRODIST Módulo 8 — MT' (7%)..."
+        ),
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "label": "Ramal R1",
+                "power_kw": 50.0,
+                "distance_m": 200.0,
+                "voltage_v": 220.0,
+                "material": "Alumínio",
+                "section_mm2": 35.0,
+                "cos_phi": 0.92,
+                "phases": 3,
+                "standard_name": "PRODIST Módulo 8 — BT",
+            }
+        }
+    }
+
+
+class VoltageBatchResponseItem(BaseModel):
+    """Resultado do cálculo de queda de tensão para um circuito individual."""
+
+    index: int = Field(..., description="Índice do item (base 0) na lista de entrada")
+    label: Optional[str] = Field(default=None, description="Rótulo fornecido na entrada")
+    success: bool = Field(..., description="True se o cálculo foi concluído com sucesso")
+    error: Optional[str] = Field(default=None, description="Mensagem de erro caso success=False")
+    current: Optional[float] = Field(default=None, description="Corrente calculada em Amperes")
+    delta_v_volts: Optional[float] = Field(default=None, description="Queda de tensão absoluta em Volts")
+    percentage_drop: Optional[float] = Field(default=None, description="Queda de tensão percentual (%)")
+    allowed: Optional[bool] = Field(default=None, description="True se dentro do limite normativo")
+    standard_name: Optional[str] = Field(default=None, description="Padrão normativo aplicado")
+    override_toast: Optional[str] = Field(default=None, description="Toast pt-BR quando norma sobrepõe ABNT")
+
+
+class VoltageBatchRequest(BaseModel):
+    """Dados de entrada para cálculo de queda de tensão em lote (múltiplos circuitos).
+
+    Permite calcular queda de tensão para até 20 circuitos em uma única chamada.
+    Cada item pode usar um padrão normativo diferente (NBR 5410, PRODIST, concessionária).
+    Falhas individuais (dados inválidos) não abortam os demais circuitos do lote.
+    """
+
+    items: List[VoltageBatchItem] = Field(..., min_length=1, max_length=20, description="Lista de circuitos (1–20)")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "items": [
+                    {
+                        "label": "Ramal R1 — BT urbano",
+                        "power_kw": 50.0,
+                        "distance_m": 200.0,
+                        "voltage_v": 220.0,
+                        "material": "Alumínio",
+                        "section_mm2": 35.0,
+                        "cos_phi": 0.92,
+                        "phases": 3,
+                        "standard_name": "PRODIST Módulo 8 — BT",
+                    },
+                    {
+                        "label": "Ramal R2 — BT rural",
+                        "power_kw": 20.0,
+                        "distance_m": 500.0,
+                        "voltage_v": 127.0,
+                        "material": "Alumínio",
+                        "section_mm2": 16.0,
+                        "cos_phi": 0.85,
+                        "phases": 1,
+                    },
+                ]
+            }
+        }
+    }
+
+
+class VoltageBatchResponse(BaseModel):
+    """Resposta do cálculo de queda de tensão em lote."""
+
+    count: int = Field(..., description="Número de circuitos processados")
+    success_count: int = Field(..., description="Número de circuitos calculados com sucesso")
+    error_count: int = Field(..., description="Número de circuitos com erro de cálculo")
+    items: List[VoltageBatchResponseItem] = Field(..., description="Resultados individuais por circuito")

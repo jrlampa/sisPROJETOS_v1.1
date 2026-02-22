@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
         contact={"name": "sisPROJETOS", "url": "https://github.com/jrlampa/sisPROJETOS_v1.1"},
         license_info={"name": "MIT"},
         openapi_tags=[
-            {"name": "Elétrico", "description": "Cálculos elétricos (NBR 5410)"},
+            {"name": "Elétrico", "description": "Cálculos elétricos (NBR 5410 / ANEEL PRODIST) e batch"},
             {"name": "CQT", "description": "Custo de Queda de Tensão — Metodologia Enel"},
             {
                 "name": "Catenária",

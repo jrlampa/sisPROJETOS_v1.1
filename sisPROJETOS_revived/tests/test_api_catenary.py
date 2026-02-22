@@ -425,3 +425,21 @@ class TestCatenaryBatchEndpoint:
         assert "sag" in item
         assert "tension" in item
         assert "catenary_constant" in item
+
+    def test_batch_exception_path_via_mock(self, client, mocker):
+        """Erro inesperado (não None) deve produzir success=False sem abortar lote — cobre linhas 257-259."""
+        mocker.patch(
+            "src.api.routes.catenary.CatenaryLogic.calculate_catenary",
+            side_effect=RuntimeError("falha inesperada simulada"),
+        )
+        resp = client.post(
+            self._URL,
+            json={"items": [self._ITEM_100M, self._ITEM_500M]},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success_count"] == 0
+        assert data["error_count"] == 2
+        for item in data["items"]:
+            assert item["success"] is False
+            assert "falha inesperada simulada" in item["error"]

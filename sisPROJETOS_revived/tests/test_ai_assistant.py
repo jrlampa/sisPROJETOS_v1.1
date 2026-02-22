@@ -164,3 +164,19 @@ def test_ai_assistant_whitespace_only_message_returns_error(mock_groq):
 
     resp = logic.get_response("   ")
     assert resp == "Erro: Mensagem vazia ou inválida."
+
+
+@patch("src.modules.ai_assistant.logic.Groq")
+def test_ai_assistant_converter_context(mock_groq):
+    """Contexto do conversor KML deve ser incluído na mensagem de sistema."""
+    instance = mock_groq.return_value
+    instance.chat.completions.create.return_value.choices[0].message.content = "Resposta IA"
+    logic = AIAssistantLogic()
+    logic.client = instance
+
+    ctx = {"converter": {"count": 7, "total_vertices": 7}}
+    logic.get_response("Quantos pontos?", project_context=ctx)
+
+    call_args = instance.chat.completions.create.call_args
+    system_msg = call_args[1]["messages"][0]["content"]
+    assert "Conversão KML: 7 pontos convertidos para UTM" in system_msg

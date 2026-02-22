@@ -88,6 +88,9 @@ class AIAssistantLogic:
                     c = project_context["cqt"]
                     if c.get("success"):
                         ctx_msg += f"- Rede CQT: CQT Max {c['summary']['max_cqt']:.2f}%, Carga {c['summary']['total_kva']:.2f} kVA\n"
+                if project_context.get("converter"):
+                    cv = project_context["converter"]
+                    ctx_msg += f"- Conversão KML: {cv['count']} pontos convertidos para UTM\n"
 
             full_system = self.system_prompt + ctx_msg
             messages: List[Dict[str, str]] = [{"role": "system", "content": full_system}]

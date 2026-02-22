@@ -194,3 +194,168 @@ class TestElectricalVoltageDropWithStandard:
         assert resp_nbr.json()["percentage_drop"] == pytest.approx(resp_prodist.json()["percentage_drop"], rel=1e-6)
         assert resp_nbr.json()["allowed"] is False
         assert resp_prodist.json()["allowed"] is True
+
+
+class TestVoltageBatchEndpoint:
+    """POST /api/v1/electrical/batch — Cálculo em lote de queda de tensão."""
+
+    _URL = "/api/v1/electrical/batch"
+
+    @pytest.fixture
+    def client(self):
+        from api.app import create_app
+
+        return TestClient(create_app())
+
+    _ITEM_220V = {
+        "power_kw": 30.0,
+        "distance_m": 150.0,
+        "voltage_v": 220.0,
+        "material": "Alumínio",
+        "section_mm2": 50.0,
+        "cos_phi": 0.92,
+        "phases": 3,
+    }
+
+    _ITEM_127V = {
+        "power_kw": 10.0,
+        "distance_m": 100.0,
+        "voltage_v": 127.0,
+        "material": "Cobre",
+        "section_mm2": 16.0,
+        "cos_phi": 0.85,
+        "phases": 1,
+    }
+
+    def test_batch_single_circuit_success(self, client):
+        """Lote com um circuito deve retornar HTTP 200 e success=True."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 1
+        assert data["success_count"] == 1
+        assert data["error_count"] == 0
+        assert data["items"][0]["success"] is True
+
+    def test_batch_two_circuits_returns_two_items(self, client):
+        """Lote com dois circuitos deve retornar dois itens."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V, self._ITEM_127V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 2
+        assert data["success_count"] == 2
+        assert data["items"][0]["index"] == 0
+        assert data["items"][1]["index"] == 1
+
+    def test_batch_label_preserved(self, client):
+        """Rótulo opcional deve ser preservado na resposta."""
+        item = {**self._ITEM_220V, "label": "Ramal Residencial"}
+        resp = client.post(self._URL, json={"items": [item]})
+        assert resp.status_code == 200
+        assert resp.json()["items"][0]["label"] == "Ramal Residencial"
+
+    def test_batch_default_standard_is_nbr5410(self, client):
+        """Padrão padrão deve ser NBR 5410 quando standard_name não informado."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V]})
+        assert resp.status_code == 200
+        item = resp.json()["items"][0]
+        assert item["standard_name"] == "NBR 5410"
+        assert item["override_toast"] is None
+
+    def test_batch_prodist_standard_applied(self, client):
+        """Quando PRODIST BT selecionado, override_toast deve estar presente."""
+        item = {**self._ITEM_220V, "standard_name": "PRODIST Módulo 8 — BT"}
+        resp = client.post(self._URL, json={"items": [item]})
+        assert resp.status_code == 200
+        result = resp.json()["items"][0]
+        assert result["success"] is True
+        assert result["standard_name"] == "PRODIST Módulo 8 — BT"
+        assert result["override_toast"] is not None
+        assert "PRODIST" in result["override_toast"]
+
+    def test_batch_unknown_standard_returns_failure_not_abort(self, client):
+        """Standard desconhecido no item deve retornar failure sem abortar os demais."""
+        bad_item = {**self._ITEM_220V, "standard_name": "NORMA_INEXISTENTE"}
+        resp = client.post(self._URL, json={"items": [bad_item, self._ITEM_127V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] == 2
+        assert data["success_count"] == 1
+        assert data["error_count"] == 1
+        assert data["items"][0]["success"] is False
+        assert "NORMA_INEXISTENTE" in data["items"][0]["error"]
+        assert data["items"][1]["success"] is True
+
+    def test_batch_none_result_does_not_abort_others_via_mock(self, client, mocker):
+        """None result no item deve retornar failure sem abortar os demais circuitos."""
+        # First call returns real result, subsequent calls return None
+        import itertools
+
+        real_results = [
+            {
+                "current": 10.0,
+                "delta_v_volts": 2.0,
+                "percentage_drop": 0.91,
+                "allowed": True,
+            },
+            None,
+        ]
+        mocker.patch(
+            "src.api.routes.electrical.ElectricalLogic.calculate_voltage_drop",
+            side_effect=itertools.chain(real_results),
+        )
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V, self._ITEM_127V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["items"][0]["success"] is True
+        assert data["items"][1]["success"] is False
+        assert "inválidos" in data["items"][1]["error"]
+
+    def test_batch_response_fields_present(self, client):
+        """Todos os campos esperados devem estar presentes na resposta."""
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "count" in data
+        assert "success_count" in data
+        assert "error_count" in data
+        assert "items" in data
+        item = data["items"][0]
+        assert "current" in item
+        assert "delta_v_volts" in item
+        assert "percentage_drop" in item
+        assert "allowed" in item
+
+    def test_batch_empty_list_returns_422(self, client):
+        """Lista vazia deve retornar HTTP 422 (violação de min_length=1)."""
+        resp = client.post(self._URL, json={"items": []})
+        assert resp.status_code == 422
+
+    def test_batch_exception_path_via_mock(self, client, mocker):
+        """Erro inesperado no cálculo deve produzir success=False sem abortar lote."""
+        mocker.patch(
+            "src.api.routes.electrical.ElectricalLogic.calculate_voltage_drop",
+            side_effect=RuntimeError("falha simulada"),
+        )
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V, self._ITEM_127V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success_count"] == 0
+        assert data["error_count"] == 2
+        for item in data["items"]:
+            assert item["success"] is False
+            assert "falha simulada" in item["error"]
+
+    def test_batch_none_result_via_mock(self, client, mocker):
+        """Quando calculate_voltage_drop retorna None, item deve ter success=False — cobre linhas 175-183."""
+        mocker.patch(
+            "src.api.routes.electrical.ElectricalLogic.calculate_voltage_drop",
+            return_value=None,
+        )
+        resp = client.post(self._URL, json={"items": [self._ITEM_220V]})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success_count"] == 0
+        assert data["error_count"] == 1
+        assert data["items"][0]["success"] is False
+        assert "inválidos" in data["items"][0]["error"]

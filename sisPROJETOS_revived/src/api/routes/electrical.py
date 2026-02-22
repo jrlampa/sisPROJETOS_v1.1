@@ -5,13 +5,22 @@ Endpoints:
 - GET  /api/v1/electrical/standards     — Lista padrões normativos disponíveis (ABNT/ANEEL/PRODIST)
 - GET  /api/v1/electrical/materials     — Lista materiais e resistividades do catálogo
 - POST /api/v1/electrical/voltage-drop  — Cálculo de queda de tensão (NBR 5410 / ANEEL PRODIST)
+- POST /api/v1/electrical/batch         — Cálculo em lote de queda de tensão (até 20 circuitos)
 """
 
 from typing import List
 
 from fastapi import APIRouter, HTTPException
 
-from api.schemas import MaterialOut, StandardOut, VoltageDropRequest, VoltageDropResponse
+from api.schemas import (
+    MaterialOut,
+    StandardOut,
+    VoltageBatchRequest,
+    VoltageBatchResponse,
+    VoltageBatchResponseItem,
+    VoltageDropRequest,
+    VoltageDropResponse,
+)
 from domain.standards import ALL_STANDARDS, NBR_5410, get_standard_by_name
 from modules.electrical.logic import ElectricalLogic
 from utils.logger import get_logger
@@ -113,4 +122,94 @@ def calculate_voltage_drop(request: VoltageDropRequest) -> VoltageDropResponse:
         allowed=standard.check(result["percentage_drop"]),
         standard_name=standard.name,
         override_toast=standard.override_toast_pt_br if standard.override_toast_pt_br else None,
+    )
+
+
+@router.post(
+    "/batch",
+    response_model=VoltageBatchResponse,
+    summary="Calcula queda de tensão em lote (múltiplos circuitos)",
+    description=(
+        "Processa até 20 circuitos elétricos em uma única chamada API, calculando queda de tensão "
+        "para cada um. Cada circuito pode usar um padrão normativo diferente (NBR 5410, PRODIST BT/MT, "
+        "Light ou Enel). Falhas individuais (dados inválidos ou material desconhecido) retornam "
+        "'success=False' para o item sem abortar os demais circuitos do lote. "
+        "Ideal para integração BIM com múltiplos ramais de uma rede de distribuição."
+    ),
+)
+def calculate_voltage_drop_batch(request: VoltageBatchRequest) -> VoltageBatchResponse:
+    """Calcula queda de tensão para múltiplos circuitos em lote (máximo 20)."""
+    response_items: List[VoltageBatchResponseItem] = []
+
+    for idx, item in enumerate(request.items):
+        try:
+            # Resolve normative standard per circuit (default: NBR 5410)
+            if item.standard_name is not None:
+                standard = get_standard_by_name(item.standard_name)
+                if standard is None:
+                    response_items.append(
+                        VoltageBatchResponseItem(
+                            index=idx,
+                            label=item.label,
+                            success=False,
+                            error=(
+                                f"Padrão normativo desconhecido: '{item.standard_name}'. "
+                                "Use GET /api/v1/electrical/standards para listar os disponíveis."
+                            ),
+                        )
+                    )
+                    continue
+            else:
+                standard = NBR_5410
+
+            result = _logic.calculate_voltage_drop(
+                power_kw=item.power_kw,
+                distance_m=item.distance_m,
+                voltage_v=item.voltage_v,
+                material=item.material,
+                section_mm2=item.section_mm2,
+                cos_phi=item.cos_phi,
+                phases=item.phases,
+            )
+            if result is None:
+                response_items.append(
+                    VoltageBatchResponseItem(
+                        index=idx,
+                        label=item.label,
+                        success=False,
+                        error="Dados inválidos para o cálculo de queda de tensão.",
+                    )
+                )
+                continue
+
+            response_items.append(
+                VoltageBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=True,
+                    current=result["current"],
+                    delta_v_volts=result["delta_v_volts"],
+                    percentage_drop=result["percentage_drop"],
+                    allowed=standard.check(result["percentage_drop"]),
+                    standard_name=standard.name,
+                    override_toast=standard.override_toast_pt_br if standard.override_toast_pt_br else None,
+                )
+            )
+        except Exception as exc:
+            logger.warning("Erro no item %d do lote elétrico: %s", idx, exc)
+            response_items.append(
+                VoltageBatchResponseItem(
+                    index=idx,
+                    label=item.label,
+                    success=False,
+                    error=str(exc),
+                )
+            )
+
+    success_count = sum(1 for r in response_items if r.success)
+    return VoltageBatchResponse(
+        count=len(response_items),
+        success_count=success_count,
+        error_count=len(response_items) - success_count,
+        items=response_items,
     )

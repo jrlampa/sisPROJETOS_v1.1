@@ -29,6 +29,10 @@ from api.schemas_bim import (  # noqa: F401
     UTMPointIn,
     UTMToDxfRequest,
     UTMToDxfResponse,
+    VoltageBatchItem,
+    VoltageBatchRequest,
+    VoltageBatchResponse,
+    VoltageBatchResponseItem,
 )
 
 # ── Infraestrutura ────────────────────────────────────────────────────────────

@@ -32,7 +32,13 @@ class MainApp(ctk.CTk):
         self.configure(fg_color=DesignSystem.BG_WINDOW)
 
         # Shared Project Context for AI Integration
-        self.project_context = {"pole_load": None, "catenary": None, "electrical": None, "cqt": None}
+        self.project_context = {
+            "pole_load": None,
+            "catenary": None,
+            "electrical": None,
+            "cqt": None,
+            "converter": None,
+        }
 
         # Set theme to Light as per user request for glassmorphism
         ctk.set_appearance_mode("Light")
