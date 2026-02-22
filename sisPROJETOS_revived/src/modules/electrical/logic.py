@@ -1,8 +1,9 @@
 import math
+from typing import Any, Dict, Optional
+
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
-from utils.sanitizer import sanitize_positive, sanitize_power_factor, sanitize_phases, sanitize_string
-
+from utils.sanitizer import sanitize_phases, sanitize_positive, sanitize_power_factor, sanitize_string
 
 logger = get_logger(__name__)
 
@@ -15,18 +16,27 @@ class ElectricalLogic:
     e fator de potência, conforme NBR 5410.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa a lógica de cálculos elétricos."""
         self.db = DatabaseManager()
 
-    def get_resistivity(self, material):
+    def get_materials(self) -> list:
+        """Retorna lista de materiais condutores com resistividade do banco.
+
+        Returns:
+            Lista de dicionários com 'name', 'resistivity_ohm_mm2_m', 'description'.
+        """
+        rows = self.db.get_all_resistivities()
+        return [{"name": r[0], "resistivity_ohm_mm2_m": r[1], "description": r[2]} for r in rows]
+
+    def get_resistivity(self, material: str) -> float:
         """Busca resistividade do material no banco de dados.
 
         Args:
-            material (str): Nome do material (ex: 'Alumínio', 'Cobre')
+            material: Nome do material (ex: 'Alumínio', 'Cobre')
 
         Returns:
-            float: Resistividade em ohm.mm²/m (padrão: 0.0282 para Al)
+            Resistividade em ohm.mm²/m (padrão: 0.0282 para Al)
         """
         try:
             mat = sanitize_string(material, max_length=100, allow_empty=False)
@@ -37,11 +47,20 @@ class ElectricalLogic:
             )
             row = cursor.fetchone()
             conn.close()
-            return row[0] if row else 0.0282  # Default to Al if not found
+            return float(row[0]) if row else 0.0282  # Default to Al if not found
         except Exception:
             return 0.0282
 
-    def calculate_voltage_drop(self, power_kw, distance_m, voltage_v, material, section_mm2, cos_phi=0.92, phases=3):
+    def calculate_voltage_drop(
+        self,
+        power_kw: float,
+        distance_m: float,
+        voltage_v: float,
+        material: str,
+        section_mm2: float,
+        cos_phi: float = 0.92,
+        phases: int = 3,
+    ) -> Optional[Dict[str, Any]]:
         """Calcula a queda de tensão percentual conforme NBR 5410.
 
         Args:
@@ -54,7 +73,7 @@ class ElectricalLogic:
             phases: Número de fases (1 ou 3)
 
         Returns:
-            dict: Resultados do cálculo de queda de tensão ou None em caso de erro
+            Dicionário com resultados do cálculo ou None em caso de erro.
         """
         try:
             p = sanitize_positive(power_kw) * 1000

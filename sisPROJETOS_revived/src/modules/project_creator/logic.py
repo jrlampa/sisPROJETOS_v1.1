@@ -1,25 +1,28 @@
-import shutil
 import datetime
+import shutil
 from pathlib import Path
-from utils.resource_manager import get_resource_manager
+from typing import Tuple
+
 from utils.logger import get_logger
+from utils.resource_manager import get_resource_manager
+from utils.sanitizer import sanitize_filepath, sanitize_string
 
 # Configure logging
 logger = get_logger(__name__)
 
 
 class ProjectCreatorLogic:
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize ProjectCreatorLogic with resource manager."""
         # Use the ResourceManager to find templates
         self.rm = get_resource_manager()
         self.templates_dir = Path(self.rm.templates_dir)
 
-    def _validate_templates_directory(self):
+    def _validate_templates_directory(self) -> bool:
         """Validate that templates directory exists.
 
         Returns:
-            bool: True if directory exists, False otherwise
+            True se o diretório existir, False caso contrário.
         """
         if not self.templates_dir.exists():
             logger.error(f"Templates directory not found: {self.templates_dir}")
@@ -31,11 +34,10 @@ class ProjectCreatorLogic:
 
         return True
 
-    def create_structure(self, project_name, base_path):
-        """
-        Creates a new project folder structure and copies templates.
+    def create_structure(self, project_name: str, base_path: str) -> Tuple[bool, str]:
+        """Cria a estrutura de pastas do projeto e copia os templates.
 
-        Folder Structure:
+        Estrutura criada:
             {project_name}/
                 1_Documentos/
                 2_Desenhos/
@@ -47,20 +49,27 @@ class ProjectCreatorLogic:
                 info.txt
 
         Args:
-            project_name (str): The name of the project folder.
-            base_path (str): The parent directory.
+            project_name: Nome da pasta do projeto.
+            base_path: Diretório pai onde o projeto será criado.
 
         Returns:
-            tuple: (bool, str) - (Success Status, Message/Error)
+            Tupla (sucesso, mensagem). sucesso=True em caso de êxito.
         """
+        try:
+            project_name = sanitize_string(project_name, max_length=100, allow_empty=False)
+            base_path_str = sanitize_filepath(str(base_path))
+        except ValueError as e:
+            logger.warning("Entrada inválida em create_structure: %s", e)
+            return False, f"Erro: {e}"
+
         try:
             # Validate templates directory
             if not self._validate_templates_directory():
                 return False, "Erro: Diretório de templates não encontrado. Reinstale o aplicativo."
 
             # Convert to Path objects for better handling
-            base_path = Path(base_path)
-            full_path = base_path / project_name
+            base_path_obj = Path(base_path_str)
+            full_path = base_path_obj / project_name
 
             # Check if project already exists
             if full_path.exists():

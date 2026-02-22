@@ -1,8 +1,16 @@
+import io
 import zipfile
-import pandas as pd
+from typing import Any, Dict, List, Optional, Tuple
+
 import ezdxf
-from pyproj import CRS, Transformer
+import pandas as pd
 from fastkml import kml
+from pyproj import CRS, Transformer
+
+from utils.logger import get_logger
+from utils.sanitizer import sanitize_filepath
+
+logger = get_logger(__name__)
 
 
 class ConverterLogic:
@@ -12,23 +20,24 @@ class ConverterLogic:
     e exporta para Excel (XLSX), AutoCAD (DXF) ou CSV.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa o conversor de coordenadas."""
         pass
 
-    def load_file(self, filepath):
-        """Loads KMZ or KML file and returns features.
+    def load_file(self, filepath: str) -> List[Any]:
+        """Carrega arquivo KMZ ou KML e retorna lista de placemarks.
 
         Args:
-            filepath: Path to KML or KMZ file
+            filepath: Caminho para o arquivo KML ou KMZ (validado pelo sanitizer).
 
         Returns:
-            List of placemarks extracted from the file
+            Lista de placemarks extraídos do arquivo.
 
         Raises:
-            ValueError: If file is empty or contains no KML data
-            FileNotFoundError: If KML file not found in KMZ archive
+            ValueError: Se o arquivo estiver vazio, sem placemarks ou inválido.
+            FileNotFoundError: Se não encontrar arquivo KML no KMZ.
         """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".kmz", ".kml"])
         try:
             if filepath.lower().endswith(".kmz"):
                 with zipfile.ZipFile(filepath, "r") as zf:
@@ -41,38 +50,60 @@ class ConverterLogic:
                 with open(filepath, "rb") as f:
                     content = f.read()
 
-            if not content:
-                raise ValueError("KML file is empty")
-
-            k = kml.KML()
-            k.from_string(content)
-
-            # Extract all placemarks recursively (handles nested Documents/Folders)
-            # Compatible with both fastkml 0.x (method) and 1.x (property)
-            features = k.features() if callable(k.features) else k.features
-            placemarks = self._extract_placemarks(list(features))
-
-            if not placemarks:
-                raise ValueError("No features found in KML file")
-
-            return placemarks
+            return self.load_kml_content(content)
 
         except zipfile.BadZipFile:
             raise ValueError(f"Invalid KMZ file: {filepath}")
-        except Exception as e:
+        except FileNotFoundError as exc:
+            raise ValueError(str(exc)) from exc
+        except ValueError:
+            raise
+        except Exception as e:  # pragma: no cover
             raise ValueError(f"Error loading file: {str(e)}")
 
-    def _extract_placemarks(self, features, placemarks=None):
-        """Recursively extracts placemarks from KML features.
+    def load_kml_content(self, content: bytes) -> List[Any]:
+        """Carrega placemarks diretamente de bytes KML (sem acesso a disco).
 
-        Handles nested structures: Document → Folder → Placemark
+        Útil para processar conteúdo KML recebido via API (base64 decodificado)
+        sem necessidade de criar arquivos temporários.
 
         Args:
-            features: List of KML features to process
-            placemarks: Accumulator list for placemarks (default: None)
+            content: Conteúdo bruto do arquivo KML em bytes.
 
         Returns:
-            List of all placemarks found recursively
+            Lista de placemarks extraídos.
+
+        Raises:
+            ValueError: Se o conteúdo estiver vazio ou sem placemarks válidos.
+        """
+        if not content:
+            raise ValueError("KML file is empty")
+
+        k = kml.KML()
+        k.from_string(content)
+
+        # Extract all placemarks recursively (handles nested Documents/Folders)
+        # Compatible with both fastkml 0.x (method) and 1.x (property)
+        features = k.features() if callable(k.features) else k.features
+        placemarks = self._extract_placemarks(list(features))
+
+        if not placemarks:
+            raise ValueError("No features found in KML file")
+
+        return placemarks
+
+    def _extract_placemarks(self, features: List[Any], placemarks: Optional[List[Any]] = None) -> List[Any]:
+        """Extrai placemarks recursivamente de uma estrutura KML.
+
+        Processa estruturas aninhadas: Document → Folder → Placemark.
+        Compatível com fastkml 0.x (método `features()`) e 1.x (propriedade `features`).
+
+        Args:
+            features: Lista de features KML a processar.
+            placemarks: Acumulador de placemarks (None na primeira chamada).
+
+        Returns:
+            Lista de todos os placemarks encontrados recursivamente.
         """
         if placemarks is None:
             placemarks = []
@@ -97,23 +128,28 @@ class ConverterLogic:
 
         return placemarks
 
-    def convert_to_utm(self, placemarks):
-        """Converts placemarks to a DataFrame with UTM coordinates.
+    def convert_to_utm(self, placemarks: List[Any]) -> pd.DataFrame:
+        """Converte placemarks para um DataFrame com coordenadas UTM.
+
+        A projeção UTM é detectada automaticamente a partir das coordenadas
+        geográficas de cada placemark (zona calculada a partir da longitude).
 
         Args:
-            placemarks: List of KML placemarks
+            placemarks: Lista de placemarks KML a converter.
 
         Returns:
-            pandas.DataFrame with converted coordinates (rounded to 3 decimals)
+            DataFrame com colunas Name, Description, Type, Longitude, Latitude,
+            Easting, Northing, Zone, Hemisphere, Elevation; coordenadas arredondadas
+            a 3 casas decimais.
 
         Raises:
-            ValueError: If no valid placemarks provided or geometries are malformed
+            ValueError: Se nenhum placemark fornecido ou geometrias inválidas.
         """
         if not placemarks:
             raise ValueError("No placemarks provided for conversion")
 
-        data = []
-        skipped = []
+        data: List[Dict[str, Any]] = []
+        skipped: List[str] = []
 
         for idx, p in enumerate(placemarks):
             try:
@@ -127,8 +163,8 @@ class ConverterLogic:
                     continue
 
                 # Extract coordinates based on geometry type
-                coords = None
-                geom_type = None
+                coords: Optional[List[Tuple[float, ...]]] = None
+                geom_type: Optional[str] = None
 
                 # Try Point geometry (most common)
                 try:
@@ -261,19 +297,33 @@ class ConverterLogic:
 
         return pd.DataFrame(data)
 
-    def save_to_excel(self, df, filepath):
-        df.to_excel(filepath, index=False)
-
-    def save_to_dxf(self, df, filepath):
-        """Exporta dados para arquivo DXF (AutoCAD).
+    def save_to_excel(self, df: pd.DataFrame, filepath: str) -> None:
+        """Exporta dados para arquivo Excel (.xlsx).
 
         Args:
-            df: DataFrame com dados convertidos
-            filepath: Caminho do arquivo DXF de saída
+            df: DataFrame com dados convertidos.
+            filepath: Caminho do arquivo XLSX de saída (validado pelo sanitizer).
 
         Raises:
-            ValueError: Se DataFrame vazio ou colunas necessárias faltando
+            ValueError: Se o caminho for inválido ou extensão não permitida.
         """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".xlsx", ".xls"])
+        df.to_excel(filepath, index=False)
+
+    def save_to_dxf(self, df: pd.DataFrame, filepath: str) -> None:
+        """Exporta dados para arquivo DXF (AutoCAD).
+
+        Pontos viram entidades POINT; séries de pontos com mesmo nome
+        viram POLYLINE3D. Todas as entidades ficam na layer POINTS ou LINES.
+
+        Args:
+            df: DataFrame com colunas Name, Easting, Northing, Elevation.
+            filepath: Caminho do arquivo DXF de saída.
+
+        Raises:
+            ValueError: Se DataFrame vazio, colunas necessárias faltando ou caminho inválido.
+        """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".dxf"])
         # Validate DataFrame
         if df is None or df.empty:
             raise ValueError("DataFrame vazio. Carregue e converta um arquivo KML/KMZ primeiro.")
@@ -310,22 +360,70 @@ class ConverterLogic:
 
         doc.saveas(filepath)
 
-    def save_to_csv(self, df, filepath):
-        """Exporta dados para CSV com formato otimizado para projetos elétricos.
+    def save_to_dxf_to_buffer(self, df: pd.DataFrame) -> bytes:
+        """Exporta dados para DXF em memória, sem gravar em disco.
+
+        Pontos viram entidades POINT; séries de pontos com mesmo nome
+        viram POLYLINE3D. Todas as entidades ficam na layer POINTS ou LINES.
+        Útil para integração via API REST (retorno como Base64 JSON,
+        conforme padrão /catenary/dxf).
 
         Args:
-            df: DataFrame com dados convertidos
-            filepath: Caminho do arquivo CSV de saída
+            df: DataFrame com colunas Name, Easting, Northing, Elevation.
 
-        Features:
-            - Separador: ';' (ponto e vírgula) para compatibilidade com Excel BR
-            - Encoding: UTF-8-sig (com BOM para Excel)
-            - Precisão: Coordenadas já arredondadas em 3 casas decimais
-            - Ordem: Colunas organizadas logicamente
+        Returns:
+            Conteúdo DXF como bytes UTF-8 prontos para codificação Base64.
 
         Raises:
-            ValueError: If DataFrame is empty
+            ValueError: Se DataFrame vazio ou colunas necessárias faltando.
         """
+        if df is None or df.empty:
+            raise ValueError("DataFrame vazio. Carregue e converta um arquivo KML/KMZ primeiro.")
+
+        required_cols = ["Name", "Easting", "Northing", "Elevation"]
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Colunas necessárias faltando no DataFrame: {', '.join(missing_cols)}")
+
+        doc = ezdxf.new("R2010")
+        msp = doc.modelspace()
+
+        grouped = df.groupby("Name")
+
+        for name, group in grouped:
+            name_str = str(name) if name is not None else "Unnamed"
+
+            if len(group) == 1:
+                row = group.iloc[0]
+                pos = (float(row["Easting"]), float(row["Northing"]), float(row["Elevation"]))
+                msp.add_point(pos, dxfattribs={"layer": "POINTS"})
+                msp.add_text(name_str, dxfattribs={"height": 2.0, "insert": pos, "layer": "POINTS"})
+            else:
+                points = [
+                    (float(e), float(n), float(z))
+                    for e, n, z in zip(group["Easting"], group["Northing"], group["Elevation"])
+                ]
+                msp.add_polyline3d(points, dxfattribs={"layer": "LINES"})
+                msp.add_text(name_str, dxfattribs={"height": 2.0, "insert": points[0], "layer": "LINES"})
+
+        buf = io.StringIO()
+        doc.write(buf)
+        return buf.getvalue().encode("utf-8")
+
+    def save_to_csv(self, df: pd.DataFrame, filepath: str) -> None:
+        """Exporta dados para CSV com formato otimizado para projetos elétricos.
+
+        Separador ';' (compatibilidade com Excel BR) e encoding UTF-8-sig
+        (BOM para Excel reconhecer acentos).
+
+        Args:
+            df: DataFrame com dados convertidos.
+            filepath: Caminho do arquivo CSV de saída.
+
+        Raises:
+            ValueError: Se o DataFrame estiver vazio ou o caminho for inválido.
+        """
+        filepath = sanitize_filepath(filepath, allowed_extensions=[".csv"])
         if df.empty:
             raise ValueError("Cannot export empty DataFrame to CSV")
 

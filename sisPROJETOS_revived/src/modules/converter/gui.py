@@ -1,10 +1,12 @@
-import customtkinter as ctk
-from tkinter import filedialog, messagebox
-from .logic import ConverterLogic
 import os
+from tkinter import filedialog, messagebox
+
+import customtkinter as ctk
 import tkintermapview
 
 from styles import DesignSystem
+
+from .logic import ConverterLogic
 
 
 class ConverterGUI(ctk.CTkFrame):
@@ -160,6 +162,12 @@ class ConverterGUI(ctk.CTkFrame):
             self.btn_export_excel.configure(state="normal")
             self.btn_export_csv.configure(state="normal")
             self.btn_export_dxf.configure(state="normal")
+
+            # Share conversion results with AI assistant context
+            self.controller.project_context["converter"] = {
+                "count": unique_features,
+                "total_vertices": total_vertices,
+            }
 
         except Exception as e:
             self.lbl_status.configure(text=f"Erro: {str(e)}")

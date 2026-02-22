@@ -1,11 +1,13 @@
+from tkinter import filedialog, messagebox
+
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
-from .logic import PoleLoadLogic
-from .report import generate_report
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from styles import DesignSystem
+
+from .logic import PoleLoadLogic
+from .report import generate_report
 
 
 class PoleLoadGUI(ctk.CTkFrame):
@@ -92,7 +94,7 @@ class PoleLoadGUI(ctk.CTkFrame):
 
         self.btn_suggest = ctk.CTkButton(
             self.actions_frame,
-            text="Sugerir Melhor Poste (IA)",
+            text="Sugerir Poste Adequado",
             command=self.suggest_best_pole,
             state="disabled",
             **DesignSystem.get_button_style("purple"),
@@ -275,6 +277,9 @@ class PoleLoadGUI(ctk.CTkFrame):
                     text_color=color,
                 )
                 self.btn_report.configure(state="normal")
+                self.btn_suggest.configure(state="normal")
+                # Share context with AI assistant
+                self.controller.project_context["pole_load"] = res
 
         except ValueError:
             messagebox.showerror(

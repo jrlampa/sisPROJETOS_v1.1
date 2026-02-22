@@ -1,5 +1,7 @@
 import os
+
 import pytest
+
 from src.database.db_manager import DatabaseManager
 
 
@@ -106,12 +108,73 @@ class TestDatabaseSettings:
         assert "NewConductor_XYZ" in names
 
     def test_get_all_poles(self, tmp_path):
-        """Testa listagem de postes (pode ser vazia se não pré-populado)."""
+        """Testa listagem de postes pré-populados."""
         db_path = tmp_path / "test_poles.db"
         db = DatabaseManager(db_path=str(db_path))
 
         poles = db.get_all_poles()
         assert isinstance(poles, list)
+        assert len(poles) >= 13  # 13 postes pré-populados
+        materials = {row[0] for row in poles}
+        assert "Concreto" in materials
+        assert "Fibra de Vidro" in materials
+        assert "Madeira" in materials
+
+    def test_add_pole(self, tmp_path):
+        """Testa adição de novo poste."""
+        db_path = tmp_path / "test_add_pole.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        data = {
+            "material": "Concreto",
+            "format": "Circular",
+            "description": "Concreto Circ. 14 m / 800 daN",
+            "height_m": 14.0,
+            "nominal_load_daN": 800.0,
+        }
+        success, msg = db.add_pole(data)
+        assert success is True
+        assert "adicionado" in msg.lower()
+
+        poles = db.get_all_poles()
+        descriptions = [row[2] for row in poles]
+        assert "Concreto Circ. 14 m / 800 daN" in descriptions
+
+    def test_add_pole_duplicate(self, tmp_path):
+        """Testa que poste com descrição duplicada retorna erro."""
+        db_path = tmp_path / "test_add_pole_dup.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        data = {
+            "material": "Madeira",
+            "format": "Roliço",
+            "description": "Madeira Rol. 12 m / 400 daN",
+            "height_m": 12.0,
+            "nominal_load_daN": 400.0,
+        }
+        db.add_pole(data)
+        success, msg = db.add_pole(data)
+
+        assert success is False
+        assert "Erro" in msg
+
+    def test_add_pole_default_format(self, tmp_path):
+        """Testa que formato padrão 'Circular' é usado quando omitido."""
+        db_path = tmp_path / "test_add_pole_fmt.db"
+        db = DatabaseManager(db_path=str(db_path))
+
+        data = {
+            "material": "Fibra de Vidro",
+            "description": "Fibra de Vidro Circ. 9 m / 150 daN",
+            "height_m": 9.0,
+            "nominal_load_daN": 150.0,
+        }
+        success, _ = db.add_pole(data)
+        assert success is True
+
+        poles = db.get_all_poles()
+        descriptions = [row[2] for row in poles]
+        assert "Fibra de Vidro Circ. 9 m / 150 daN" in descriptions
 
     def test_database_is_persistent(self, tmp_path):
         """Testa que dados persistem entre instâncias."""
@@ -187,26 +250,26 @@ class TestDatabaseManagerDefaultPath:
         import shutil as shutil_mod
 
         # Point APPDATA to tmp_path so app DB will be in tmp_path/sisPROJETOS/
-        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+        mocker.patch.dict("os.environ", {"APPDATA": str(tmp_path)})
 
         # Make resource_path return a real file that exists
         resource_db = tmp_path / "resource.db"
         resource_db.write_bytes(b"")
 
-        mocker.patch('src.database.db_manager.resource_path', return_value=str(resource_db))
+        mocker.patch("src.database.db_manager.resource_path", return_value=str(resource_db))
 
         db = DatabaseManager()
         assert os.path.exists(db.db_path)
 
     def test_db_manager_handles_copy_failure_gracefully(self, tmp_path, mocker):
         """Testa que falha na cópia do DB de recursos é tratada sem crash."""
-        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
+        mocker.patch.dict("os.environ", {"APPDATA": str(tmp_path)})
 
         resource_db = tmp_path / "resource.db"
         resource_db.write_bytes(b"")
 
-        mocker.patch('src.database.db_manager.resource_path', return_value=str(resource_db))
-        mocker.patch('src.database.db_manager.shutil.copy2', side_effect=PermissionError("access denied"))
+        mocker.patch("src.database.db_manager.resource_path", return_value=str(resource_db))
+        mocker.patch("src.database.db_manager.shutil.copy2", side_effect=PermissionError("access denied"))
 
         # Should not raise — error is logged as warning
         db = DatabaseManager()
@@ -214,8 +277,8 @@ class TestDatabaseManagerDefaultPath:
 
     def test_db_manager_skips_copy_when_resource_missing(self, tmp_path, mocker):
         """Testa que cópia é ignorada quando DB de recursos não existe."""
-        mocker.patch.dict('os.environ', {'APPDATA': str(tmp_path)})
-        mocker.patch('src.database.db_manager.resource_path', return_value=str(tmp_path / "nonexistent.db"))
+        mocker.patch.dict("os.environ", {"APPDATA": str(tmp_path)})
+        mocker.patch("src.database.db_manager.resource_path", return_value=str(tmp_path / "nonexistent.db"))
 
         db = DatabaseManager()
         assert os.path.exists(db.db_path)

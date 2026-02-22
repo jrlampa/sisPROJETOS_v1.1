@@ -1,29 +1,38 @@
 import os
-import sys
+from typing import Any, Dict, List, Optional, Tuple
 
-# Adjust path for internal module access
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+from dotenv import load_dotenv
+from groq import Groq
 
-from groq import Groq  # noqa: E402
-from dotenv import load_dotenv  # noqa: E402
-from utils import resource_path  # noqa: E402
+from utils import resource_path
+from utils.logger import get_logger
+from utils.sanitizer import sanitize_string
+
+logger = get_logger(__name__)
 
 
 class AIAssistantLogic:
-    def __init__(self):
-        # Load .env from project root using centralized helper
+    """Lógica do assistente de IA via Groq API (LLaMA 3.3).
+
+    Consulta técnica especializada em engenharia de redes de distribuição
+    elétrica, com suporte a contexto de projeto e histórico de conversa.
+    """
+
+    def __init__(self) -> None:
+        """Inicializa o assistente de IA carregando credenciais do .env."""
         dotenv_path = resource_path(".env")
         load_dotenv(dotenv_path)
 
-        self.api_key = os.getenv("GROQ_API_KEY")
+        self.api_key: Optional[str] = os.getenv("GROQ_API_KEY")
         if self.api_key:
-            self.client = Groq(api_key=self.api_key)
+            self.client: Optional[Groq] = Groq(api_key=self.api_key)
         else:
             self.client = None
+            logger.warning("GROQ_API_KEY não configurada — módulo IA desativado.")
 
-        self.model = "llama-3.3-70b-versatile"  # Premium fast model
+        self.model: str = "llama-3.3-70b-versatile"
 
-        self.system_prompt = (
+        self.system_prompt: str = (
             "Você é o Consultor Técnico Sênior do sistema sisPROJETOS, especialista em engenharia de distribuição de energia elétrica. "
             "Seu objetivo é auxiliar engenheiros e projetistas na elaboração de projetos de rede elétrica (MT/BT). "
             "Você possui conhecimento profundo em:\n"
@@ -37,12 +46,29 @@ class AIAssistantLogic:
             "- Responda de forma concisa mas completa, utilizando tabelas ou listas se necessário para clareza."
         )
 
-    def get_response(self, user_message, history=None, project_context=None):
-        """
-        Gets a response from Groq API with optional project context.
+    def get_response(
+        self,
+        user_message: str,
+        history: Optional[List[Tuple[str, str]]] = None,
+        project_context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Obtém resposta da Groq API com contexto de projeto opcional.
+
+        Args:
+            user_message: Mensagem do usuário (max 4000 chars, não vazio).
+            history: Histórico de conversa como lista de tuplas (user, assistant).
+            project_context: Contexto atual do projeto com resultados de cálculos.
+
+        Returns:
+            Resposta do assistente ou mensagem de erro em português.
         """
         if not self.client:
             return "Erro: Chave API Groq não configurada no arquivo .env."
+
+        try:
+            user_message = sanitize_string(user_message, max_length=4000, allow_empty=False)
+        except ValueError:
+            return "Erro: Mensagem vazia ou inválida."
 
         try:
             # Build context string
@@ -62,9 +88,12 @@ class AIAssistantLogic:
                     c = project_context["cqt"]
                     if c.get("success"):
                         ctx_msg += f"- Rede CQT: CQT Max {c['summary']['max_cqt']:.2f}%, Carga {c['summary']['total_kva']:.2f} kVA\n"
+                if project_context.get("converter"):
+                    cv = project_context["converter"]
+                    ctx_msg += f"- Conversão KML: {cv['count']} pontos convertidos para UTM\n"
 
             full_system = self.system_prompt + ctx_msg
-            messages = [{"role": "system", "content": full_system}]
+            messages: List[Dict[str, str]] = [{"role": "system", "content": full_system}]
 
             if history:
                 for u, a in history:
@@ -82,4 +111,5 @@ class AIAssistantLogic:
 
             return completion.choices[0].message.content
         except Exception as e:
+            logger.error("Erro ao contatar Groq API: %s", e)
             return f"Erro ao contatar Groq AI: {str(e)}"

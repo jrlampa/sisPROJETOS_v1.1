@@ -15,6 +15,7 @@ python-dotenv
 fastapi
 uvicorn[standard]
 httpx  # HTTP client para testes da API
+fpdf2>=2.8.0  # PDF report generation — pole load reports
 # Testing
 pytest
 pytest-cov

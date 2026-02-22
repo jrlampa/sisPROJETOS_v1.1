@@ -5,10 +5,12 @@ Valida o fluxo completo de conversão:
 KML → DataFrame → XLSX/CSV/DXF
 """
 
-import pytest
 import os
 import tempfile
+
 import pandas as pd
+import pytest
+
 from src.modules.converter.logic import ConverterLogic
 
 
@@ -57,7 +59,18 @@ class TestConverterE2E:
         assert len(df) > 0, "DataFrame não tem linhas"
 
         # Verificar colunas obrigatórias
-        required_cols = ["Name", "Description", "Type", "Longitude", "Latitude", "Easting", "Northing", "Zone", "Hemisphere", "Elevation"]
+        required_cols = [
+            "Name",
+            "Description",
+            "Type",
+            "Longitude",
+            "Latitude",
+            "Easting",
+            "Northing",
+            "Zone",
+            "Hemisphere",
+            "Elevation",
+        ]
         for col in required_cols:
             assert col in df.columns, f"Coluna '{col}' não encontrada no DataFrame"
 
@@ -89,7 +102,9 @@ class TestConverterE2E:
                 # Validar arquivo
                 assert os.path.exists(tmp.name), "Arquivo XLSX não foi criado"
                 assert os.path.getsize(tmp.name) > 0, "Arquivo XLSX está vazio"
-                assert os.path.getsize(tmp.name) > 1000, f"Arquivo XLSX muito pequeno: {os.path.getsize(tmp.name)} bytes"
+                assert (
+                    os.path.getsize(tmp.name) > 1000
+                ), f"Arquivo XLSX muito pequeno: {os.path.getsize(tmp.name)} bytes"
 
                 # Verificar que pode ser lido
                 df_loaded = pd.read_excel(tmp.name)
@@ -147,7 +162,9 @@ class TestConverterE2E:
                 # Validar arquivo
                 assert os.path.exists(tmp.name), "Arquivo DXF não foi criado"
                 assert os.path.getsize(tmp.name) > 0, "Arquivo DXF está vazio"
-                assert os.path.getsize(tmp.name) > 5000, f"Arquivo DXF muito pequeno: {os.path.getsize(tmp.name)} bytes"
+                assert (
+                    os.path.getsize(tmp.name) > 5000
+                ), f"Arquivo DXF muito pequeno: {os.path.getsize(tmp.name)} bytes"
 
                 # Verificar conteúdo básico
                 with open(tmp.name, "r") as f:

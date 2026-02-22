@@ -1,13 +1,264 @@
-# 🏗️ Arquitetura do sisPROJETOS v2.0
+# 🏗️ Arquitetura do sisPROJETOS v2.1
 
 ## Visão Geral
 
-sisP ROJETOS é uma aplicação desktop para engenharia de distribuição de energia elétrica, desenvolvida em Python com CustomTkinter para interface gráfica.
+sisPROJETOS é uma aplicação desktop para engenharia de distribuição de energia elétrica, desenvolvida em Python com CustomTkinter para interface gráfica.
 
-**Padrão Arquitetural:** MVC (Model-View-Controller)  
+**Padrão Arquitetural:** MVC desacoplado + **Domain-Driven Design (DDD)**  
 **Linguagem:** Python 3.12+  
-**Interface:** CustomTkinter (Tk/Tcl)  
+**Interface:** CustomTkinter (Tk/Tcl) — pt-BR  
+**API REST:** FastAPI + uvicorn (Half-way BIM)  
 **Build:** PyInstaller + Inno Setup
+
+---
+
+## Arquitetura em Camadas (DDD + MVC)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Interface (View — GUI)                       │
+│  src/modules/*/gui.py  ←  CustomTkinter CTkFrame         │
+└────────────────────────┬────────────────────────────────┘
+                         │ thin frontend — chama logic
+┌────────────────────────▼────────────────────────────────┐
+│           Application Layer (API REST + Logic)            │
+│  src/api/routes/*.py   ←  FastAPI routers (BIM endpoints)│
+│  src/modules/*/logic.py ← regras de aplicação            │
+└────────────────────────┬────────────────────────────────┘
+                         │ usa domain objects
+┌────────────────────────▼────────────────────────────────┐
+│                Domain Layer (DDD)                         │
+│  src/domain/value_objects.py  — imutáveis, sem infra     │
+│  src/domain/entities.py       — com identidade + regras  │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│              Infrastructure Layer                         │
+│  src/database/db_manager.py  — SQLite3 CRUD              │
+│  src/utils/dxf_manager.py    — ezdxf 2.5D export         │
+│  src/utils/sanitizer.py      — validação de entrada       │
+│  src/utils/logger.py         — logging centralizado       │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Estrutura de Diretórios
+
+```
+sisPROJETOS_revived/
+├── src/                           # Código-fonte principal
+│   ├── __version__.py             # Versioning centralizado (v2.1.0)
+│   ├── main.py                    # Entry point da aplicação
+│   ├── styles.py                  # Design System (cores, fontes, dark mode)
+│   │
+│   ├── domain/                    # ✨ Camada de Domínio (DDD)
+│   │   ├── __init__.py            # Exportações do domínio
+│   │   ├── value_objects.py       # Objetos de valor imutáveis
+│   │   └── entities.py            # Entidades com regras de negócio
+│   │
+│   ├── modules/                   # Módulos funcionais (MVC)
+│   │   ├── project_creator/       # Criação de projetos
+│   │   ├── pole_load/             # Cálculo de esforços em postes
+│   │   ├── catenaria/             # Cálculo de catenárias (NBR 5422)
+│   │   ├── electrical/            # Queda de tensão (NBR 5410)
+│   │   ├── cqt/                   # BDI e Queda de Tensão (Enel)
+│   │   ├── converter/             # Conversão KMZ→UTM→DXF
+│   │   ├── ai_assistant/          # Assistente IA (Groq LLaMA 3.3)
+│   │   └── settings/              # Configurações gerais
+│   │
+│   ├── api/                       # API REST (Half-way BIM)
+│   │   ├── app.py                 # Fábrica FastAPI
+│   │   ├── schemas.py             # Modelos Pydantic (request/response)
+│   │   └── routes/                # Endpoints por domínio
+│   │       ├── electrical.py      # POST voltage-drop; GET materials
+│   │       ├── cqt.py             # POST calculate
+│   │       ├── catenary.py        # POST calculate
+│   │       ├── pole_load.py       # POST resultant; GET suggest
+│   │       ├── data.py            # GET conductors, poles, concessionaires
+│   │       ├── converter.py       # POST kml-to-utm
+│   │       └── project_creator.py # POST create
+│   │
+│   ├── database/                  # Infraestrutura SQLite
+│   │   ├── db_manager.py          # CRUD + dados pré-populados
+│   │   └── schema.sql             # Esquema DDL
+│   │
+│   └── utils/                     # Utilitários transversais
+│       ├── __init__.py            # resource_path() + path traversal guard
+│       ├── logger.py              # Logging centralizado (RotatingFileHandler)
+│       ├── sanitizer.py           # Sanitização/validação de entrada
+│       ├── dxf_manager.py         # Exportação DXF 2.5D (ezdxf)
+│       ├── update_checker.py      # Auto-update via GitHub Releases API
+│       └── resource_manager.py    # Gerenciamento de templates/assets
+│
+├── tests/                         # Testes (pytest + pytest-cov)
+│   ├── test_domain.py             # ✨ 47 testes da camada de domínio DDD
+│   ├── test_dxf_content.py        # 22 testes headless DXF (ezdxf)
+│   ├── test_api.py                # Endpoints de cálculo
+│   ├── test_api_bim.py            # Endpoints BIM (data, converter, projects)
+│   └── ...                        # Demais testes (529 total, 100% cobertura)
+│
+├── docs/                          # Documentação
+│   └── archive/                   # Relatórios de auditoria (histórico)
+├── Dockerfile                     # Imagem Docker (Python + deps)
+├── docker-compose.yml             # Serviços dev + test
+├── pyproject.toml                 # Config black + isort
+└── pytest.ini                    # Config pytest + cobertura
+```
+
+---
+
+## Camada de Domínio (DDD)
+
+### Value Objects (`src/domain/value_objects.py`)
+
+Objetos **imutáveis** (`frozen=True`) definidos pelos seus valores, com validação de invariantes de negócio em `__post_init__`. Não dependem de infraestrutura.
+
+| Value Object | Atributos | Invariantes |
+|-------------|-----------|------------|
+| `UTMCoordinate` | `easting`, `northing`, `zone`, `elevation` | easting > 0, northing > 0, zone não-vazio |
+| `CatenaryResult` | `sag`, `tension`, `catenary_constant` | sag ≥ 0, tension > 0, catenary_constant > 0 |
+| `VoltageDropResult` | `drop_v`, `drop_percent`, `material` | drop ≥ 0, material não-vazio; `is_within_limit` → drop ≤ 5% (NBR 5410) |
+| `SpanResult` | `vao`, `angulo`, `flecha` | vao ≥ 0, 0 ≤ angulo ≤ 360, flecha ≥ 0 |
+
+```python
+# Exemplo: coordenada UTM real do projeto (Google Earth Pro)
+from src.domain.value_objects import UTMCoordinate, CatenaryResult
+
+p = UTMCoordinate(easting=788547.0, northing=7634925.0, zone="23K", elevation=720.0)
+assert p.easting == 788547.0  # imutável
+
+r = CatenaryResult(sag=1.23, tension=2000.0, catenary_constant=130.5)
+# ValueError se sag < 0, tension ≤ 0, etc.
+```
+
+### Entities (`src/domain/entities.py`)
+
+Objetos com **identidade** e regras de negócio embutidas.
+
+| Entidade | Atributos | Regras de Negócio |
+|---------|-----------|------------------|
+| `Conductor` | `name`, `weight_kg_m`, `breaking_load_daN`, `section_mm2` | name não-vazio, weight ≥ 0, breaking_load > 0 |
+| `Pole` | `material`, `height_m`, `format`, `nominal_load_daN` | material/format não-vazios, height > 0, load > 0 |
+| `Concessionaire` | `name`, `method` | method ∈ {'flecha', 'tabela'} |
+
+```python
+from src.domain.entities import Conductor, Concessionaire
+
+c = Conductor(name="556MCM-CA", weight_kg_m=1.594, breaking_load_daN=13750.0)
+conc = Concessionaire(name="Light", method="flecha")
+# ValueError se method não for 'flecha' ou 'tabela'
+```
+
+---
+
+## API REST — Half-way BIM
+
+**Base URL:** `http://localhost:8000/api/v1`  
+**Documentação:** `http://localhost:8000/docs` (Swagger UI)
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/electrical/voltage-drop` | Queda de tensão (NBR 5410) |
+| GET | `/electrical/materials` | Lista materiais/resistividades |
+| POST | `/cqt/calculate` | CQT — Metodologia Enel |
+| POST | `/catenary/calculate` | Catenária (NBR 5422) |
+| POST | `/pole-load/resultant` | Resultante de esforços |
+| GET | `/pole-load/suggest?force_daN=` | Sugestão de poste por força |
+| GET | `/data/conductors` | Catálogo de condutores |
+| GET | `/data/poles` | Catálogo de postes |
+| GET | `/data/concessionaires` | Catálogo de concessionárias |
+| POST | `/converter/kml-to-utm` | KML Base64 → UTM JSON |
+| POST | `/projects/create` | Criação de estrutura de projeto |
+
+---
+
+## DXF 2.5D (ABNT NBR 13133)
+
+O DXF gerado segue a convenção 2.5D:
+
+- **POINT** entities: `location.z = elevation` (altitude em metros)
+- **TEXT** entities: `set_placement((x, y))` — plano XY, Z=0
+- **LWPOLYLINE** (catenária): entidade flat XY — visão de perfil/seção
+
+Testado via ezdxf (equivalente headless ao accoreconsole.exe):
+
+```bash
+pytest tests/test_dxf_content.py -v  # 22 testes estruturais
+```
+
+Coordenadas de teste validadas:
+- Ponto 1: UTM 23K E=788547 N=7634925 (Google Earth Pro)
+- Ponto 2: lat=-22.15018 lon=-42.92185 → UTM E=714315.7 N=7549084.2
+- Vãos catenária: 100m, 500m, 1000m (NBR 5422)
+
+---
+
+## Segurança
+
+| Vetor | Mitigação |
+|-------|-----------|
+| SQL Injection | Todas queries usam `(?, ?)` parametrizado |
+| Path Traversal | `resource_path()` e `_validate_output_path()` rejeitam `..` e null bytes |
+| Sanitização de entrada | `utils/sanitizer.py` em todos os módulos logic |
+| API Keys | Apenas em `.env` (no `.gitignore`), nunca hardcoded |
+| Imutabilidade | Value objects `frozen=True` — proteção contra mutação acidental |
+
+---
+
+## Testes
+
+**Framework:** pytest + pytest-cov + pytest-mock  
+**Total:** 529 testes, **100% cobertura** (excluindo GUI/main.py via `.coveragerc`)
+
+```bash
+# Rodar todos os testes
+cd sisPROJETOS_revived
+pytest tests/ -v
+
+# Com cobertura HTML
+pytest tests/ -v --cov=src --cov-report=html
+
+# Apenas domínio DDD
+pytest tests/test_domain.py -v
+
+# Apenas DXF headless
+pytest tests/test_dxf_content.py -v
+
+# Docker
+docker compose run --rm test
+```
+
+---
+
+## Build e Distribuição
+
+### Executável (Windows)
+
+```powershell
+python -m PyInstaller sisprojetos.spec --clean --noconfirm
+iscc sisPROJETOS.iss
+# Output: installer_output/sisPROJETOS_v2.1.0_Setup.exe
+```
+
+### Docker
+
+```bash
+docker build -t sisprojetos:2.1.0 .
+docker compose up dev    # ambiente de desenvolvimento
+docker compose run test  # suite de testes
+```
+
+---
+
+## Contribuir
+
+Veja [CONTRIBUTING.md](CONTRIBUTING.md) para guidelines de desenvolvimento.
+
+## Licença
+
+MIT License — Veja [LICENSE.txt](LICENSE.txt)
+
 
 ---
 

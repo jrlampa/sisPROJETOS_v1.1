@@ -13,19 +13,19 @@ Documentação interativa disponível em:
     http://localhost:8000/redoc (ReDoc)
 """
 
-import sys
 import os
+import sys
 
 # Garante que src/ esteja no path para importações dos módulos
 _SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SRC not in sys.path:
-    sys.path.insert(0, _SRC)
+    sys.path.insert(0, _SRC)  # pragma: no cover
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import electrical, cqt, catenary, pole_load
 from __version__ import __version__  # noqa: E402
+from api.routes import catenary, converter, cqt, data, electrical, health, pole_load, project_creator
 
 
 def create_app() -> FastAPI:
@@ -41,15 +41,25 @@ def create_app() -> FastAPI:
         description=(
             "Fornece endpoints de cálculo de engenharia elétrica para integração "
             "com sistemas BIM (Building Information Modeling) e outras ferramentas. "
-            "Todos os cálculos seguem normas ABNT (NBR 5410, NBR 5422, NBR 8451)."
+            "Cálculos seguem ABNT (NBR 5410, NBR 5422, NBR 8451) por padrão, com suporte "
+            "a ANEEL/PRODIST Módulo 8 e normas de concessionárias (Light, Enel) via 'standard_name'."
         ),
         contact={"name": "sisPROJETOS", "url": "https://github.com/jrlampa/sisPROJETOS_v1.1"},
         license_info={"name": "MIT"},
         openapi_tags=[
-            {"name": "Elétrico", "description": "Cálculos elétricos (NBR 5410)"},
+            {"name": "Elétrico", "description": "Cálculos elétricos (NBR 5410 / ANEEL PRODIST) e batch"},
             {"name": "CQT", "description": "Custo de Queda de Tensão — Metodologia Enel"},
-            {"name": "Catenária", "description": "Cálculo de catenária de condutores (NBR 5422)"},
-            {"name": "Esforços em Postes", "description": "Esforços mecânicos em postes (NBR 8451)"},
+            {
+                "name": "Catenária",
+                "description": "Cálculo de catenária de condutores, lote multi-vão e geração de DXF (NBR 5422)",
+            },
+            {"name": "Esforços em Postes", "description": "Esforços mecânicos em postes e relatório PDF (NBR 8451)"},
+            {"name": "Dados Mestres", "description": "Catálogos técnicos para integração BIM"},
+            {
+                "name": "Conversor KML/KMZ",
+                "description": "Conversão KML/KMZ → UTM → DXF para integração geoespacial BIM",
+            },
+            {"name": "Projetos", "description": "Gestão de estrutura de pastas de projetos"},
         ],
     )
 
@@ -67,15 +77,14 @@ def create_app() -> FastAPI:
 
     # Registro de rotas versionadas
     PREFIX = "/api/v1"
+    app.include_router(health.router)  # GET /health (sem prefix — padrão Docker/k8s)
     app.include_router(electrical.router, prefix=PREFIX)
     app.include_router(cqt.router, prefix=PREFIX)
     app.include_router(catenary.router, prefix=PREFIX)
     app.include_router(pole_load.router, prefix=PREFIX)
-
-    @app.get("/health", tags=["Infra"], summary="Verificação de saúde da API")
-    def health_check():
-        """Retorna status da API e versão da aplicação."""
-        return {"status": "ok", "version": __version__}
+    app.include_router(data.router, prefix=PREFIX)
+    app.include_router(converter.router, prefix=PREFIX)
+    app.include_router(project_creator.router, prefix=PREFIX)
 
     return app
 

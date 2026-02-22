@@ -1,6 +1,10 @@
-import ezdxf
+import io
 import math
 import os
+from typing import Any, Iterable, Tuple
+
+import ezdxf
+import pandas as pd
 
 
 def _validate_output_path(filepath: str) -> str:
@@ -29,13 +33,17 @@ def _validate_output_path(filepath: str) -> str:
 
 class DXFManager:
     @staticmethod
-    def create_catenary_dxf(filepath, x_vals, y_vals, sag):
-        """Creates a professional DXF for catenary curves with dedicated layers.
+    def create_catenary_dxf(filepath: str, x_vals: Iterable[float], y_vals: Iterable[float], sag: float) -> None:
+        """Creates a professional DXF for catenary curves with dedicated layers (2.5D).
+
+        The catenary profile is represented in 2.5D: X = horizontal distance along the
+        span, Y = conductor height above reference. The DXF uses LWPOLYLINE (2D entity)
+        which is correct for profile/section view outputs (ABNT NBR 5422).
 
         Args:
             filepath: Output file path. Must be a valid, non-traversal path.
-            x_vals: Iterable of X coordinates.
-            y_vals: Iterable of Y coordinates.
+            x_vals: Iterable of X coordinates (horizontal span, in metres).
+            y_vals: Iterable of Y coordinates (height above reference, in metres).
             sag: Sag value in meters for annotation label.
 
         Raises:
@@ -51,7 +59,7 @@ class DXFManager:
 
         msp = doc.modelspace()
 
-        # Add Polyline
+        # Add Polyline (LWPOLYLINE is a 2.5D entity — flat in XY plane)
         points = list(zip(x_vals, y_vals))
         msp.add_lwpolyline(points, dxfattribs={"layer": "CATENARY_CURVE"})
 
@@ -67,8 +75,48 @@ class DXFManager:
         doc.saveas(safe_path)
 
     @staticmethod
-    def _add_pole_marker(msp, pos):
-        """Internal helper to draw a pole representation."""
+    def create_catenary_dxf_to_buffer(x_vals: Iterable[float], y_vals: Iterable[float], sag: float) -> bytes:
+        """Creates a DXF for a catenary curve and returns it as raw bytes (in-memory).
+
+        Produces the same DXF layer structure as :py:meth:`create_catenary_dxf`
+        (layers: CATENARY_CURVE, SUPPORTS, ANNOTATIONS) but writes to an in-memory
+        ``StringIO`` buffer and returns the result encoded as UTF-8 bytes, making it
+        suitable for API responses (e.g., Base64 encoding). No filesystem access is
+        performed.
+
+        Args:
+            x_vals: Iterable of X coordinates (horizontal span, in metres).
+            y_vals: Iterable of Y coordinates (height above reference, in metres).
+            sag: Sag value in metres for annotation label.
+
+        Returns:
+            bytes: Raw DXF file content (UTF-8 encoded text format).
+        """
+        doc = ezdxf.new("R2010")
+
+        doc.layers.new("CATENARY_CURVE", dxfattribs={"color": 3, "lineweight": 35})
+        doc.layers.new("SUPPORTS", dxfattribs={"color": 2})
+        doc.layers.new("ANNOTATIONS", dxfattribs={"color": 7})
+
+        msp = doc.modelspace()
+
+        points = list(zip(x_vals, y_vals))
+        msp.add_lwpolyline(points, dxfattribs={"layer": "CATENARY_CURVE"})
+
+        DXFManager._add_pole_marker(msp, points[0])
+        DXFManager._add_pole_marker(msp, points[-1])
+
+        msp.add_text(f"Sag: {sag:.2f}m", dxfattribs={"height": 0.5, "layer": "ANNOTATIONS"}).set_placement(
+            points[len(points) // 2]
+        )
+
+        buf = io.StringIO()
+        doc.write(buf)
+        return buf.getvalue().encode("utf-8")
+
+    @staticmethod
+    def _add_pole_marker(msp: Any, pos: Tuple[float, float]) -> None:
+        """Internal helper to draw a pole representation (2.5D circle + crosshair)."""
         # Simple Circle for pole
         msp.add_circle(pos, radius=0.2, dxfattribs={"layer": "SUPPORTS"})
         # Hexagon/Crosshair
@@ -79,12 +127,18 @@ class DXFManager:
             )
 
     @staticmethod
-    def create_points_dxf(filepath, df):
-        """Creates DXF from a dataframe of points (UTM).
+    def create_points_dxf(filepath: str, df: pd.DataFrame) -> None:
+        """Creates a 2.5D DXF from a dataframe of UTM points.
+
+        Uses the 2.5D convention: entities are positioned in the XY plane using UTM
+        Easting/Northing, and the elevation is stored in the Z component of the POINT
+        entity's location (``location.z``) — the standard GIS/survey 2.5D format compatible
+        with ABNT NBR 13133. TEXT labels use 2D ``(x, y)`` placement to stay flat in plan view.
 
         Args:
             filepath: Output file path. Must be a valid, non-traversal path.
-            df: DataFrame with columns 'Easting', 'Northing', 'Name', and optionally 'Elevation'.
+            df: DataFrame with columns 'Easting', 'Northing', 'Name', and optionally
+                'Elevation'.
 
         Raises:
             ValueError: If filepath is invalid or contains path traversal.
@@ -95,8 +149,15 @@ class DXFManager:
         doc.layers.new("POINTS", dxfattribs={"color": 1})
 
         for _, row in df.iterrows():
-            pos = (row["Easting"], row["Northing"], row.get("Elevation", 0))
-            msp.add_point(pos, dxfattribs={"layer": "POINTS"})
-            msp.add_text(str(row["Name"]), dxfattribs={"height": 2.0, "layer": "POINTS"}).set_placement(pos)
+            x = float(row["Easting"])
+            y = float(row["Northing"])
+            elev = float(row.get("Elevation", 0))  # 2.5D: elevation stored in location.z of POINT
+
+            # 2.5D POINT: Z = elevation (WCS flat-earth survey convention, ABNT NBR 13133)
+            msp.add_point((x, y, elev), dxfattribs={"layer": "POINTS"})
+
+            # 2.5D TEXT: placement in XY plane (Z=0) so labels stay flat in plan view
+            text_ent = msp.add_text(str(row["Name"]), dxfattribs={"height": 2.0, "layer": "POINTS"})
+            text_ent.set_placement((x, y))
 
         doc.saveas(safe_path)

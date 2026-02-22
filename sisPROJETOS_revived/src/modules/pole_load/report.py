@@ -1,9 +1,11 @@
-from fpdf import FPDF
 import datetime
+from typing import Any, Dict, List
+
+from fpdf import FPDF
 
 
 class PoleLoadReport(FPDF):
-    def header(self):
+    def header(self) -> None:
         # Logo placeholder or Title
         self.set_font("helvetica", "B", 15)
         self.cell(0, 10, "sisPROJETOS - Relatório de Cálculo de Esforço", border=False, align="C", ln=1)
@@ -13,21 +15,22 @@ class PoleLoadReport(FPDF):
         )
         self.ln(10)
 
-    def footer(self):
+    def footer(self) -> None:
         self.set_y(-15)
         self.set_font("helvetica", "I", 8)
         self.cell(0, 10, f"Página {self.page_no()}/{{nb}}", align="C")
 
 
-def generate_report(filepath, data, result, project_name="N/A"):
-    """
-    Generates a PDF report for Pole Load.
+def _build_pdf(data: List[Dict[str, Any]], result: Dict[str, Any], project_name: str) -> PoleLoadReport:
+    """Constrói o objeto PDF de relatório de esforços sem gravá-lo em disco.
 
     Args:
-        filepath (str): Path to save the PDF.
-        data (list): Input cables data list.
-        result (dict): result from calculate_resultant.
-        project_name (str): Name of the project.
+        data: Lista de dicionários de cabos com chaves (rede, condutor, vao, angulo).
+        result: Resultado de calculate_resultant (resultant_force, resultant_angle, vectors).
+        project_name: Nome do projeto para o cabeçalho do relatório.
+
+    Returns:
+        Objeto PoleLoadReport pronto para salvar em disco ou em buffer.
     """
     pdf = PoleLoadReport()
     pdf.add_page()
@@ -70,8 +73,6 @@ def generate_report(filepath, data, result, project_name="N/A"):
     pdf.cell(0, 8, f"Força Resultante Total: {result['resultant_force']:.2f} daN", ln=True)
     pdf.cell(0, 8, f"Ângulo da Resultante: {result['resultant_angle']:.2f} graus", ln=True)
 
-    # Selection logic for "Poste Suporta?"
-    # (Usually this logic is in the GUI/Logic, but we can summarize here)
     pdf.ln(10)
     pdf.set_font("helvetica", "I", 9)
     pdf.multi_cell(
@@ -82,4 +83,37 @@ def generate_report(filepath, data, result, project_name="N/A"):
         "e as condições de carga (Vento, Temperatura, etc).",
     )
 
+    return pdf
+
+
+def generate_report(
+    filepath: str, data: List[Dict[str, Any]], result: Dict[str, Any], project_name: str = "N/A"
+) -> None:
+    """Gera o relatório PDF de esforços em postes e salva em disco.
+
+    Args:
+        filepath: Caminho completo para salvar o arquivo PDF.
+        data: Lista de dicionários de cabos com chaves (rede, condutor, vao, angulo).
+        result: Resultado de calculate_resultant (resultant_force, resultant_angle, vectors).
+        project_name: Nome do projeto para o cabeçalho do relatório.
+    """
+    pdf = _build_pdf(data, result, project_name)
     pdf.output(filepath)
+
+
+def generate_report_to_buffer(data: List[Dict[str, Any]], result: Dict[str, Any], project_name: str = "N/A") -> bytes:
+    """Gera o relatório PDF de esforços em postes e retorna como bytes em memória.
+
+    Não grava nenhum arquivo em disco. Útil para integração via API REST
+    (retorno como Base64 JSON, conforme padrão /catenary/dxf).
+
+    Args:
+        data: Lista de dicionários de cabos com chaves (rede, condutor, vao, angulo).
+        result: Resultado de calculate_resultant (resultant_force, resultant_angle, vectors).
+        project_name: Nome do projeto para o cabeçalho do relatório.
+
+    Returns:
+        Conteúdo PDF em bytes prontos para codificação Base64.
+    """
+    pdf = _build_pdf(data, result, project_name)
+    return bytes(pdf.output())

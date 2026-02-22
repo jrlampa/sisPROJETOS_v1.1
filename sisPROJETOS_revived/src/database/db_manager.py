@@ -1,9 +1,10 @@
-import sqlite3
 import os
 import shutil
+import sqlite3
+from typing import Any, Dict, List, Optional, Tuple
+
 from utils import resource_path
 from utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -16,11 +17,11 @@ class DatabaseManager:
     parâmetros de cálculo.
     """
 
-    def __init__(self, db_path=None):
+    def __init__(self, db_path: Optional[str] = None) -> None:
         """Inicializa o gerenciador de banco de dados.
 
         Args:
-            db_path (str, optional): Caminho personalizado para o banco.
+            db_path: Caminho personalizado para o banco.
                 Se None, usa AppData do usuário para escrita garantida.
         """
         if db_path is None:
@@ -43,11 +44,16 @@ class DatabaseManager:
 
         self.init_db()
 
-    def get_connection(self):
+    def get_connection(self) -> sqlite3.Connection:
+        """Retorna uma conexão SQLite com o banco de dados.
+
+        Returns:
+            Conexão SQLite ativa.
+        """
         return sqlite3.connect(self.db_path)
 
-    def init_db(self):
-        """Initializes the database schema if it doesn't exist."""
+    def init_db(self) -> None:
+        """Inicializa o schema do banco de dados se ainda não existir."""
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -135,7 +141,7 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
-    def _ensure_default_settings(self, cursor):
+    def _ensure_default_settings(self, cursor: sqlite3.Cursor) -> None:
         default_settings = [
             ("updates_enabled", "true"),
             ("update_channel", "stable"),
@@ -145,19 +151,21 @@ class DatabaseManager:
         ]
         cursor.executemany("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", default_settings)
 
-    def pre_populate_data(self, cursor):
-        """Pre-populates the database with initial engineering parameters."""
+    def pre_populate_data(self, cursor: sqlite3.Cursor) -> None:
+        """Pré-popula o banco com parâmetros técnicos iniciais de engenharia."""
         # 1. Concessionaires
         concessionaires = [("Light", "flecha"), ("Enel", "tabela")]
         cursor.executemany("INSERT OR IGNORE INTO concessionaires (name, method) VALUES (?, ?)", concessionaires)
 
         # 2. Resistivity & K Coefficients (Migrated from logic modules)
-        # 3. Conductors (Light weights)
+        # 3. Conductors (Light catalog — ABNT NBR 7271:2004 / NBR 7270:2004)
+        # Columns: name, type, weight_kg_m, breaking_load_daN, modulus_elasticity,
+        #          coeff_thermal_expansion, section_mm2, diameter_mm
         light_conductors = [
-            ("556MCM-CA, Nu", "CA", 0.779, 0, 0, 0, 0, 0),
-            ("397MCM-CA, Nu", "CA", 0.558, 0, 0, 0, 0, 0),
-            ("1/0AWG-CAA, Nu", "CAA", 0.217, 0, 0, 0, 0, 0),
-            ("4 AWG-CAA, Nu", "CAA", 0.085, 0, 0, 0, 0, 0),
+            ("556MCM-CA, Nu", "CA", 0.779, 7080.0, 56900.0, 23.0e-6, 281.7, 22.01),
+            ("397MCM-CA, Nu", "CA", 0.558, 5050.0, 56900.0, 23.0e-6, 201.4, 18.62),
+            ("1/0AWG-CAA, Nu", "CAA", 0.217, 5430.0, 76000.0, 19.3e-6, 53.5, 10.52),
+            ("4 AWG-CAA, Nu", "CAA", 0.085, 2655.0, 76000.0, 19.3e-6, 21.2, 6.62),
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO conductors (name, type, weight_kg_m, breaking_load_daN, modulus_elasticity, coeff_thermal_expansion, section_mm2, diameter_mm) VALUES (?,?,?,?,?,?,?,?)",
@@ -198,28 +206,70 @@ class DatabaseManager:
         )
 
         # 6. Poles (Catálogo básico de postes — ABNT NBR 8451 / 8452)
+        # Descriptions include material name to satisfy UNIQUE constraint across all materials.
         poles = [
             # (material, format, description, height_m, nominal_load_daN)
-            ("Concreto", "Circular", "11 m / 200 daN", 11.0, 200.0),
-            ("Concreto", "Circular", "11 m / 400 daN", 11.0, 400.0),
-            ("Concreto", "Circular", "11 m / 600 daN", 11.0, 600.0),
-            ("Concreto", "Circular", "12 m / 300 daN", 12.0, 300.0),
-            ("Concreto", "Circular", "12 m / 600 daN", 12.0, 600.0),
-            ("Concreto", "Circular", "13 m / 600 daN", 13.0, 600.0),
-            ("Concreto", "Duplo T", "11 m / 1000 daN", 11.0, 1000.0),
-            ("Concreto", "Duplo T", "13 m / 1000 daN", 13.0, 1000.0),
-            ("Fibra de Vidro", "Circular", "11 m / 200 daN", 11.0, 200.0),
-            ("Fibra de Vidro", "Circular", "11 m / 400 daN", 11.0, 400.0),
-            ("Fibra de Vidro", "Circular", "11 m / 600 daN", 11.0, 600.0),
-            ("Madeira", "Roliço", "11 m / 300 daN", 11.0, 300.0),
-            ("Madeira", "Roliço", "11 m / 600 daN", 11.0, 600.0),
+            ("Concreto", "Circular", "Concreto Circ. 11 m / 200 daN", 11.0, 200.0),
+            ("Concreto", "Circular", "Concreto Circ. 11 m / 400 daN", 11.0, 400.0),
+            ("Concreto", "Circular", "Concreto Circ. 11 m / 600 daN", 11.0, 600.0),
+            ("Concreto", "Circular", "Concreto Circ. 12 m / 300 daN", 12.0, 300.0),
+            ("Concreto", "Circular", "Concreto Circ. 12 m / 600 daN", 12.0, 600.0),
+            ("Concreto", "Circular", "Concreto Circ. 13 m / 600 daN", 13.0, 600.0),
+            ("Concreto", "Duplo T", "Concreto DT 11 m / 1000 daN", 11.0, 1000.0),
+            ("Concreto", "Duplo T", "Concreto DT 13 m / 1000 daN", 13.0, 1000.0),
+            ("Fibra de Vidro", "Circular", "Fibra de Vidro Circ. 11 m / 200 daN", 11.0, 200.0),
+            ("Fibra de Vidro", "Circular", "Fibra de Vidro Circ. 11 m / 400 daN", 11.0, 400.0),
+            ("Fibra de Vidro", "Circular", "Fibra de Vidro Circ. 11 m / 600 daN", 11.0, 600.0),
+            ("Madeira", "Roliço", "Madeira Rol. 11 m / 300 daN", 11.0, 300.0),
+            ("Madeira", "Roliço", "Madeira Rol. 11 m / 600 daN", 11.0, 600.0),
         ]
         cursor.executemany(
             "INSERT OR IGNORE INTO poles (material, format, description, height_m, nominal_load_daN) VALUES (?, ?, ?, ?, ?)",
             poles,
         )
 
-    def add_conductor(self, data):
+    def add_pole(self, data: Dict[str, Any]) -> Tuple[bool, str]:
+        """Adiciona um novo poste ao banco de dados.
+
+        Args:
+            data: Dicionário com 'material', 'format', 'description',
+                  'height_m' e 'nominal_load_daN'.
+
+        Returns:
+            Tupla (sucesso, mensagem).
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO poles (material, format, description, height_m, nominal_load_daN)
+                VALUES (?, ?, ?, ?, ?)
+            """,
+                (
+                    data["material"],
+                    data.get("format", "Circular"),
+                    data["description"],
+                    data["height_m"],
+                    data["nominal_load_daN"],
+                ),
+            )
+            conn.commit()
+            return True, "Poste adicionado."
+        except sqlite3.IntegrityError:
+            return False, "Erro: Poste já cadastrado (descrição duplicada)."
+        finally:
+            conn.close()
+
+    def add_conductor(self, data: Dict[str, Any]) -> Tuple[bool, str]:
+        """Adiciona um novo condutor ao banco de dados.
+
+        Args:
+            data: Dicionário com 'name', 'weight' e opcionalmente 'breaking'.
+
+        Returns:
+            Tupla (sucesso, mensagem).
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
@@ -237,7 +287,12 @@ class DatabaseManager:
         finally:
             conn.close()
 
-    def get_all_conductors(self):
+    def get_all_conductors(self) -> List[Tuple]:
+        """Retorna todos os condutores cadastrados.
+
+        Returns:
+            Lista de tuplas (name, weight_kg_m) ordenada por nome.
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT name, weight_kg_m FROM conductors ORDER BY name")
@@ -245,7 +300,12 @@ class DatabaseManager:
         conn.close()
         return rows
 
-    def get_all_poles(self):
+    def get_all_poles(self) -> List[Tuple]:
+        """Retorna todos os postes cadastrados.
+
+        Returns:
+            Lista de tuplas (material, format, description, nominal_load_daN).
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -255,7 +315,47 @@ class DatabaseManager:
         conn.close()
         return rows
 
-    def get_setting(self, key, default=None):
+    def get_all_resistivities(self) -> List[Tuple]:
+        """Retorna todos os materiais com resistividade cadastrados.
+
+        Returns:
+            Lista de tuplas (key_name, value, description) ordenada por nome.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT key_name, value, description FROM cable_technical_data"
+                " WHERE category='resistivity' ORDER BY key_name"
+            )
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
+    def get_all_concessionaires(self) -> List[Tuple]:
+        """Retorna todas as concessionárias com nome e método de cálculo.
+
+        Returns:
+            Lista de tuplas (name, method) ordenada por nome.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, method FROM concessionaires ORDER BY name")
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
+    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Retorna o valor de uma configuração persistida.
+
+        Args:
+            key: Chave da configuração.
+            default: Valor padrão se a chave não existir.
+
+        Returns:
+            Valor da configuração ou default.
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT value FROM app_settings WHERE key = ?", (key,))
@@ -263,7 +363,13 @@ class DatabaseManager:
         conn.close()
         return row[0] if row else default
 
-    def set_setting(self, key, value):
+    def set_setting(self, key: str, value: Any) -> None:
+        """Persiste ou atualiza uma configuração no banco de dados.
+
+        Args:
+            key: Chave da configuração.
+            value: Valor a persistir (convertido para str).
+        """
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -279,7 +385,12 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
-    def get_update_settings(self):
+    def get_update_settings(self) -> Dict[str, Any]:
+        """Retorna as configurações de verificação de atualizações.
+
+        Returns:
+            Dicionário com 'enabled', 'channel', 'last_checked', 'interval_days'.
+        """
         return {
             "enabled": self.get_setting("updates_enabled", "true") == "true",
             "channel": self.get_setting("update_channel", "stable"),
@@ -287,7 +398,21 @@ class DatabaseManager:
             "interval_days": int(self.get_setting("update_check_interval_days", "1") or "1"),
         }
 
-    def save_update_settings(self, enabled=None, channel=None, interval_days=None, last_checked=None):
+    def save_update_settings(
+        self,
+        enabled: Optional[bool] = None,
+        channel: Optional[str] = None,
+        interval_days: Optional[int] = None,
+        last_checked: Optional[str] = None,
+    ) -> None:
+        """Persiste as configurações de atualização no banco de dados.
+
+        Args:
+            enabled: Ativa/desativa a verificação de updates.
+            channel: Canal de atualização ('stable' ou 'beta').
+            interval_days: Intervalo em dias entre verificações.
+            last_checked: Data/hora da última verificação (ISO 8601).
+        """
         if enabled is not None:
             self.set_setting("updates_enabled", "true" if enabled else "false")
         if channel is not None:

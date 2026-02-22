@@ -1,11 +1,13 @@
-import customtkinter as ctk
 from datetime import datetime
 from tkinter import messagebox
+
+import customtkinter as ctk
+
+import styles
 from __version__ import __version__
 from database.db_manager import DatabaseManager
-from utils.update_checker import UpdateChecker
-import styles
 from styles import DesignSystem
+from utils.update_checker import UpdateChecker
 
 
 class SettingsGUI(ctk.CTkFrame):
@@ -115,22 +117,49 @@ class SettingsGUI(ctk.CTkFrame):
         return ent
 
     def setup_poles_tab(self):
-        self.tab_poles.grid_columnconfigure(0, weight=1)
-        form_frame = ctk.CTkFrame(self.tab_poles)
-        form_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.tab_poles.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(form_frame, text="Cadastrar Novo Poste", font=("Roboto", 14, "bold")).pack(pady=10)
+        # Left side: Form
+        form_frame = ctk.CTkFrame(
+            self.tab_poles, fg_color="#F8FAFC", corner_radius=12, border_width=1, border_color="#E2E8F0"
+        )
+        form_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
-        self.ent_pole_mat = ctk.CTkEntry(form_frame, placeholder_text="Material (Ex: Concreto)")
-        self.ent_pole_mat.pack(pady=5, padx=20, fill="x")
+        ctk.CTkLabel(
+            form_frame, text="Novo Poste", font=DesignSystem.FONT_BODY, text_color=DesignSystem.TEXT_DIM
+        ).pack(pady=15)
 
-        self.ent_pole_desc = ctk.CTkEntry(form_frame, placeholder_text="Descrição (Ex: 11 m / 600 daN)")
-        self.ent_pole_desc.pack(pady=5, padx=20, fill="x")
+        self.ent_pole_mat = self.create_input(form_frame, "Material (Ex: Concreto):")
+        self.ent_pole_desc = self.create_input(form_frame, "Descrição (Ex: Circ. 11 m / 600 daN):")
+        self.ent_pole_height = self.create_input(form_frame, "Altura (m):")
+        self.ent_pole_load = self.create_input(form_frame, "Carga Nominal (daN):")
 
-        self.ent_pole_load = ctk.CTkEntry(form_frame, placeholder_text="Carga Nominal (daN)")
-        self.ent_pole_load.pack(pady=5, padx=20, fill="x")
+        ctk.CTkButton(
+            form_frame,
+            text="Confirmar Cadastro",
+            command=self.save_pole,
+            **DesignSystem.get_button_style("primary"),
+        ).pack(pady=25, padx=30, fill="x")
 
-        ctk.CTkButton(form_frame, text="Salvar Poste", command=self.save_pole).pack(pady=20)
+        # Right side: List
+        list_frame = ctk.CTkFrame(
+            self.tab_poles, fg_color="white", corner_radius=12, border_width=1, border_color="#E2E8F0"
+        )
+        list_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
+
+        ctk.CTkLabel(
+            list_frame, text="Base de Dados", font=DesignSystem.FONT_BODY, text_color=DesignSystem.TEXT_DIM
+        ).pack(pady=10)
+
+        self.txt_poles = ctk.CTkTextbox(
+            list_frame,
+            font=DesignSystem.FONT_BODY,
+            fg_color="#FAFAFA",
+            text_color=DesignSystem.TEXT_MAIN,
+            corner_radius=8,
+        )
+        self.txt_poles.pack(pady=10, padx=15, fill="both", expand=True)
+        self.refresh_poles()
 
     def setup_updates_tab(self):
         update_settings = self.db.get_update_settings()
@@ -225,7 +254,9 @@ class SettingsGUI(ctk.CTkFrame):
         dark_mode = self.var_dark_mode.get()
         self.db.save_appearance_settings(dark_mode=dark_mode)
         styles.set_dark_mode(dark_mode)
-        messagebox.showinfo("Aparência", "Configurações de aparência salvas com sucesso.\nReinicie o aplicativo para aplicar o tema.")
+        messagebox.showinfo(
+            "Aparência", "Configurações de aparência salvas com sucesso.\nReinicie o aplicativo para aplicar o tema."
+        )
 
     def save_conductor(self):
         name = self.ent_cond_name.get()
@@ -248,8 +279,39 @@ class SettingsGUI(ctk.CTkFrame):
             messagebox.showerror("Erro", "Peso e Tração devem ser números.")
 
     def save_pole(self):
-        # Implementation similar to save_conductor (Skipping detailed logic for brevity or completing if needed)
-        pass
+        material = self.ent_pole_mat.get().strip()
+        desc = self.ent_pole_desc.get().strip()
+        height = self.ent_pole_height.get().strip()
+        load = self.ent_pole_load.get().strip()
+
+        if not material or not desc or not height or not load:
+            messagebox.showwarning("Aviso", "Material, Descrição, Altura e Carga são obrigatórios.")
+            return
+
+        try:
+            data = {
+                "material": material,
+                "format": "Circular",
+                "description": desc,
+                "height_m": float(height),
+                "nominal_load_daN": float(load),
+            }
+            success, msg = self.db.add_pole(data)
+            if success:
+                messagebox.showinfo("Sucesso", msg)
+                self.refresh_poles()
+            else:
+                messagebox.showerror("Erro", msg)
+        except ValueError:
+            messagebox.showerror("Erro", "Altura e Carga devem ser números.")
+
+    def refresh_poles(self):
+        self.txt_poles.configure(state="normal")
+        self.txt_poles.delete("1.0", "end")
+        poles = self.db.get_all_poles()
+        for _, _, description, load in poles:
+            self.txt_poles.insert("end", f"• {description} ({load:.0f} daN)\n")
+        self.txt_poles.configure(state="disabled")
 
     def save_update_preferences(self):
         self.db.save_update_settings(

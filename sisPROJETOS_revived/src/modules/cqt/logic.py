@@ -1,7 +1,9 @@
-from collections import deque, defaultdict
+from collections import defaultdict, deque
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 from database.db_manager import DatabaseManager
 from utils.logger import get_logger
-
+from utils.sanitizer import sanitize_positive, sanitize_string
 
 logger = get_logger(__name__)
 
@@ -13,15 +15,20 @@ class CQTLogic:
     momento elétrico, fator de demanda, e dimensionamento de redes de distribuição.
     """
 
-    def __init__(self):
+    # Limite máximo de CQT acumulado por trecho — metodologia Enel CNS-OMBR-MAT-19-0285.
+    # Critério de projeto (design threshold), mais conservador que o limite de conformidade
+    # PRODIST Módulo 8 (8%), garantindo margem operacional adequada em BT residencial.
+    CQT_LIMIT_PERCENT: float = 5.0
+
+    def __init__(self) -> None:
         """Inicializa a lógica de CQT e carrega coeficientes do banco."""
         self.db = DatabaseManager()
         # UNIT_DIVISOR for meters to hectometers (Enel methodology)
-        self.UNIT_DIVISOR = 100.0
+        self.UNIT_DIVISOR: float = 100.0
 
         # DMDI Demand Table (From Enel CNS-OMBR-MAT-19-0285)
         # (Min, Max, Cls A, Cls B, Cls C, Cls D)
-        self.TABELA_DEMANDA = [
+        self.TABELA_DEMANDA: List[Tuple[int, int, float, float, float, float]] = [
             (1, 5, 1.50, 2.50, 4.00, 6.00),
             (6, 10, 1.20, 2.00, 3.20, 5.00),
             (11, 20, 1.00, 1.60, 2.50, 4.00),
@@ -31,10 +38,14 @@ class CQTLogic:
         ]
 
         # Load cable coefficients
-        self.CABOS_COEFS = self.get_cable_coefs()
+        self.CABOS_COEFS: Dict[str, float] = self.get_cable_coefs()
 
-    def get_cable_coefs(self):
-        """Fetches cable coefficients from database."""
+    def get_cable_coefs(self) -> Dict[str, float]:
+        """Busca coeficientes de cabo no banco de dados.
+
+        Returns:
+            Dicionário {nome_cabo: coeficiente_k}.
+        """
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()
@@ -53,25 +64,37 @@ class CQTLogic:
                 "3x150+70mm² Al": 0.0573,
             }
 
-    def get_fator_demanda(self, client_count, social_class):
-        """Returns the DMDI factor based on client count and class (A, B, C, D)."""
+    def get_fator_demanda(self, client_count: int, social_class: str) -> float:
+        """Retorna o fator de demanda DMDI conforme contagem e classe social.
+
+        Args:
+            client_count: Número total de unidades consumidoras.
+            social_class: Classe social dominante (A, B, C ou D).
+
+        Returns:
+            Fator de demanda DMDI correspondente.
+        """
         idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(social_class, 0)
         for mn, mx, *v in self.TABELA_DEMANDA:
             if mn <= client_count <= mx:
                 return v[idx]
         return [0.5, 0.8, 1.3, 2.0][idx]
 
-    def validate_and_sort(self, segments):
-        """
-        Validates topology and returns segments in topological order.
-        segments: list of dicts with 'ponto', 'montante'
+    def validate_and_sort(self, segments: List[Dict[str, Any]]) -> Tuple[bool, str, List[str]]:
+        """Valida a topologia da rede e ordena os segmentos topologicamente.
+
+        Args:
+            segments: Lista de dicionários com 'ponto' e 'montante'.
+
+        Returns:
+            Tupla (válido, mensagem_de_erro, lista_ordenada_de_pontos).
         """
         if not segments:
             return False, "Nenhum dado fornecido.", []
 
-        nodes = set()
-        adj = defaultdict(list)
-        in_degree = defaultdict(int)
+        nodes: Set[str] = set()
+        adj: Dict[str, List[str]] = defaultdict(list)
+        in_degree: Dict[str, int] = defaultdict(int)
 
         for s in segments:
             p, m = str(s["ponto"]).upper(), str(s["montante"]).upper()
@@ -86,8 +109,8 @@ class CQTLogic:
             return False, "Ponto de origem 'TRAFO' não encontrado.", []
 
         # Topological sort (BFS)
-        queue = deque(["TRAFO"])
-        sorted_points = []
+        queue: deque[str] = deque(["TRAFO"])
+        sorted_points: List[str] = []
         while queue:
             u = queue.popleft()
             sorted_points.append(u)
@@ -101,11 +124,32 @@ class CQTLogic:
 
         return True, "", sorted_points
 
-    def calculate(self, segments, trafo_kva, social_class="B"):
+    def calculate(
+        self,
+        segments: List[Dict[str, Any]],
+        trafo_kva: float,
+        social_class: str = "B",
+    ) -> Dict[str, Any]:
+        """Orquestra o cálculo CQT/BDI para toda a rede.
+
+        Args:
+            segments: Lista de trechos com campos (ponto, montante, metros,
+                      cabo, mono, bi, tri, tri_esp, carga_esp).
+            trafo_kva: Potência do transformador em kVA (deve ser > 0).
+            social_class: Classe social dominante (A, B, C ou D; padrão: B).
+
+        Returns:
+            Dicionário com 'success', 'results', 'summary' ou 'error'.
         """
-        Main calculation orchestrator.
-        segments: list of dicts with fields (ponto, montante, metros, cabo, mono, bi, tri, tri_esp, carga_esp)
-        """
+        try:
+            trafo_kva = sanitize_positive(trafo_kva)
+            social_class = sanitize_string(social_class, max_length=1, allow_empty=False).upper()
+            if social_class not in ("A", "B", "C", "D"):
+                raise ValueError(f"Classe social inválida: '{social_class}'. Use A, B, C ou D.")
+        except ValueError as e:
+            logger.warning("Valor inválido em calculate (CQT): %s", e)
+            return {"success": False, "error": str(e)}
+
         valid, msg, order = self.validate_and_sort(segments)
         if not valid:
             return {"success": False, "error": msg}
@@ -119,7 +163,7 @@ class CQTLogic:
         )
         fd = self.get_fator_demanda(total_clients, social_class)
 
-        results = {}
+        results: Dict[str, Any] = {}
         for p in order:
             s = pmap[p]
             p_mono = s.get("mono", 0)
@@ -140,7 +184,7 @@ class CQTLogic:
             }
 
         # 2. Accumulated Load (Bottom-Up)
-        accum = defaultdict(float)
+        accum: Dict[str, float] = defaultdict(float)
         for p in reversed(order):
             accum[p] += results[p]["total_local"]
             pai = str(pmap[p]["montante"]).upper()
@@ -149,7 +193,7 @@ class CQTLogic:
             results[p]["accumulated"] = accum[p]
 
         # 3. Accumulated CQT (Top-Down)
-        cqt_accum = {"TRAFO": 0.0}
+        cqt_accum: Dict[str, float] = {"TRAFO": 0.0}
         for p in order:
             if p == "TRAFO":
                 continue
@@ -171,13 +215,19 @@ class CQTLogic:
             results[p]["cqt_accumulated"] = cqt_accum.get(pai, 0.0) + q_trecho
             cqt_accum[p] = results[p]["cqt_accumulated"]
 
+        max_cqt = max(r["cqt_accumulated"] for r in results.values())
+        segments_over_limit = [p for p, r in results.items() if r["cqt_accumulated"] > self.CQT_LIMIT_PERCENT]
+
         return {
             "success": True,
             "results": results,
             "summary": {
                 "fd": fd,
                 "total_clients": total_clients,
-                "max_cqt": max(r["cqt_accumulated"] for r in results.values()),
+                "max_cqt": max_cqt,
                 "total_kva": results["TRAFO"]["accumulated"],
+                "cqt_limit_percent": self.CQT_LIMIT_PERCENT,
+                "within_enel_limit": max_cqt <= self.CQT_LIMIT_PERCENT,
+                "segments_over_limit": segments_over_limit,
             },
         }

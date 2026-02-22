@@ -1,12 +1,18 @@
 """
 Testes unitários e de integração para a API REST do sisPROJETOS.
 
-Cobre todos os endpoints da API Half-way BIM:
+Cobre os endpoints de cálculo:
+- GET  /health                        (estado de saúde rico — DB status, environment, timestamp)
 - POST /api/v1/electrical/voltage-drop
 - POST /api/v1/cqt/calculate
 - POST /api/v1/catenary/calculate
 - POST /api/v1/pole-load/resultant
-- GET  /health
+- GET  /api/v1/electrical/materials
+- GET  /api/v1/pole-load/suggest
+
+Testes específicos de catenária (include_curve, DXF, folga NBR 5422): ver test_api_catenary.py
+Padrões normativos (ABNT/ANEEL/PRODIST): ver test_api_standards.py
+BIM endpoints (dados mestres, conversor, projetos): ver test_api_bim.py
 """
 
 import pytest
@@ -17,11 +23,13 @@ from fastapi.testclient import TestClient
 def client():
     """Cliente de testes FastAPI (reutilizado em todos os testes do módulo)."""
     from src.api.app import create_app
+
     app = create_app()
     return TestClient(app)
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────
+
 
 class TestHealth:
     def test_health_returns_ok(self, client):
@@ -31,12 +39,47 @@ class TestHealth:
         assert data["status"] == "ok"
         assert "version" in data
 
+    def test_health_has_db_status_ok(self, client):
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        assert resp.json()["db_status"] == "ok"
+
+    def test_health_has_environment_field(self, client):
+        resp = client.get("/health")
+        assert resp.json()["environment"] in ("development", "production")
+
+    def test_health_has_iso_timestamp(self, client):
+        from datetime import datetime
+
+        resp = client.get("/health")
+        ts = resp.json()["timestamp"]
+        # Should parse as a valid ISO 8601 datetime (raises ValueError if not)
+        datetime.fromisoformat(ts)
+
+    def test_health_version_matches_package(self, client):
+        from src.__version__ import __version__
+
+        resp = client.get("/health")
+        assert resp.json()["version"] == __version__
+
+    def test_health_degraded_when_db_fails(self, client, mocker):
+        mocker.patch(
+            "api.routes.health._db.get_all_conductors",
+            side_effect=Exception("DB inacessível"),
+        )
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "degraded"
+        assert data["db_status"] == "error"
+
     def test_docs_accessible(self, client):
         resp = client.get("/docs")
         assert resp.status_code == 200
 
 
 # ── Elétrico ───────────────────────────────────────────────────────────────────
+
 
 class TestElectricalEndpoint:
     _URL = "/api/v1/electrical/voltage-drop"
@@ -105,13 +148,44 @@ class TestElectricalEndpoint:
 
 # ── CQT ────────────────────────────────────────────────────────────────────────
 
+
 class TestCQTEndpoint:
     _URL = "/api/v1/cqt/calculate"
 
     _VALID_SEGMENTS = [
-        {"ponto": "TRAFO", "montante": "", "metros": 0, "cabo": "", "mono": 0, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
-        {"ponto": "P1", "montante": "TRAFO", "metros": 50, "cabo": "3x35+54.6mm² Al", "mono": 5, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
-        {"ponto": "P2", "montante": "P1", "metros": 30, "cabo": "3x35+54.6mm² Al", "mono": 3, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
+        {
+            "ponto": "TRAFO",
+            "montante": "",
+            "metros": 0,
+            "cabo": "",
+            "mono": 0,
+            "bi": 0,
+            "tri": 0,
+            "tri_esp": 0,
+            "carga_esp": 0,
+        },
+        {
+            "ponto": "P1",
+            "montante": "TRAFO",
+            "metros": 50,
+            "cabo": "3x35+54.6mm² Al",
+            "mono": 5,
+            "bi": 0,
+            "tri": 0,
+            "tri_esp": 0,
+            "carga_esp": 0,
+        },
+        {
+            "ponto": "P2",
+            "montante": "P1",
+            "metros": 30,
+            "cabo": "3x35+54.6mm² Al",
+            "mono": 3,
+            "bi": 0,
+            "tri": 0,
+            "tri_esp": 0,
+            "carga_esp": 0,
+        },
     ]
 
     def test_calculo_valido(self, client):
@@ -124,9 +198,39 @@ class TestCQTEndpoint:
         assert "fd" in data["summary"]
         assert "max_cqt" in data["summary"]
 
+    def test_summary_has_enel_compliance_fields(self, client):
+        """Resumo deve conter within_enel_limit, cqt_limit_percent (CNS-OMBR-MAT-19-0285)."""
+        payload = {"segments": self._VALID_SEGMENTS, "trafo_kva": 112.5, "social_class": "B"}
+        resp = client.post(self._URL, json=payload)
+        assert resp.status_code == 200
+        summary = resp.json()["summary"]
+        assert "within_enel_limit" in summary
+        assert "cqt_limit_percent" in summary
+        assert summary["cqt_limit_percent"] == pytest.approx(5.0)
+        assert isinstance(summary["within_enel_limit"], bool)
+
+    def test_response_has_segments_over_limit_field(self, client):
+        """Resposta deve conter segments_over_limit como lista (vazia ou preenchida)."""
+        payload = {"segments": self._VALID_SEGMENTS, "trafo_kva": 112.5, "social_class": "B"}
+        resp = client.post(self._URL, json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "segments_over_limit" in data
+        assert isinstance(data["segments_over_limit"], list)
+
     def test_sem_trafo_retorna_erro(self, client):
         segments = [
-            {"ponto": "P1", "montante": "", "metros": 50, "cabo": "3x35+54.6mm² Al", "mono": 5, "bi": 0, "tri": 0, "tri_esp": 0, "carga_esp": 0},
+            {
+                "ponto": "P1",
+                "montante": "",
+                "metros": 50,
+                "cabo": "3x35+54.6mm² Al",
+                "mono": 5,
+                "bi": 0,
+                "tri": 0,
+                "tri_esp": 0,
+                "carga_esp": 0,
+            },
         ]
         payload = {"segments": segments, "trafo_kva": 112.5, "social_class": "B"}
         resp = client.post(self._URL, json=payload)
@@ -148,6 +252,7 @@ class TestCQTEndpoint:
 
 
 # ── Catenária ──────────────────────────────────────────────────────────────────
+
 
 class TestCatenaryEndpoint:
     _URL = "/api/v1/catenary/calculate"
@@ -190,6 +295,7 @@ class TestCatenaryEndpoint:
 
 
 # ── Esforços em Postes ─────────────────────────────────────────────────────────
+
 
 class TestPoleLoadEndpoint:
     _URL = "/api/v1/pole-load/resultant"
@@ -259,3 +365,116 @@ class TestPoleLoadEndpoint:
         payload = {"concessionaria": "Light", "condicao": "Normal", "cabos": []}
         resp = client.post(self._URL, json=payload)
         assert resp.status_code == 422
+
+
+# ── Materiais Elétricos ────────────────────────────────────────────────────────
+
+
+class TestElectricalMaterialsEndpoint:
+    """Testa o endpoint GET /api/v1/electrical/materials."""
+
+    _URL = "/api/v1/electrical/materials"
+
+    def test_retorna_200(self, client):
+        resp = client.get(self._URL)
+        assert resp.status_code == 200
+
+    def test_retorna_lista_com_campos_obrigatorios(self, client):
+        data = client.get(self._URL).json()
+        assert len(data) >= 2  # Alumínio e Cobre pré-populados
+        for item in data:
+            assert "name" in item
+            assert "resistivity_ohm_mm2_m" in item
+            assert "description" in item
+            assert isinstance(item["resistivity_ohm_mm2_m"], float)
+
+    def test_aluminio_presente(self, client):
+        data = client.get(self._URL).json()
+        names = [m["name"] for m in data]
+        assert "Alumínio" in names
+
+    def test_cobre_presente(self, client):
+        data = client.get(self._URL).json()
+        names = [m["name"] for m in data]
+        assert "Cobre" in names
+
+    def test_erro_db_retorna_500(self, client, mocker):
+        """Cobre branch de erro: exception na lógica → HTTP 500."""
+        mocker.patch(
+            "src.api.routes.electrical.ElectricalLogic.get_materials",
+            side_effect=RuntimeError("DB offline"),
+        )
+        resp = client.get(self._URL)
+        assert resp.status_code == 500
+
+
+# ── Sugestão de Postes ────────────────────────────────────────────────────────
+
+
+class TestPoleSuggestEndpoint:
+    """Testa o endpoint GET /api/v1/pole-load/suggest."""
+
+    _URL = "/api/v1/pole-load/suggest"
+
+    def test_retorna_200_com_force_valida(self, client):
+        resp = client.get(self._URL, params={"force_daN": 150.0})
+        assert resp.status_code == 200
+
+    def test_resposta_tem_campos_obrigatorios(self, client):
+        data = client.get(self._URL, params={"force_daN": 150.0}).json()
+        assert "force_daN" in data
+        assert "suggested_poles" in data
+        assert isinstance(data["suggested_poles"], list)
+        assert data["force_daN"] == 150.0
+
+    def test_force_zero_retorna_422(self, client):
+        """force_daN=0 deve falhar na validação Pydantic (gt=0)."""
+        resp = client.get(self._URL, params={"force_daN": 0.0})
+        assert resp.status_code == 422
+
+    def test_force_muito_alta_retorna_lista_vazia(self, client):
+        """Força maior que qualquer poste disponível retorna lista vazia."""
+        data = client.get(self._URL, params={"force_daN": 999999.0}).json()
+        assert data["suggested_poles"] == []
+
+    def test_concreto_sugerido_para_force_200(self, client):
+        """Para 200 daN, deve sugerir pelo menos o poste de Concreto 11m/200daN."""
+        data = client.get(self._URL, params={"force_daN": 200.0}).json()
+        materials = [p["material"] for p in data["suggested_poles"]]
+        assert "Concreto" in materials
+
+    def test_erro_db_retorna_500(self, client, mocker):
+        """Cobre branch de erro: exception na lógica → HTTP 500."""
+        mocker.patch(
+            "src.api.routes.pole_load.PoleLoadLogic.suggest_pole",
+            side_effect=RuntimeError("DB offline"),
+        )
+        resp = client.get(self._URL, params={"force_daN": 100.0})
+        assert resp.status_code == 500
+
+
+# ── Cobertura de branches defensivos ─────────────────────────────────────────
+
+
+class TestCatenaryEndpointDefensiveBranches:
+    """Cobre branches defensivos da rota catenary que não são alcançados via
+    validação Pydantic normal (requer mock da lógica)."""
+
+    _URL = "/api/v1/catenary/calculate"
+
+    def test_logic_returns_none_retorna_422(self, client, mocker):
+        """Cobre linhas 39-40: CatenaryLogic.calculate_catenary retorna None → 422."""
+        mocker.patch(
+            "src.api.routes.catenary.CatenaryLogic.calculate_catenary",
+            return_value=None,
+        )
+        payload = {
+            "span": 80.0,
+            "ha": 9.0,
+            "hb": 9.0,
+            "tension_daN": 500.0,
+            "weight_kg_m": 0.779,
+        }
+        resp = client.post(self._URL, json=payload)
+        assert resp.status_code == 422
+        assert resp.json()["detail"] == "Peso linear zero ou dados inválidos para o cálculo."
