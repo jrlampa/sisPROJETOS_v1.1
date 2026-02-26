@@ -19,6 +19,28 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [2.1.1] - 2026-02-26
+
+### 🔧 Corrigido
+
+#### API REST
+
+- **`GET /api/v1/projects/list`** — Corrigido `NameError: name 'base_path' is not defined` que tornava o endpoint completamente inoperante
+  - Adicionado parâmetro `base_path: str = Query(...)` ausente na assinatura de `list_projects`
+  - Reordenado o corpo da função: verificação de null-byte → `Path.resolve()` → checagem de diretório → listagem
+  - Removido bloco `PROJECTS_ROOT` duplicado e com lógica fora de ordem que bloqueava caminhos válidos (`/tmp/…`)
+
+#### Qualidade
+
+- **Formatação black** corrigida em `src/api/routes/project_creator.py`
+- **isort** corrigido em `src/api/routes/project_creator.py`
+
+### 🧪 Testes
+
+- **841 testes** passando (todos os 9 testes do endpoint `/projects/list` agora passam)
+
+---
+
 ## [2.1.0] - 2026-02-21
 
 ### ✨ Adicionado

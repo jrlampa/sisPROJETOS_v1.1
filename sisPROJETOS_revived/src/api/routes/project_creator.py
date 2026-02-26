@@ -6,8 +6,8 @@ Endpoints:
 - GET  /api/v1/projects/list   — Lista projetos em um diretório base
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -17,13 +17,8 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Diretório raiz seguro onde os projetos devem estar localizados.
-# Ajuste este caminho conforme a configuração real do ambiente.
 # Diretório raiz seguro para listagem de projetos. Pode ser configurado via variável de ambiente.
-PROJECTS_ROOT = Path(
-    os.getenv("SISPROJETOS_PROJECTS_ROOT", "/srv/sisprojetos/projects")
-).resolve()
-PROJECTS_ROOT = Path("/srv/projects").resolve()
+PROJECTS_ROOT = Path(os.getenv("SISPROJETOS_PROJECTS_ROOT", "/srv/sisprojetos/projects")).resolve()
 
 
 router = APIRouter(prefix="/projects", tags=["Projetos"])

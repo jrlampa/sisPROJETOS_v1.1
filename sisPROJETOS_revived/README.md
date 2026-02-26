@@ -1,4 +1,4 @@
-# ⚡ sisPROJETOS v2.0
+# ⚡ sisPROJETOS v2.1.1
 
 > **Sistema Integrado de Projetos Elétricos**  
 > Ferramenta profissional para engenharia elétrica e projetos de redes de distribuição
@@ -6,13 +6,13 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.txt)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010/11-lightgrey.svg)]()
-[![Tests](https://img.shields.io/badge/Tests-388%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-841%20passing-brightgreen.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)]()
 [![Logging](https://img.shields.io/badge/Logging-Centralized-blue.svg)]()
 [![AutoUpdate](https://img.shields.io/badge/AutoUpdate-Implemented-brightgreen.svg)]()
 [![API](https://img.shields.io/badge/API-REST%20FastAPI-blue.svg)]()
 [![CI](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/ci.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/ci.yml)
-[![Release](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/release.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/release.yml)
+[![Release](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/build-release.yml/badge.svg)](https://github.com/jrlampa/sisPROJETOS_v1.1/actions/workflows/build-release.yml)
 ---
 
 ## 📋 Visão Geral
